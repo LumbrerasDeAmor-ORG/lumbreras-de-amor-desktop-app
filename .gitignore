@@ -1,0 +1,31 @@
+# Planning & Scrum docs
+planing.md
+scrum.md
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.astro/
+
+# Tauri & Rust build artifacts
+src-tauri/target/
+
+# Environment & Local Databases
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

@@ -6,8 +6,12 @@
     "dev": "pnpm --filter @lumbreras/desktop dev",
     "build": "pnpm --filter \"@lumbreras/*\" build",
     "db:generate": "pnpm --filter @lumbreras/database generate",
+    "test": "vitest run",
     "tauri": "pnpm --filter @lumbreras/desktop tauri",
     "desktop:dev": "pnpm --filter @lumbreras/desktop tauri dev",
     "desktop:build": "pnpm --filter @lumbreras/desktop tauri build"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.1"
   }
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createDatabaseClient } from "./index";
+import { createDatabaseClient } from "./index.js";
 
 describe("Database Layer (Prisma 7 + libSQL)", () => {
   it("debe instanciar el cliente en modo local por defecto", () => {

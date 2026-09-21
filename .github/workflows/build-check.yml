@@ -1,0 +1,50 @@
+name: Build Check CI
+
+on:
+  push:
+    branches: [ "main", "master", "develop", "github/workflows" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-check:
+    name: Verify Application Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.8.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm db:generate
+
+      - name: Check Database Types
+        run: pnpm --filter @lumbreras/database exec tsc --noEmit
+
+      - name: Build Frontend Application
+        run: pnpm build
+
+      - name: Verify Build Output
+        run: |
+          test -d apps/desktop/dist || (echo "dist directory not found" && exit 1)
+          test -f apps/desktop/dist/index.html || (echo "index.html not generated" && exit 1)
+          echo "Build check completed successfully."

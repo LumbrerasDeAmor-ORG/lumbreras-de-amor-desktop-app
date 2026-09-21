@@ -12,7 +12,10 @@
     "desktop:build": "pnpm --filter @lumbreras/desktop tauri build",
     "sidecar:dev": "pnpm --filter @lumbreras/sidecar dev",
     "sidecar:build": "pnpm --filter @lumbreras/sidecar build:binary",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docker:build": "docker compose build",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
   },
   "devDependencies": {
     "vitest": "^5.0.1"

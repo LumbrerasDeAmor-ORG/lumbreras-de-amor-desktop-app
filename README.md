@@ -54,6 +54,34 @@ DATABASE_URL="file:./dev.db"
 | `pnpm sidecar:dev` | Inicia el servidor local del Sidecar de datos con Bun (`http://localhost:4111`). |
 | `pnpm sidecar:build` | Compila el binario autónomo del Sidecar junto a sus módulos nativos en `packages/sidecar/dist/`. |
 | `pnpm db:generate` | Regenera el cliente de Prisma tras modificar `schema.prisma`. |
+| `pnpm docker:up` | Construye y levanta los servicios en Docker con `docker compose up -d`. |
+| `pnpm docker:down` | Detiene y remueve los contenedores de Docker con `docker compose down`. |
+
+---
+
+## Ejecución con Docker
+
+Puedes levantar el Frontend y el Sidecar de base de datos con un único comando mediante Docker Compose:
+
+```bash
+# Construir y levantar contenedores en segundo plano
+docker compose up -d --build
+
+# O usando el script de pnpm:
+pnpm docker:up
+```
+
+Una vez levantado:
+- **Frontend (Astro + Nginx):** `http://localhost:1420`
+- **Sidecar API (Bun + Prisma 7 + SQLite):** `http://localhost:4111/health`
+- **Persistencia de Base de Datos:** Los datos se guardan en el volumen Docker `sidecar_data`.
+
+Para detener los servicios:
+```bash
+docker compose down
+# O con pnpm:
+pnpm docker:down
+```
 
 ---
 

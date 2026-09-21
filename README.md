@@ -48,9 +48,56 @@ DATABASE_URL="file:./dev.db"
 
 | Comando | Acción |
 | :--- | :--- |
+| `pnpm dev:all` | Inicia simultáneamente el Sidecar (Bun) y el Frontend (Astro). |
 | `pnpm dev` | Inicia el servidor de desarrollo del Frontend (Astro) en `http://localhost:1420`. |
-| `pnpm desktop:dev` | Inicia la aplicación completa en modo escritorio (Tauri + WebView + Frontend). |
+| `pnpm desktop:dev` | Inicia la aplicación completa en ventana nativa de escritorio (Tauri). |
+| `pnpm sidecar:dev` | Inicia el servidor local del Sidecar de datos con Bun (`http://localhost:4111`). |
+| `pnpm sidecar:build` | Compila el binario autónomo del Sidecar junto a sus módulos nativos en `packages/sidecar/dist/`. |
 | `pnpm db:generate` | Regenera el cliente de Prisma tras modificar `schema.prisma`. |
+| `pnpm docker:up` | Construye y levanta los servicios en Docker con `docker compose up -d`. |
+| `pnpm docker:down` | Detiene y remueve los contenedores de Docker con `docker compose down`. |
+
+---
+
+## Ejecución con Docker
+
+Puedes levantar el Frontend y el Sidecar de base de datos con un único comando mediante Docker Compose:
+
+```bash
+# Construir y levantar contenedores en segundo plano
+docker compose up -d --build
+
+# O usando el script de pnpm:
+pnpm docker:up
+```
+
+Una vez levantado:
+- **Frontend (Astro + Nginx):** `http://localhost:1420`
+- **Sidecar API (Bun + Prisma 7 + SQLite):** `http://localhost:4111/health`
+- **Persistencia de Base de Datos:** Los datos se guardan en el volumen Docker `sidecar_data`.
+
+Para detener los servicios:
+```bash
+docker compose down
+# O con pnpm:
+pnpm docker:down
+```
+
+---
+
+### Requisitos del Sistema para Tauri en Linux
+
+Para compilar y abrir la ventana nativa de Tauri en Linux:
+
+- **Fedora:**
+  ```bash
+  sudo dnf install -y gcc gcc-c++ webkit2gtk4.1-devel openssl-devel librsvg2-devel
+  ```
+
+- **Ubuntu / Debian:**
+  ```bash
+  sudo apt update && sudo apt install -y build-essential libwebkit2gtk-4.1-dev libssl-dev librsvg2-dev
+  ```
 
 ---
 
@@ -73,9 +120,13 @@ pnpm build
 El sidecar que gestiona la base de datos se compila a un ejecutable independiente nativo utilizando Bun:
 
 ```bash
-# compilar el binario para tu plataforma actual:
+# Compilar el binario para tu plataforma actual:
+pnpm sidecar:build
+# O directamente con Bun:
 bun build --compile packages/sidecar/src/index.ts --outfile apps/desktop/src-tauri/binaries/data-sidecar
 ```
+
+> **Nota para desarrollo vs producción:** En modo desarrollo, Tauri ejecuta el script directamente mediante `pnpm sidecar:dev` con Bun (accediendo a las librerías nativas en disco). Para producción, los binarios compilados en `externalBin` de Tauri empaquetan las librerías de plataforma correspondientes.
 
 ### Paso 3: generar los ejecutables e instaladores de Desktop (Tauri)
 

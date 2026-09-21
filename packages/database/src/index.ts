@@ -10,7 +10,7 @@ export function createDatabaseClient(config: DbConfig = { mode: "local" }): Pris
   const clientConfig: Config =
     config.mode === "turso"
       ? { url: config.url, authToken: config.authToken }
-      : { url: config.url || "file:./local.db" };
+      : { url: config.url || process.env.DATABASE_URL || "file:./local.db" };
 
   const adapter = new PrismaLibSql(clientConfig);
   return new PrismaClient({ adapter });

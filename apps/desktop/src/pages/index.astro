@@ -1,15 +1,710 @@
 ---
+// apps/desktop/src/pages/index.astro
 ---
 
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Lumbreras de Amor</title>
+    <style>
+      :root {
+        --vscode-titlebar-bg: #181818;
+        --vscode-titlebar-fg: #cccccc;
+        --vscode-titlebar-border: #2b2b2b;
+        --vscode-main-bg: #1e1e1e;
+        --vscode-card-bg: #252526;
+        --vscode-card-border: #333333;
+        --vscode-text: #cccccc;
+        --vscode-text-bright: #ffffff;
+        --vscode-accent: #0078d4;
+        --vscode-green: #4ec9b0;
+        --vscode-red: #f14c4c;
+        --vscode-yellow: #cca700;
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono: "Consolas", "Courier New", monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--vscode-main-bg);
+        color: var(--vscode-text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      /* ============================================================
+         CLEAN VS CODE TITLEBAR
+         ============================================================ */
+      .vscode-titlebar {
+        height: 35px;
+        background-color: var(--vscode-titlebar-bg);
+        border-bottom: 1px solid var(--vscode-titlebar-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 0 0 12px;
+        font-size: 12px;
+        color: var(--vscode-titlebar-fg);
+        position: relative;
+        z-index: 1000;
+      }
+
+      /* Drag region covering the empty titlebar space */
+      .titlebar-drag-region {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 140px; /* leaves room for window control buttons */
+        bottom: 0;
+        z-index: 1;
+      }
+
+      .titlebar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 2;
+        position: relative;
+        pointer-events: none; /* let clicks pass through to drag region */
+      }
+
+      .app-icon {
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #007acc, #005a9e);
+        border-radius: 4px;
+        color: #ffffff;
+        font-weight: 800;
+        font-size: 10px;
+        letter-spacing: -0.5px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      }
+
+      .app-title {
+        font-size: 12px;
+        font-weight: 500;
+        color: #cccccc;
+        letter-spacing: 0.02em;
+      }
+
+      /* Window controls buttons (Minimize, Maximize, Close) */
+      .window-controls {
+        display: flex;
+        align-items: center;
+        height: 100%;
+        z-index: 2;
+      }
+
+      .window-btn {
+        width: 46px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        color: #cccccc;
+        cursor: pointer;
+        transition: background-color 0.1s, color 0.1s;
+      }
+
+      .window-btn:hover {
+        background-color: #333333;
+        color: #ffffff;
+      }
+
+      .window-btn.close-btn:hover {
+        background-color: #e81123;
+        color: #ffffff;
+      }
+
+      /* ============================================================
+         FRAMELESS WINDOW RESIZE HANDLES
+         ============================================================ */
+      .resize-handle {
+        position: fixed;
+        z-index: 99999;
+      }
+
+      .resize-top {
+        top: 0;
+        left: 8px;
+        right: 8px;
+        height: 6px;
+        cursor: n-resize;
+      }
+
+      .resize-bottom {
+        bottom: 0;
+        left: 8px;
+        right: 8px;
+        height: 6px;
+        cursor: s-resize;
+      }
+
+      .resize-left {
+        top: 8px;
+        bottom: 8px;
+        left: 0;
+        width: 6px;
+        cursor: w-resize;
+      }
+
+      .resize-right {
+        top: 8px;
+        bottom: 8px;
+        right: 0;
+        width: 6px;
+        cursor: e-resize;
+      }
+
+      .resize-top-left {
+        top: 0;
+        left: 0;
+        width: 10px;
+        height: 10px;
+        cursor: nw-resize;
+      }
+
+      .resize-top-right {
+        top: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        cursor: ne-resize;
+      }
+
+      .resize-bottom-left {
+        bottom: 0;
+        left: 0;
+        width: 10px;
+        height: 10px;
+        cursor: sw-resize;
+      }
+
+      .resize-bottom-right {
+        bottom: 0;
+        right: 0;
+        width: 10px;
+        height: 10px;
+        cursor: se-resize;
+      }
+
+      /* ============================================================
+         MAIN WORKSPACE AREA
+         ============================================================ */
+      .app-layout {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .main-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.75rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        max-width: 1000px;
+        width: 100%;
+        margin: 0 auto;
+        user-select: text;
+      }
+
+      .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #2d2d2d;
+      }
+
+      .content-title {
+        font-size: 1.15rem;
+        font-weight: 600;
+        color: var(--vscode-text-bright);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      /* Status Cards Grid */
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+      }
+
+      .card {
+        background-color: var(--vscode-card-bg);
+        border: 1px solid var(--vscode-card-border);
+        border-radius: 6px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        transition: border-color 0.2s;
+      }
+
+      .card:hover {
+        border-color: #444444;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .card-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #858585;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        font-weight: 500;
+      }
+
+      .status-pill.online {
+        background-color: rgba(63, 185, 80, 0.15);
+        color: #4ec9b0;
+        border: 1px solid rgba(78, 201, 176, 0.3);
+      }
+
+      .status-pill.checking {
+        background-color: rgba(204, 167, 0, 0.15);
+        color: #cca700;
+        border: 1px solid rgba(204, 167, 0, 0.3);
+      }
+
+      .status-pill.offline {
+        background-color: rgba(241, 76, 76, 0.15);
+        color: #f14c4c;
+        border: 1px solid rgba(241, 76, 76, 0.3);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: currentColor;
+      }
+
+      .card-value {
+        font-size: 1.45rem;
+        font-weight: 600;
+        color: var(--vscode-text-bright);
+      }
+
+      .card-subtext {
+        font-size: 0.8rem;
+        color: #858585;
+      }
+
+      /* SQL Interactive Panel */
+      .section-box {
+        background-color: var(--vscode-card-bg);
+        border: 1px solid var(--vscode-card-border);
+        border-radius: 6px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+      }
+
+      .query-form {
+        display: flex;
+        gap: 0.6rem;
+      }
+
+      .query-input {
+        flex: 1;
+        background-color: #1e1e1e;
+        border: 1px solid #3c3c3c;
+        border-radius: 4px;
+        color: #d4d4d4;
+        padding: 0.65rem 0.9rem;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+
+      .query-input:focus {
+        outline: none;
+        border-color: #007acc;
+      }
+
+      .btn {
+        background-color: #0e639c;
+        color: #ffffff;
+        border: none;
+        border-radius: 4px;
+        padding: 0.65rem 1.15rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: background-color 0.15s;
+      }
+
+      .btn:hover {
+        background-color: #1177bb;
+      }
+
+      .btn-secondary {
+        background-color: #252526;
+        border: 1px solid #3c3c3c;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+      }
+
+      .btn-secondary:hover {
+        background-color: #333333;
+      }
+
+      .code-display {
+        background-color: #181818;
+        border: 1px solid #2b2b2b;
+        border-radius: 4px;
+        padding: 0.9rem;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        color: #9cdcfe;
+        max-height: 240px;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+    </style>
   </head>
   <body>
-    <main>
-      <h1>Lumbreras de Amor Desktop</h1>
-    </main>
+    <!-- Window Resize Handles for Frameless Mode -->
+    <div class="resize-handle resize-top" data-direction="North"></div>
+    <div class="resize-handle resize-bottom" data-direction="South"></div>
+    <div class="resize-handle resize-left" data-direction="West"></div>
+    <div class="resize-handle resize-right" data-direction="East"></div>
+    <div class="resize-handle resize-top-left" data-direction="NorthWest"></div>
+    <div class="resize-handle resize-top-right" data-direction="NorthEast"></div>
+    <div class="resize-handle resize-bottom-left" data-direction="SouthWest"></div>
+    <div class="resize-handle resize-bottom-right" data-direction="SouthEast"></div>
+
+    <!-- ============================================================
+         CLEAN TITLE BAR (VS CODE STYLE)
+         ============================================================ -->
+    <header class="vscode-titlebar" id="titlebar">
+      <!-- Drag region across the title bar -->
+      <div class="titlebar-drag-region" data-tauri-drag-region></div>
+
+      <!-- Left: Logo & Window Title -->
+      <div class="titlebar-left">
+        <div class="app-icon" title="Lumbreras de Amor">L</div>
+        <span class="app-title">Lumbreras de Amor</span>
+      </div>
+
+      <!-- Right: Window Controls (Minimize, Maximize, Close) -->
+      <div class="window-controls">
+        <button id="btn-minimize" class="window-btn" title="Minimizar">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
+            <rect y="5" width="12" height="1.5" rx="0.5"/>
+          </svg>
+        </button>
+        <button id="btn-maximize" class="window-btn" title="Maximizar">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="1" y="1" width="10" height="10" rx="1"/>
+          </svg>
+        </button>
+        <button id="btn-close" class="window-btn close-btn" title="Cerrar">
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor">
+            <path d="M1.5 0.5L6 5L10.5 0.5L11.5 1.5L7 6L11.5 10.5L10.5 11.5L6 7L1.5 11.5L0.5 10.5L5 6L0.5 1.5L1.5 0.5Z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- ============================================================
+         MAIN WORKSPACE AREA
+         ============================================================ -->
+    <div class="app-layout">
+      <main class="main-container">
+        <div class="content-header">
+          <h1 class="content-title">
+            Panel de Diagnóstico y Base de Datos
+          </h1>
+          <button id="btn-refresh" class="btn btn-secondary">
+            ↻ Reintentar conexión
+          </button>
+        </div>
+
+        <div class="cards-grid">
+          <!-- Card 1: Sidecar -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Sidecar Bun</span>
+              <span id="sidecar-status" class="status-pill checking">
+                <span class="dot"></span> Verificando...
+              </span>
+            </div>
+            <div id="sidecar-latency" class="card-value">-- ms</div>
+            <div id="sidecar-url" class="card-subtext">http://127.0.0.1:4111/health</div>
+          </div>
+
+          <!-- Card 2: Prisma + SQLite -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Prisma ORM & SQLite</span>
+              <span id="db-status" class="status-pill checking">
+                <span class="dot"></span> Verificando...
+              </span>
+            </div>
+            <div id="db-latency" class="card-value">-- ms</div>
+            <div id="db-subtext" class="card-subtext">Modo Local (libSQL Adapter)</div>
+          </div>
+
+          <!-- Card 3: Servidor de UI -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Frontend</span>
+              <span class="status-pill online">
+                <span class="dot"></span> En línea
+              </span>
+            </div>
+            <div class="card-value">Astro 5</div>
+            <div class="card-subtext">Puerto activo: 1420</div>
+          </div>
+        </div>
+
+        <!-- Test query interactive section -->
+        <section class="section-box">
+          <h2 style="font-size: 1rem; font-weight: 600;">Consulta a Base de Datos en Vivo vía Sidecar</h2>
+          <p class="card-subtext">
+            Ejecuta una consulta SQL en tiempo real a través del Sidecar y Prisma usando <code>$queryRawUnsafe</code>:
+          </p>
+
+          <form id="query-form" class="query-form">
+            <input
+              id="sql-input"
+              type="text"
+              class="query-input"
+              value="SELECT 1 as connected, datetime('now') as server_time, sqlite_version() as engine_version"
+              placeholder="Escribe tu consulta SQL aquí..."
+            />
+            <button type="submit" class="btn">Ejecutar SQL</button>
+          </form>
+
+          <pre id="query-output" class="code-display">// Los resultados aparecerán aquí al ejecutar la consulta...</pre>
+        </section>
+
+        <!-- Instrucciones si el sidecar no está listo -->
+        <section id="sidecar-alert" class="section-box" style="display: none; border-color: var(--vscode-yellow);">
+          <h2 style="color: var(--vscode-yellow); font-size: 1rem;">⚠️ Sidecar desconectado</h2>
+          <p class="card-subtext">
+            El frontend está activo, pero no se pudo conectar con el Sidecar en <code>http://127.0.0.1:4111</code>.
+          </p>
+          <pre class="code-display" style="color: #ffffff;">pnpm sidecar:dev</pre>
+        </section>
+      </main>
+    </div>
+
+    <!-- Client-side JavaScript -->
+    <script>
+      // ============================================================
+      // 1. TAURI WINDOW CONTROLS (Minimize, Maximize, Close)
+      // ============================================================
+      let appWindow = null;
+
+      async function initTauriWindow() {
+        if (typeof window !== "undefined" && ("__TAURI_INTERNALS__" in window || "__TAURI__" in window)) {
+          try {
+            const { getCurrentWindow } = await import("@tauri-apps/api/window");
+            appWindow = getCurrentWindow();
+          } catch (err) {
+            console.info("Ejecutando fuera de Tauri (navegador web)");
+          }
+        }
+      }
+
+      initTauriWindow();
+
+      document.getElementById("btn-minimize")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (appWindow) {
+          await appWindow.minimize();
+        }
+      });
+
+      document.getElementById("btn-maximize")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (appWindow) {
+          await appWindow.toggleMaximize();
+        }
+      });
+
+      document.getElementById("btn-close")?.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (appWindow) {
+          await appWindow.close();
+        }
+      });
+
+      // Permite redimensionar la ventana arrastrando cualquiera de sus 4 bordes o 4 esquinas
+      document.querySelectorAll(".resize-handle").forEach((handle) => {
+        handle.addEventListener("mousedown", async (e) => {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          const direction = handle.getAttribute("data-direction");
+          if (appWindow && direction) {
+            try {
+              await appWindow.startResizeDragging(direction);
+            } catch (err) {
+              console.warn("No se pudo iniciar resize dragging:", err);
+            }
+          }
+        });
+      });
+
+      // ============================================================
+      // 2. SIDECAR & DATABASE CONNECTION
+      // ============================================================
+      let SIDECAR_URL = "http://127.0.0.1:4111";
+
+      const sidecarStatusEl = document.getElementById("sidecar-status");
+      const sidecarLatencyEl = document.getElementById("sidecar-latency");
+      const dbStatusEl = document.getElementById("db-status");
+      const dbLatencyEl = document.getElementById("db-latency");
+      const dbSubtextEl = document.getElementById("db-subtext");
+      const queryForm = document.getElementById("query-form");
+      const sqlInput = document.getElementById("sql-input");
+      const queryOutput = document.getElementById("query-output");
+      const sidecarAlert = document.getElementById("sidecar-alert");
+      const btnRefresh = document.getElementById("btn-refresh");
+
+      async function findWorkingSidecarUrl() {
+        const urls = ["http://127.0.0.1:4111", "http://localhost:4111"];
+        for (const testUrl of urls) {
+          try {
+            const start = performance.now();
+            const res = await fetch(`${testUrl}/health`, {
+              signal: AbortSignal.timeout(1000),
+            });
+            if (res.ok) {
+              const elapsed = Math.round(performance.now() - start);
+              SIDECAR_URL = testUrl;
+              return { ok: true, elapsed };
+            }
+          } catch {}
+        }
+        return { ok: false, elapsed: 0 };
+      }
+
+      async function checkHealth() {
+        const result = await findWorkingSidecarUrl();
+        if (result.ok) {
+          sidecarStatusEl.className = "status-pill online";
+          sidecarStatusEl.innerHTML = '<span class="dot"></span> Conectado';
+          sidecarLatencyEl.textContent = `${result.elapsed} ms`;
+          const urlEl = document.getElementById("sidecar-url");
+          if (urlEl) urlEl.textContent = `${SIDECAR_URL}/health`;
+          sidecarAlert.style.display = "none";
+          return true;
+        } else {
+          sidecarStatusEl.className = "status-pill offline";
+          sidecarStatusEl.innerHTML = '<span class="dot"></span> Desconectado';
+          sidecarLatencyEl.textContent = "Error";
+          sidecarAlert.style.display = "block";
+          return false;
+        }
+      }
+
+      async function checkDatabase() {
+        const start = performance.now();
+        try {
+          const res = await fetch(`${SIDECAR_URL}/db-check`);
+          const elapsed = Math.round(performance.now() - start);
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+              dbStatusEl.className = "status-pill online";
+              dbStatusEl.innerHTML = '<span class="dot"></span> Prisma Activo';
+              dbLatencyEl.textContent = `${elapsed} ms`;
+              dbSubtextEl.textContent = `SQLite respondió OK en ${elapsed}ms`;
+              return true;
+            }
+          }
+          throw new Error("Respuesta inválida");
+        } catch (e) {
+          dbStatusEl.className = "status-pill offline";
+          dbStatusEl.innerHTML = '<span class="dot"></span> Sin respuesta';
+          dbLatencyEl.textContent = "Error";
+          return false;
+        }
+      }
+
+      async function executeQuery(sql) {
+        queryOutput.textContent = "Ejecutando consulta en la base de datos...";
+        try {
+          const res = await fetch(`${SIDECAR_URL}/query`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: sql }),
+          });
+
+          const data = await res.json();
+          queryOutput.textContent = JSON.stringify(data, null, 2);
+        } catch (err) {
+          queryOutput.textContent = `Error al comunicar con el Sidecar: ${err.message}`;
+        }
+      }
+
+      async function runDiagnostics() {
+        const sidecarOk = await checkHealth();
+        if (sidecarOk) {
+          await checkDatabase();
+          await executeQuery(sqlInput.value);
+        } else {
+          dbStatusEl.className = "status-pill offline";
+          dbStatusEl.innerHTML = '<span class="dot"></span> Inaccesible';
+          dbLatencyEl.textContent = "--";
+        }
+      }
+
+      queryForm?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const sql = sqlInput.value.trim();
+        if (sql) executeQuery(sql);
+      });
+
+      btnRefresh?.addEventListener("click", () => {
+        runDiagnostics();
+      });
+
+      // Ejecutar verificación inicial
+      runDiagnostics();
+    </script>
   </body>
 </html>

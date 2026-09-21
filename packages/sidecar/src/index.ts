@@ -14,7 +14,7 @@ if (typeof (Module as any)._initPaths === "function") {
 const { createDatabaseClient } = await import("@lumbreras/database");
 
 const PORT = Number(process.env.PORT) || 4111;
-const db = createDatabaseClient({ mode: "local" });
+const db = createDatabaseClient({ mode: "local", url: process.env.DATABASE_URL });
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

@@ -1,0 +1,44 @@
+services:
+  # ============================================================================
+  # Sidecar Service: Bun + Prisma 7 ORM + SQLite
+  # ============================================================================
+  sidecar:
+    build:
+      context: .
+      target: sidecar
+    container_name: lumbreras-sidecar
+    restart: unless-stopped
+    ports:
+      - "4111:4111"
+    environment:
+      - PORT=4111
+      - DATABASE_URL=file:/data/local.db
+    volumes:
+      - sidecar_data:/data
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - "bun -e 'fetch(\"http://localhost:4111/health\").then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))'"
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ============================================================================
+  # Frontend Service: Astro static UI served by Nginx on port 1420
+  # ============================================================================
+  frontend:
+    build:
+      context: .
+      target: frontend
+    container_name: lumbreras-frontend
+    restart: unless-stopped
+    ports:
+      - "1420:1420"
+    depends_on:
+      sidecar:
+        condition: service_healthy
+
+volumes:
+  sidecar_data:
+    driver: local

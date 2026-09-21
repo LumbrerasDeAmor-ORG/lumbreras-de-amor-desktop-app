@@ -1,0 +1,20 @@
+{
+  "name": "@lumbreras/sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "tsc --noEmit",
+    "build:binary": "bun run scripts/build.ts"
+  },
+  "dependencies": {
+    "@libsql/linux-x64-gnu": "^0.5.29",
+    "@lumbreras/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^26.6.2",
+    "typescript": "^5.7.3"
+  }
+}

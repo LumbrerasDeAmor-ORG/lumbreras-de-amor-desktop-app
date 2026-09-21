@@ -4,10 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "pnpm --filter @lumbreras/desktop dev",
+    "dev:all": "pnpm --parallel --filter @lumbreras/sidecar --filter @lumbreras/desktop dev",
     "build": "pnpm --filter \"@lumbreras/*\" build",
     "db:generate": "pnpm --filter @lumbreras/database generate",
     "tauri": "pnpm --filter @lumbreras/desktop tauri",
     "desktop:dev": "pnpm --filter @lumbreras/desktop tauri dev",
-    "desktop:build": "pnpm --filter @lumbreras/desktop tauri build"
+    "desktop:build": "pnpm --filter @lumbreras/desktop tauri build",
+    "sidecar:dev": "pnpm --filter @lumbreras/sidecar dev",
+    "sidecar:build": "pnpm --filter @lumbreras/sidecar build:binary",
+    "test": "pnpm --filter @lumbreras/database test"
   }
 }

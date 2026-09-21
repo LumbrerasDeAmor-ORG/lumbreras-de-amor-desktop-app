@@ -13,6 +13,8 @@ build/
 
 # Tauri & Rust build artifacts
 src-tauri/target/
+src-tauri/binaries/*
+!src-tauri/binaries/.gitkeep
 
 # Environment & Local Databases
 .env

@@ -1,0 +1,59 @@
+---
+// apps/desktop/src/pages/ninos/index.astro
+import Layout from "../../layouts/Layout.astro";
+import { getNinos, getMujeres } from "../../lib/mockData";
+
+const [ninos, mujeres] = await Promise.all([getNinos(), getMujeres()]);
+const mujerPorId = new Map(mujeres.map((m) => [m.id, m]));
+
+const badgeClass = {
+  Alta: "badge-alta",
+  Media: "badge-media",
+  Baja: "badge-baja",
+} as const;
+---
+
+<Layout
+  title="Niños"
+  subtitle="Perfiles vinculados a la mujer/madre o tutora responsable"
+  active="ninos"
+>
+  <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+    Mostrando {ninos.length} de {ninos.length} niños registrados
+  </p>
+
+  <div class="grid">
+    {ninos.map((nino) => {
+      const madre = mujerPorId.get(nino.mujerId);
+      return (
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-weight:700; font-size:0.95rem;">{nino.nombre}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted);">
+                {nino.codigo} · {nino.edad} años
+              </div>
+            </div>
+            <span class={`badge ${badgeClass[nino.vulnerabilidad]}`}>{nino.vulnerabilidad}</span>
+          </div>
+
+          <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-main); display:flex; flex-direction:column; gap:0.3rem;">
+            <span>🎓 {nino.escolaridad}</span>
+            <span>👕 Talla Ropa: {nino.tallaRopa} · Calzado: {nino.tallaCalzado}</span>
+            {madre && (
+              <a href={`/mujeres/${madre.id}`} style="color: var(--accent); text-decoration:none;">
+                👩 Madre/Tutora: {madre.nombre}
+              </a>
+            )}
+          </div>
+
+          {nino.alergia && (
+            <div style="margin-top:0.7rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
+              ⚠️ {nino.alergia}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+</Layout>

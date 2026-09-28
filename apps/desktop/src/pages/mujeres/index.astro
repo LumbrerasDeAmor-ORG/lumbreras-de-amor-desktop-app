@@ -1,0 +1,128 @@
+---
+// apps/desktop/src/pages/mujeres/index.astro
+import Layout from "../../layouts/Layout.astro";
+import { getMujeres } from "../../lib/mockData";
+
+const mujeres = await getMujeres();
+
+const badgeClass = {
+  Alta: "badge-alta",
+  Media: "badge-media",
+  Baja: "badge-baja",
+} as const;
+---
+
+<Layout
+  title="Perfiles de Mujeres"
+  subtitle="Datos personales, hogar, programas y seguimiento integral"
+  active="mujeres"
+>
+  <div slot="actions">
+    <a href="/mujeres/nuevo"><button class="btn btn-primary" type="button">+ Nuevo Perfil</button></a>
+  </div>
+
+  <div class="toolbar">
+    <input id="buscador" type="text" placeholder="Buscar por nombre o comunidad..." />
+    <select id="filtro-vulnerabilidad">
+      <option value="">Toda Vulnerabilidad</option>
+      <option value="Alta">Alta</option>
+      <option value="Media">Media</option>
+      <option value="Baja">Baja</option>
+    </select>
+  </div>
+
+  <p id="contador" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+    Mostrando {mujeres.length} de {mujeres.length} perfiles registrados
+  </p>
+
+  <div class="grid" id="lista-mujeres">
+    {mujeres.map((mujer) => (
+      <div
+        class="card mujer-card"
+        data-nombre={mujer.nombre.toLowerCase()}
+        data-comunidad={mujer.comunidad.toLowerCase()}
+        data-vulnerabilidad={mujer.vulnerabilidad}
+      >
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <div style="font-weight:700; font-size:0.95rem;">{mujer.nombre}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted);">
+              {mujer.codigo} · {mujer.edad} años
+            </div>
+          </div>
+          <span class={`badge ${badgeClass[mujer.vulnerabilidad]}`}>{mujer.vulnerabilidad}</span>
+        </div>
+
+        <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-main); display:flex; flex-direction:column; gap:0.3rem;">
+          <span> {mujer.comunidad} ({mujer.direccion})</span>
+          <span> {mujer.telefono}</span>
+          <span> {mujer.hijosACargo} hijo(s) a cargo</span>
+          <span> {mujer.ocupacion}</span>
+        </div>
+
+        {mujer.nota && (
+          <div style="margin-top:0.7rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
+             {mujer.nota}
+          </div>
+        )}
+
+        <a href={`/mujeres/${mujer.id}`} style="display:block; margin-top:0.9rem;">
+          <button class="btn btn-primary" style="width:100%;" type="button">Ver Perfil</button>
+        </a>
+      </div>
+    ))}
+  </div>
+
+  <p id="sin-resultados" style="display:none; color: var(--text-muted); text-align:center; padding: 2rem 0;">
+    No se encontraron perfiles con esos criterios.
+  </p>
+</Layout>
+
+<style>
+  .toolbar {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 0.9rem;
+  }
+  .toolbar input,
+  .toolbar select {
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    background: #fff;
+  }
+  .toolbar input { flex: 1; }
+</style>
+
+<script>
+  // Filtro/búsqueda en cliente sobre las tarjetas ya renderizadas (US-05).
+  const buscador = document.getElementById("buscador") as HTMLInputElement | null;
+  const filtroVulnerabilidad = document.getElementById("filtro-vulnerabilidad") as HTMLSelectElement | null;
+  const tarjetas = Array.from(document.querySelectorAll<HTMLElement>(".mujer-card"));
+  const contador = document.getElementById("contador");
+  const sinResultados = document.getElementById("sin-resultados");
+  const total = tarjetas.length;
+
+  function aplicarFiltros() {
+    const texto = (buscador?.value ?? "").trim().toLowerCase();
+    const vulnerabilidad = filtroVulnerabilidad?.value ?? "";
+    let visibles = 0;
+
+    for (const card of tarjetas) {
+      const nombre = card.dataset.nombre ?? "";
+      const comunidad = card.dataset.comunidad ?? "";
+      const coincideTexto = !texto || nombre.includes(texto) || comunidad.includes(texto);
+      const coincideVulnerabilidad = !vulnerabilidad || card.dataset.vulnerabilidad === vulnerabilidad;
+      const visible = coincideTexto && coincideVulnerabilidad;
+      card.style.display = visible ? "" : "none";
+      if (visible) visibles++;
+    }
+
+    if (contador) contador.textContent = `Mostrando ${visibles} de ${total} perfiles registrados`;
+    if (sinResultados) sinResultados.style.display = visibles === 0 ? "block" : "none";
+  }
+
+  buscador?.addEventListener("input", aplicarFiltros);
+  filtroVulnerabilidad?.addEventListener("change", aplicarFiltros);
+</script>

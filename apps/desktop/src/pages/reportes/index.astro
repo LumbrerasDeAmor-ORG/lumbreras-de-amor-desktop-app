@@ -17,7 +17,14 @@ const [resumen, eventos, donaciones] = await Promise.all([
     <button id="btn-pdf" class="btn btn-primary" type="button"><Icon name="printer" /> Imprimir / Guardar PDF</button>
   </div>
 
-  <div id="reporte" class="card" style="max-width: 900px;">
+  <p id="estado-export" class="estado-export" role="status"></p>
+
+  <div
+    id="reporte"
+    class="card"
+    style="max-width: 900px;"
+    data-reporte={JSON.stringify({ resumen, eventos, donaciones })}
+  >
     <h2 style="font-size:1.1rem;">Informe Mensual de Impacto &amp; Gestión Social</h2>
     <p style="font-size:0.8rem; color:var(--text-muted);">Período: {resumen.periodo}</p>
 
@@ -67,15 +74,38 @@ const [resumen, eventos, donaciones] = await Promise.all([
   .tabla-reporte td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--card-border); }
 
   /* US-12: estilos de impresión. Sidebar, topbar y titlebar se ocultan desde Layout/TitleBar. */
+  .estado-export { font-size: 0.8rem; color: var(--text-muted); min-height: 1.2rem; margin-bottom: 0.6rem; }
+
   @media print {
+    .estado-export { display: none; }
     #reporte { border: none !important; box-shadow: none !important; max-width: none !important; }
   }
 </style>
 
-<script define:vars={{ eventos, donaciones, resumen }}>
-  // US-11: exportar a CSV en el navegador, a partir del mismo array mock (sin backend).
-  document.getElementById("btn-csv")?.addEventListener("click", () => {
-    const filas = [
+<script>
+  import type { ResumenReporte, Evento, Donacion } from "../../lib/mockData";
+
+  interface DatosReporte {
+    resumen: ResumenReporte;
+    eventos: Evento[];
+    donaciones: Donacion[];
+  }
+
+  const contenedor = document.getElementById("reporte");
+  const estado = document.getElementById("estado-export");
+  const datos: DatosReporte | null = contenedor?.dataset.reporte
+    ? JSON.parse(contenedor.dataset.reporte)
+    : null;
+
+  const esTauri = "__TAURI_INTERNALS__" in window;
+
+  function mostrarEstado(mensaje: string) {
+    if (estado) estado.textContent = mensaje;
+  }
+
+  // US-11: arma el CSV a partir del mismo mock (sin backend).
+  function construirCsv({ resumen, eventos, donaciones }: DatosReporte): string {
+    const filas: (string | number)[][] = [
       ["Reporte", resumen.periodo],
       [],
       ["Evento", "Categoria", "Fecha", "Asistieron", "Convocados", "PresupuestoEjecutado"],
@@ -84,21 +114,59 @@ const [resumen, eventos, donaciones] = await Promise.all([
       ["Recibo", "Donante", "Tipo", "Destino", "Monto"],
       ...donaciones.map((d) => [d.recibo, d.donante, d.tipo, d.destino, d.monto]),
     ];
-
     const csv = filas
-      .map((fila) => fila.map((valor) => `"${String(valor ?? "").replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+      .map((fila) => fila.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    // BOM al inicio para que Excel muestre bien tildes y ñ.
+    return "\uFEFF" + csv;
+  }
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  // En la ventana de Tauri no funcionan las descargas con <a download>:
+  // se abre el diálogo "Guardar como" y se escribe el archivo con los plugins.
+  async function guardarConTauri(nombre: string, contenido: string): Promise<boolean> {
+    const { save } = await import("@tauri-apps/plugin-dialog");
+    const { writeTextFile } = await import("@tauri-apps/plugin-fs");
+    const ruta = await save({
+      defaultPath: nombre,
+      filters: [{ name: "CSV", extensions: ["csv"] }],
+    });
+    if (!ruta) return false; // la usuaria canceló
+    await writeTextFile(ruta, contenido);
+    return true;
+  }
+
+  // En un navegador normal (pnpm dev:astro) sí funciona la descarga directa.
+  function descargarEnNavegador(nombre: string, contenido: string) {
+    const blob = new Blob([contenido], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `reporte-${resumen.periodo.replace(" ", "-").toLowerCase()}.csv`;
+    a.download = nombre;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  document.getElementById("btn-csv")?.addEventListener("click", async () => {
+    if (!datos) return;
+    const nombre = `reporte-${datos.resumen.periodo.replace(" ", "-").toLowerCase()}.csv`;
+    const contenido = construirCsv(datos);
+    try {
+      if (esTauri) {
+        const guardado = await guardarConTauri(nombre, contenido);
+        mostrarEstado(guardado ? `Archivo ${nombre} guardado.` : "Descarga cancelada.");
+      } else {
+        descargarEnNavegador(nombre, contenido);
+        mostrarEstado(`Archivo ${nombre} descargado.`);
+      }
+    } catch (err) {
+      console.error(err);
+      mostrarEstado(`No se pudo guardar el archivo: ${err instanceof Error ? err.message : String(err)}`);
+    }
   });
 
-  // US-12: imprimir/guardar como PDF usando el diálogo nativo del navegador.
+  // US-12: imprimir / guardar como PDF con el diálogo del sistema.
   document.getElementById("btn-pdf")?.addEventListener("click", () => {
     window.print();
   });

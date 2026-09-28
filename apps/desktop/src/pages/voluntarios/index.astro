@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/voluntarios/index.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getVoluntarios } from "../../lib/mockData";
 
 const voluntarios = await getVoluntarios();
@@ -30,9 +31,9 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
         <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">{v.especialidad}</span>
 
         <div style="margin-top:0.7rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
-          <span> {v.email}</span>
-          <span> {v.telefono}</span>
-          <span> Disponibilidad: {v.disponibilidad}</span>
+          <span><Icon name="mail" /> {v.email}</span>
+          <span><Icon name="phone" /> {v.telefono}</span>
+          <span><Icon name="clock" /> Disponibilidad: {v.disponibilidad}</span>
         </div>
 
         <div style="margin-top:0.7rem; display:flex; gap:0.3rem; flex-wrap:wrap;">

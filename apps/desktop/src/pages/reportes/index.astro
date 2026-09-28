@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/reportes/index.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getResumenReporte, getEventos, getDonaciones } from "../../lib/mockData";
 
 const [resumen, eventos, donaciones] = await Promise.all([
@@ -12,8 +13,8 @@ const [resumen, eventos, donaciones] = await Promise.all([
 
 <Layout title="Reportes Mensuales Automatizados" subtitle="Informes ejecutivos listos para benefactores, donantes y comités directivos" active="reportes">
   <div slot="actions">
-    <button id="btn-csv" class="btn btn-ghost" type="button">⬇ Descargar CSV</button>
-    <button id="btn-pdf" class="btn btn-primary" type="button">🖨 Imprimir / Guardar PDF</button>
+    <button id="btn-csv" class="btn btn-ghost" type="button"><Icon name="download" /> Descargar CSV</button>
+    <button id="btn-pdf" class="btn btn-primary" type="button"><Icon name="printer" /> Imprimir / Guardar PDF</button>
   </div>
 
   <div id="reporte" class="card" style="max-width: 900px;">
@@ -65,11 +66,9 @@ const [resumen, eventos, donaciones] = await Promise.all([
   .tabla-reporte th { text-align: left; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--card-border); }
   .tabla-reporte td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--card-border); }
 
-  /* US-12: estilos de impresión — oculta sidebar/topbar/acciones, deja solo el reporte */
+  /* US-12: estilos de impresión. Sidebar, topbar y titlebar se ocultan desde Layout/TitleBar. */
   @media print {
-    .sidebar, .topbar { display: none !important; }
-    .content { padding: 0 !important; }
-    #reporte { border: none !important; box-shadow: none !important; }
+    #reporte { border: none !important; box-shadow: none !important; max-width: none !important; }
   }
 </style>
 

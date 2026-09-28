@@ -1,6 +1,9 @@
 ---
 // apps/desktop/src/layouts/Layout.astro
 // Layout compartido: sidebar de navegación + topbar, replicando el look del demo.
+import TitleBar from "../componentes/titlebar.astro";
+import Icon from "../componentes/icon.astro";
+
 interface Props {
   title: string;
   subtitle?: string;
@@ -23,7 +26,7 @@ const icons = {
 const navItems = [
   { key: "panel", label: "Panel General", href: "/", icon: icons.home },
   { key: "mujeres", label: "Mujeres", href: "/mujeres", icon: icons.users },
-  { key: "ninos", label: "Niños", href: "/ninos", icon: icons.child },
+  { key: "ninos", label: "Niños", href: "/niños", icon: icons.child },
   { key: "eventos", label: "Eventos & Asistencia", href: "/eventos", icon: icons.calendar },
   { key: "viveres", label: "Víveres & Donaciones", href: "/viveres", icon: icons.box },
   { key: "voluntarios", label: "Equipo de Voluntarios", href: "/voluntarios", icon: icons.heart },
@@ -36,7 +39,7 @@ const navItems = [
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} · Lumbreras de Amor</title>
-    <style>
+    <style is:global>
       :root {
         --sidebar-bg: #0b1120;
         --sidebar-fg: #cbd5e1;
@@ -63,8 +66,11 @@ const navItems = [
         background: var(--content-bg);
         color: var(--text-main);
         display: flex;
-        min-height: 100vh;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
       }
+      .shell { flex: 1; display: flex; min-height: 0; }
 
       /* Sidebar */
       .sidebar {
@@ -75,6 +81,7 @@ const navItems = [
         display: flex;
         flex-direction: column;
         padding: 1.25rem 0.9rem;
+        overflow-y: auto;
       }
       .brand {
         display: flex;
@@ -141,7 +148,7 @@ const navItems = [
       .sidebar-footer strong { color: #fff; display: block; margin-bottom: 0.2rem; }
 
       /* Main area */
-      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
       .topbar {
         display: flex; align-items: center; justify-content: space-between;
         padding: 1.1rem 1.75rem;
@@ -159,7 +166,7 @@ const navItems = [
       .btn-primary:hover { background: var(--accent-dark); }
       .btn-ghost { background: #f3f4f6; color: var(--text-main); }
 
-      .content { padding: 1.5rem 1.75rem; overflow-y: auto; }
+      .content { flex: 1; padding: 1.5rem 1.75rem; overflow-y: auto; }
 
       /* Reusable card / grid pieces used across pages */
       .card {
@@ -183,12 +190,21 @@ const navItems = [
       .badge-alta { background: var(--badge-alta-bg); color: var(--badge-alta-fg); }
       .badge-media { background: var(--badge-media-bg); color: var(--badge-media-fg); }
       .badge-baja { background: var(--badge-baja-bg); color: var(--badge-baja-fg); }
+
+      @media print {
+        body { display: block; height: auto; overflow: visible; }
+        .shell, .main { display: block; }
+        .sidebar, .topbar { display: none; }
+        .content { padding: 0; overflow: visible; }
+      }
     </style>
   </head>
   <body>
+    <TitleBar />
+    <div class="shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-icon">💛</div>
+        <div class="brand-icon"><Icon name="heart" size={18} /></div>
         <div>
           <div class="brand-name">Lumbreras de Amor</div>
           <div class="brand-sub">ONG &amp; IMPACTO SOCIAL</div>
@@ -230,6 +246,7 @@ const navItems = [
       <main class="content">
         <slot />
       </main>
+    </div>
     </div>
   </body>
 </html>

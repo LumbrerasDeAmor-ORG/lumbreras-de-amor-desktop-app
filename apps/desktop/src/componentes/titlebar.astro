@@ -1,0 +1,127 @@
+
+
+<div class="resize-handle resize-top" data-direction="North"></div>
+<div class="resize-handle resize-bottom" data-direction="South"></div>
+<div class="resize-handle resize-left" data-direction="West"></div>
+<div class="resize-handle resize-right" data-direction="East"></div>
+<div class="resize-handle resize-top-left" data-direction="NorthWest"></div>
+<div class="resize-handle resize-top-right" data-direction="NorthEast"></div>
+<div class="resize-handle resize-bottom-left" data-direction="SouthWest"></div>
+<div class="resize-handle resize-bottom-right" data-direction="SouthEast"></div>
+
+<header class="titlebar" id="titlebar">
+  <div class="titlebar-drag-region" data-tauri-drag-region></div>
+
+  <div class="titlebar-left">
+    <div class="app-icon" title="Lumbreras de Amor">L</div>
+    <span class="app-title">Lumbreras de Amor</span>
+  </div>
+
+  <div class="window-controls">
+    <button id="btn-minimize" class="window-btn" title="Minimizar" type="button">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><rect y="5" width="12" height="1.5" rx="0.5" /></svg>
+    </button>
+    <button id="btn-maximize" class="window-btn" title="Maximizar" type="button">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="1" width="10" height="10" rx="1" /></svg>
+    </button>
+    <button id="btn-close" class="window-btn close-btn" title="Cerrar" type="button">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M1.5 0.5L6 5L10.5 0.5L11.5 1.5L7 6L11.5 10.5L10.5 11.5L6 7L1.5 11.5L0.5 10.5L5 6L0.5 1.5L1.5 0.5Z" /></svg>
+    </button>
+  </div>
+</header>
+
+<style>
+  .titlebar {
+    height: 35px;
+    flex-shrink: 0;
+    background: #181818;
+    border-bottom: 1px solid #2b2b2b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0 0 12px;
+    font-size: 12px;
+    color: #cccccc;
+    position: relative;
+    z-index: 1000;
+  }
+  .titlebar-drag-region { position: absolute; inset: 0 140px 0 0; z-index: 1; }
+  .titlebar-left { display: flex; align-items: center; gap: 8px; position: relative; z-index: 2; pointer-events: none; }
+  .app-icon {
+    width: 18px; height: 18px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #0d9488, #0f766e);
+    color: #fff; font-weight: 800; font-size: 10px;
+  }
+  .app-title { font-weight: 500; letter-spacing: 0.02em; }
+  .window-controls { display: flex; align-items: center; height: 100%; position: relative; z-index: 2; }
+  .window-btn {
+    width: 46px; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none; color: #cccccc; cursor: pointer;
+    transition: background-color 0.1s, color 0.1s;
+  }
+  .window-btn:hover { background: #333333; color: #fff; }
+  .close-btn:hover { background: #e81123; color: #fff; }
+
+  .resize-handle { position: fixed; z-index: 99999; }
+  .resize-top { top: 0; left: 8px; right: 8px; height: 6px; cursor: n-resize; }
+  .resize-bottom { bottom: 0; left: 8px; right: 8px; height: 6px; cursor: s-resize; }
+  .resize-left { top: 8px; bottom: 8px; left: 0; width: 6px; cursor: w-resize; }
+  .resize-right { top: 8px; bottom: 8px; right: 0; width: 6px; cursor: e-resize; }
+  .resize-top-left { top: 0; left: 0; width: 10px; height: 10px; cursor: nw-resize; }
+  .resize-top-right { top: 0; right: 0; width: 10px; height: 10px; cursor: ne-resize; }
+  .resize-bottom-left { bottom: 0; left: 0; width: 10px; height: 10px; cursor: sw-resize; }
+  .resize-bottom-right { bottom: 0; right: 0; width: 10px; height: 10px; cursor: se-resize; }
+
+  @media print {
+    .titlebar, .resize-handle { display: none !important; }
+  }
+</style>
+
+<script>
+  import type { Window as TauriWindow } from "@tauri-apps/api/window";
+
+  let appWindow: TauriWindow | null = null;
+
+  async function initTauriWindow() {
+    if ("__TAURI_INTERNALS__" in window || "__TAURI__" in window) {
+      try {
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        appWindow = getCurrentWindow();
+      } catch {
+        console.info("Ejecutando fuera de Tauri (navegador web)");
+      }
+    }
+  }
+  initTauriWindow();
+
+  document.getElementById("btn-minimize")?.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await appWindow?.minimize();
+  });
+  document.getElementById("btn-maximize")?.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await appWindow?.toggleMaximize();
+  });
+  document.getElementById("btn-close")?.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    await appWindow?.close();
+  });
+
+  type Direction = Parameters<TauriWindow["startResizeDragging"]>[0];
+  document.querySelectorAll<HTMLElement>(".resize-handle").forEach((handle) => {
+    handle.addEventListener("mousedown", async (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      const direction = handle.dataset.direction as Direction | undefined;
+      if (appWindow && direction) {
+        try {
+          await appWindow.startResizeDragging(direction);
+        } catch (err) {
+          console.warn("No se pudo iniciar resize dragging:", err);
+        }
+      }
+    });
+  });
+</script>

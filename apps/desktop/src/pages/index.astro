@@ -2,6 +2,7 @@
 // apps/desktop/src/pages/index.astro
 // El diagnóstico técnico original (sidecar/DB) se movió a /diagnostico.
 import Layout from "../layouts/Layout.astro";
+import Icon from "../componentes/icon.astro";
 import { getMujeres, getNinos, getEventos, getResumenReporte } from "../lib/mockData";
 
 const [mujeres, ninos, eventos, resumen] = await Promise.all([
@@ -11,7 +12,11 @@ const [mujeres, ninos, eventos, resumen] = await Promise.all([
   getResumenReporte(),
 ]);
 
-const prioritarios = [...mujeres.filter((m) => m.nota), ...ninos.filter((n) => n.alergia)];
+// Lista unificada: cada elemento tiene nombre y motivo, sin importar si viene de Mujer o Nino.
+const prioritarios: { id: string; nombre: string; motivo: string }[] = [
+  ...mujeres.flatMap((m) => (m.nota ? [{ id: m.id, nombre: m.nombre, motivo: m.nota }] : [])),
+  ...ninos.flatMap((n) => (n.alergia ? [{ id: n.id, nombre: n.nombre, motivo: n.alergia }] : [])),
+];
 const eventosPlanificados = eventos.filter((e) => e.estado === "Planificado");
 ---
 
@@ -41,9 +46,9 @@ const eventosPlanificados = eventos.filter((e) => e.estado === "Planificado");
   <div class="grid">
     {prioritarios.map((p) => (
       <div class="card">
-        <div style="font-weight:700; font-size:0.9rem;">{"nota" in p ? p.nombre : p.nombre}</div>
+        <div style="font-weight:700; font-size:0.9rem;">{p.nombre}</div>
         <div style="margin-top:0.6rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
-          ⚠️ {"nota" in p ? p.nota : p.alergia}
+          <Icon name="alert" /> {p.motivo}
         </div>
       </div>
     ))}

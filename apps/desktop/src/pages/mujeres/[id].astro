@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/mujeres/[id].astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getMujeres, getMujerById } from "../../lib/mockData";
 
 // output: 'static' requiere getStaticPaths para rutas dinámicas.
@@ -58,7 +59,7 @@ const mujer = await getMujerById(id as string);
 
       {mujer.nota && (
         <div style="margin-top:1rem; background:#fef3c7; color:#92400e; font-size:0.8rem; padding:0.6rem 0.8rem; border-radius:8px;">
-           {mujer.nota}
+          <Icon name="alert" /> {mujer.nota}
         </div>
       )}
     </div>

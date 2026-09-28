@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/eventos/index.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getEventos } from "../../lib/mockData";
 
 const eventos = await getEventos();
@@ -22,10 +23,10 @@ const eventos = await getEventos();
         <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{evento.descripcion}</p>
 
         <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
-          <span> {evento.fecha} · {evento.horario}</span>
-          <span> {evento.ubicacion}</span>
-          <span> Coord: {evento.coordinador}</span>
-          <span> Presupuesto: ${evento.presupuestoEjecutado} / ${evento.presupuestoTotal}</span>
+          <span><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
+          <span><Icon name="pin" /> {evento.ubicacion}</span>
+          <span><Icon name="user" /> Coord: {evento.coordinador}</span>
+          <span><Icon name="dollar" /> Presupuesto: ${evento.presupuestoEjecutado} / ${evento.presupuestoTotal}</span>
         </div>
 
         <div style="margin-top:0.8rem;">

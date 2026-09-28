@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/mujeres/index.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getMujeres } from "../../lib/mockData";
 
 const mujeres = await getMujeres();
@@ -54,15 +55,15 @@ const badgeClass = {
         </div>
 
         <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-main); display:flex; flex-direction:column; gap:0.3rem;">
-          <span> {mujer.comunidad} ({mujer.direccion})</span>
-          <span> {mujer.telefono}</span>
-          <span> {mujer.hijosACargo} hijo(s) a cargo</span>
-          <span> {mujer.ocupacion}</span>
+          <span><Icon name="home" /> {mujer.comunidad} ({mujer.direccion})</span>
+          <span><Icon name="phone" /> {mujer.telefono}</span>
+          <span><Icon name="child" /> {mujer.hijosACargo} hijo(s) a cargo</span>
+          <span><Icon name="briefcase" /> {mujer.ocupacion}</span>
         </div>
 
         {mujer.nota && (
           <div style="margin-top:0.7rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
-             {mujer.nota}
+            <Icon name="alert" /> {mujer.nota}
           </div>
         )}
 

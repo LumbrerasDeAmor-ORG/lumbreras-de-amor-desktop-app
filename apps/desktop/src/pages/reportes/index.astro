@@ -1,0 +1,106 @@
+---
+// apps/desktop/src/pages/reportes/index.astro
+import Layout from "../../layouts/Layout.astro";
+import { getResumenReporte, getEventos, getDonaciones } from "../../lib/mockData";
+
+const [resumen, eventos, donaciones] = await Promise.all([
+  getResumenReporte(),
+  getEventos(),
+  getDonaciones(),
+]);
+---
+
+<Layout title="Reportes Mensuales Automatizados" subtitle="Informes ejecutivos listos para benefactores, donantes y comités directivos" active="reportes">
+  <div slot="actions">
+    <button id="btn-csv" class="btn btn-ghost" type="button">⬇ Descargar CSV</button>
+    <button id="btn-pdf" class="btn btn-primary" type="button">🖨 Imprimir / Guardar PDF</button>
+  </div>
+
+  <div id="reporte" class="card" style="max-width: 900px;">
+    <h2 style="font-size:1.1rem;">Informe Mensual de Impacto &amp; Gestión Social</h2>
+    <p style="font-size:0.8rem; color:var(--text-muted);">Período: {resumen.periodo}</p>
+
+    <div class="grid" style="margin-top:1rem;">
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Beneficiarios Atendidos</div><div style="font-size:1.4rem; font-weight:700;">{resumen.beneficiariosAtendidos}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Eventos Realizados</div><div style="font-size:1.4rem; font-weight:700;">{resumen.eventosRealizados}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">${resumen.fondosRecaudados}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Horas Voluntariado</div><div style="font-size:1.4rem; font-weight:700;">{resumen.horasVoluntariado}h</div></div>
+    </div>
+
+    <h3 style="font-size:0.9rem; margin-top:1.4rem;">Desglose de Jornadas y Eventos</h3>
+    <table class="tabla-reporte">
+      <thead><tr><th>Evento</th><th>Categoría</th><th>Asistencia</th><th>Presupuesto</th></tr></thead>
+      <tbody>
+        {eventos.map((e) => (
+          <tr>
+            <td>{e.titulo}<div style="font-size:0.7rem; color:var(--text-muted);">{e.fecha}</div></td>
+            <td>{e.categoria}</td>
+            <td>{e.asistieron} / {e.convocados}</td>
+            <td>${e.presupuestoEjecutado} USD</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+
+    <h3 style="font-size:0.9rem; margin-top:1.4rem;">Transparencia de Aportes &amp; Donaciones Recibidas</h3>
+    <table class="tabla-reporte">
+      <thead><tr><th>Recibo</th><th>Donante</th><th>Tipo</th><th>Destino</th><th>Monto</th></tr></thead>
+      <tbody>
+        {donaciones.map((d) => (
+          <tr>
+            <td>{d.recibo}</td>
+            <td>{d.donante}</td>
+            <td>{d.tipo}</td>
+            <td>{d.destino}</td>
+            <td>+${d.monto} USD</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>
+
+<style>
+  .tabla-reporte { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.6rem; }
+  .tabla-reporte th { text-align: left; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--card-border); }
+  .tabla-reporte td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--card-border); }
+
+  /* US-12: estilos de impresión — oculta sidebar/topbar/acciones, deja solo el reporte */
+  @media print {
+    .sidebar, .topbar { display: none !important; }
+    .content { padding: 0 !important; }
+    #reporte { border: none !important; box-shadow: none !important; }
+  }
+</style>
+
+<script define:vars={{ eventos, donaciones, resumen }}>
+  // US-11: exportar a CSV en el navegador, a partir del mismo array mock (sin backend).
+  document.getElementById("btn-csv")?.addEventListener("click", () => {
+    const filas = [
+      ["Reporte", resumen.periodo],
+      [],
+      ["Evento", "Categoria", "Fecha", "Asistieron", "Convocados", "PresupuestoEjecutado"],
+      ...eventos.map((e) => [e.titulo, e.categoria, e.fecha, e.asistieron, e.convocados, e.presupuestoEjecutado]),
+      [],
+      ["Recibo", "Donante", "Tipo", "Destino", "Monto"],
+      ...donaciones.map((d) => [d.recibo, d.donante, d.tipo, d.destino, d.monto]),
+    ];
+
+    const csv = filas
+      .map((fila) => fila.map((valor) => `"${String(valor ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reporte-${resumen.periodo.replace(" ", "-").toLowerCase()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // US-12: imprimir/guardar como PDF usando el diálogo nativo del navegador.
+  document.getElementById("btn-pdf")?.addEventListener("click", () => {
+    window.print();
+  });
+</script>

@@ -31,3 +31,7 @@ Thumbs.db
 .vscode/
 .idea/
 *.log
+.claude
+.windsurf
+.agents
+skills-lock.json

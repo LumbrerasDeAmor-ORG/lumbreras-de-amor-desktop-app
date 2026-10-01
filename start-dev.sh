@@ -63,6 +63,9 @@ pnpm db:generate
 if [ "$MODE" = "desktop" ]; then
   command -v cargo >/dev/null 2>&1 || { echo "❌ Error: Rust / Cargo no está instalado o no se encuentra en el PATH para compilar Tauri."; exit 1; }
 
+  # Limpiar caché de WebKitGTK para garantizar que la ventana cargue siempre la UI más reciente
+  rm -rf "$HOME/.local/share/com.lumbreras.desktop/WebKitCache" "$HOME/.cache/com.lumbreras.desktop" 2>/dev/null || true
+
   echo ""
   echo "🪟 Modo Seleccionado: Escritorio Nativo (Tauri v2)"
   echo "   - Backend Sidecar (Bun + Prisma): http://localhost:4111"

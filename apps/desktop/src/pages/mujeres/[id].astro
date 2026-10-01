@@ -1,0 +1,67 @@
+---
+// apps/desktop/src/pages/mujeres/[id].astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getMujeres, getMujerById } from "../../lib/mockData";
+
+// output: 'static' requiere getStaticPaths para rutas dinámicas.
+export async function getStaticPaths() {
+  const mujeres = await getMujeres();
+  return mujeres.map((m) => ({ params: { id: m.id } }));
+}
+
+const { id } = Astro.params;
+const mujer = await getMujerById(id as string);
+---
+
+<Layout
+  title={mujer ? mujer.nombre : "Perfil no encontrado"}
+  subtitle="Perfil integral de la mujer"
+  active="mujeres"
+>
+  <div slot="actions">
+    <a href="/mujeres"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+    <button class="btn btn-primary" type="button">Editar Perfil</button>
+  </div>
+
+  {!mujer && <p>No se encontró el perfil solicitado.</p>}
+
+  {mujer && (
+    <div class="card" style="max-width: 640px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:700; font-size:1.05rem;">{mujer.nombre}</div>
+          <div style="font-size:0.78rem; color:var(--text-muted);">{mujer.codigo}</div>
+        </div>
+        <span class={`badge badge-${mujer.vulnerabilidad.toLowerCase()}`}>{mujer.vulnerabilidad}</span>
+      </div>
+
+      <hr style="margin:0.9rem 0; border:none; border-top:1px solid var(--card-border);" />
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.9rem; font-size:0.85rem;">
+        <div><strong>Edad</strong><br />{mujer.edad} años</div>
+        <div><strong>Estado civil</strong><br />{mujer.estadoCivil}</div>
+        <div><strong>Comunidad</strong><br />{mujer.comunidad}</div>
+        <div><strong>Dirección</strong><br />{mujer.direccion}</div>
+        <div><strong>Teléfono</strong><br />{mujer.telefono}</div>
+        <div><strong>Ocupación</strong><br />{mujer.ocupacion}</div>
+        <div><strong>Hijos a cargo</strong><br />{mujer.hijosACargo}</div>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <strong style="font-size:0.85rem;">Programas / Talleres</strong>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">
+          {mujer.programas.map((p) => (
+            <span class="badge badge-media">{p}</span>
+          ))}
+        </div>
+      </div>
+
+      {mujer.nota && (
+        <div style="margin-top:1rem; background:#fef3c7; color:#92400e; font-size:0.8rem; padding:0.6rem 0.8rem; border-radius:8px;">
+          <Icon name="alert" /> {mujer.nota}
+        </div>
+      )}
+    </div>
+  )}
+</Layout>

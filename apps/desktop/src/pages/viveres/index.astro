@@ -1,0 +1,71 @@
+---
+// apps/desktop/src/pages/viveres/index.astro
+import Layout from "../../layouts/Layout.astro";
+import { getViveres } from "../../lib/mockData";
+
+const items = await getViveres();
+
+const estadoClass: Record<string, string> = {
+  "Óptimo": "badge-baja",
+  "Bajo Stock": "badge-media",
+  "Crítico": "badge-alta",
+};
+---
+
+<Layout title="Inventario de Víveres & Donaciones" subtitle="Gestión de alimentos, kits de apoyo, insumos y aportes" active="viveres">
+  <div slot="actions">
+    <button class="btn btn-primary" type="button">+ Nuevo Artículo</button>
+  </div>
+
+  <table class="tabla-viveres">
+    <thead>
+      <tr>
+        <th>Artículo</th>
+        <th>Categoría</th>
+        <th>Cantidad</th>
+        <th>Mínimo</th>
+        <th>Bodega</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {items.map((item) => (
+        <tr>
+          <td>
+            <div style="font-weight:600;">{item.nombre}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
+          </td>
+          <td>{item.categoria}</td>
+          <td>{item.cantidadActual} {item.unidad}</td>
+          <td>{item.minimo} {item.unidad}</td>
+          <td>{item.ubicacionBodega}</td>
+          <td><span class={`badge ${estadoClass[item.estado]}`}>{item.estado}</span></td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</Layout>
+
+<style>
+  .tabla-viveres {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.82rem;
+  }
+  .tabla-viveres th {
+    text-align: left;
+    background: #f9fafb;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .tabla-viveres td {
+    padding: 0.7rem 0.9rem;
+    border-top: 1px solid var(--card-border);
+  }
+</style>

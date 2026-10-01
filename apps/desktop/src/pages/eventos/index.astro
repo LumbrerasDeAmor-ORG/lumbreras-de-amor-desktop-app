@@ -1,0 +1,49 @@
+---
+// apps/desktop/src/pages/eventos/index.astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getEventos } from "../../lib/mockData";
+
+const eventos = await getEventos();
+---
+
+<Layout title="Eventos & Control de Asistencia" subtitle="Jornadas de salud, comedores comunitarios y pases de lista" active="eventos">
+  <div slot="actions">
+    <button class="btn btn-primary" type="button">+ Crear Jornada / Evento</button>
+  </div>
+
+  <div class="grid">
+    {eventos.map((evento) => (
+      <div class="card">
+        <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
+          <span class={`badge ${evento.estado === "Finalizado" ? "badge-baja" : "badge-media"}`}>{evento.estado}</span>
+          <span class="badge badge-media">{evento.categoria}</span>
+        </div>
+        <div style="font-weight:700; font-size:0.95rem;">{evento.titulo}</div>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{evento.descripcion}</p>
+
+        <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+          <span><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
+          <span><Icon name="pin" /> {evento.ubicacion}</span>
+          <span><Icon name="user" /> Coord: {evento.coordinador}</span>
+          <span><Icon name="dollar" /> Presupuesto: ${evento.presupuestoEjecutado} / ${evento.presupuestoTotal}</span>
+        </div>
+
+        <div style="margin-top:0.8rem;">
+          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+            <span>Asistencia Confirmada</span>
+            <span>{evento.asistieron} de {evento.convocados} ({Math.round((evento.asistieron / evento.convocados) * 100)}%)</span>
+          </div>
+          <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
+            <div style={`background:var(--accent); height:6px; border-radius:999px; width:${Math.round((evento.asistieron / evento.convocados) * 100)}%;`}></div>
+          </div>
+        </div>
+
+        <div style="margin-top:0.8rem; display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.75rem; color:var(--text-muted);">{evento.voluntariosAsignados} voluntarios asignados</span>
+          <button class="btn btn-primary" type="button">Tomar / Modificar Asistencia</button>
+        </div>
+      </div>
+    ))}
+  </div>
+</Layout>

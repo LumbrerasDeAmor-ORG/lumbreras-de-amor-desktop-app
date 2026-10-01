@@ -1,0 +1,135 @@
+---
+// apps/desktop/src/pages/mujeres/nuevo.astro
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Nuevo Perfil de Mujer"
+  subtitle="Registro de datos personales, hogar y programas"
+  active="mujeres"
+>
+  <div slot="actions">
+    <a href="/mujeres"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+  </div>
+
+  <form id="form-mujer" class="card" style="max-width: 640px;" novalidate>
+    <div class="form-grid">
+      <label>
+        Nombre completo *
+        <input name="nombre" type="text" required />
+      </label>
+      <label>
+        Edad *
+        <input name="edad" type="number" min="0" max="120" required />
+      </label>
+      <label>
+        Comunidad *
+        <input name="comunidad" type="text" required />
+      </label>
+      <label>
+        Dirección *
+        <input name="direccion" type="text" required />
+      </label>
+      <label>
+        Teléfono *
+        <input name="telefono" type="tel" required />
+      </label>
+      <label>
+        Ocupación
+        <input name="ocupacion" type="text" />
+      </label>
+      <label>
+        Estado civil
+        <select name="estadoCivil">
+          <option>Soltera</option>
+          <option>Madre soltera</option>
+          <option>Casada</option>
+          <option>Unión libre</option>
+          <option>Viuda</option>
+        </select>
+      </label>
+      <label>
+        Hijos a cargo
+        <input name="hijosACargo" type="number" min="0" value="0" />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Programas / Talleres (separados por coma)
+        <input name="programas" type="text" placeholder="Ej: Taller de Costura, Nutrición Familiar" />
+      </label>
+      <label>
+        Nivel de vulnerabilidad *
+        <select name="vulnerabilidad" required>
+          <option value="">Seleccionar...</option>
+          <option value="Alta">Alta</option>
+          <option value="Media">Media</option>
+          <option value="Baja">Baja</option>
+        </select>
+      </label>
+    </div>
+
+    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+      Completá los campos obligatorios (*) antes de continuar.
+    </p>
+
+    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Perfil</button>
+      <button class="btn btn-ghost" type="reset">Limpiar</button>
+    </div>
+  </form>
+
+  <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
+    <strong style="font-size:0.85rem;">Vista previa del perfil (aún no se guarda en ningún lado — esto es solo UI)</strong>
+    <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+  </div>
+</Layout>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+  }
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .form-grid input,
+  .form-grid select {
+    font-weight: 400;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+</style>
+
+<script>
+  // US-04: solo UI. Valida campos requeridos y muestra los datos
+  // ingresados como vista previa — no persiste nada todavía.
+  const form = document.getElementById("form-mujer") as HTMLFormElement | null;
+  const errorEl = document.getElementById("form-error");
+  const preview = document.getElementById("preview");
+  const previewContent = document.getElementById("preview-content");
+
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      if (errorEl) errorEl.style.display = "block";
+      form.reportValidity();
+      return;
+    }
+    if (errorEl) errorEl.style.display = "none";
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    if (preview && previewContent) {
+      previewContent.textContent = JSON.stringify(data, null, 2);
+      preview.style.display = "block";
+      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+</script>

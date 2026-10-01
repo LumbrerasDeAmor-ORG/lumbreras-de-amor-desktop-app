@@ -1,0 +1,51 @@
+---
+// apps/desktop/src/pages/voluntarios/index.astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getVoluntarios } from "../../lib/mockData";
+
+const voluntarios = await getVoluntarios();
+const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
+---
+
+<Layout title="Directorio de Voluntarios" subtitle="Equipo de apoyo, especialidades y registro de horas solidarias" active="voluntarios">
+  <div slot="actions">
+    <button class="btn btn-primary" type="button">+ Nuevo Voluntario</button>
+  </div>
+
+  <div class="grid" style="margin-bottom: 1.2rem;">
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Equipo Voluntario</div>
+      <div style="font-size:1.6rem; font-weight:700;">{voluntarios.length} Miembros</div>
+    </div>
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Horas Solidarias</div>
+      <div style="font-size:1.6rem; font-weight:700;">{totalHoras} Horas</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    {voluntarios.map((v) => (
+      <div class="card">
+        <div style="font-weight:700; font-size:0.9rem;">{v.nombre}</div>
+        <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">{v.especialidad}</span>
+
+        <div style="margin-top:0.7rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+          <span><Icon name="mail" /> {v.email}</span>
+          <span><Icon name="phone" /> {v.telefono}</span>
+          <span><Icon name="clock" /> Disponibilidad: {v.disponibilidad}</span>
+        </div>
+
+        <div style="margin-top:0.7rem; display:flex; gap:0.3rem; flex-wrap:wrap;">
+          {v.habilidades.map((h) => (
+            <span class="badge badge-baja">{h}</span>
+          ))}
+        </div>
+
+        <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted);">
+          Horas Acumuladas: <strong style="color: var(--text-main);">{v.horasAcumuladas} hrs</strong>
+        </div>
+      </div>
+    ))}
+  </div>
+</Layout>

@@ -6,3 +6,202 @@ datasource db {
   provider = "sqlite"
 }
 
+model Familia {
+  id_familia                    Int       @id @default(autoincrement())
+  codigo_familia                String    @unique
+  apellido_familiar_referencia  String
+  barrio_sector                 String?
+  direccion_hogar               String?
+  telefono_contacto_principal   String?
+  condicion_vivienda            String?
+  ingreso_economico_aproximado  Float?
+  fecha_censo_ingreso           String?
+  observaciones_socioeconomicas String?
+  created_at                    DateTime? @default(now())
+  updated_at                    DateTime? @updatedAt
+
+  beneficiarios Beneficiario[]
+
+  @@map("familia")
+}
+
+model Beneficiario {
+  id_beneficiario               Int       @id @default(autoincrement())
+  codigo_expediente             String    @unique
+  dpi_identificacion            String?
+  nombres                       String
+  apellidos                     String
+  fecha_nacimiento              String?
+  edad                          Int?
+  genero                        String?
+  tipo_beneficiario             String
+  estado_gestacion_lactancia    String?
+  nivel_vulnerabilidad          String?
+  estado                        String
+  alergias_restricciones        String?
+  condicion_medica_especial     String?
+  grado_escolar_nivel_educativo String?
+  talla_ropa                    String?
+  talla_calzado                 String?
+  fecha_ingreso                 String?
+  id_familia                    Int
+  rol_familiar                  String
+  es_tutor_principal            Boolean?
+  convive_en_mismo_hogar        Boolean?
+  created_at                    DateTime? @default(now())
+  updated_at                    DateTime? @updatedAt
+
+  familia     Familia  @relation(fields: [id_familia], references: [id_familia], onDelete: Cascade)
+  asistencias Asiste[]
+
+  @@map("beneficiario")
+}
+
+model Evento {
+  id_evento               Int       @id @default(autoincrement())
+  titulo                  String
+  categoria               String
+  fecha                   String
+  hora_inicio             String?
+  lugar                   String
+  meta_asistentes         Int?
+  presupuesto_estimado    Float?
+  presupuesto_ejecutado   Float?
+  coordinador_responsable String?
+  estado                  String
+  descripcion             String?
+  created_at              DateTime? @default(now())
+  updated_at              DateTime? @updatedAt
+
+  asistencias            Asiste[]
+  apoyos                 Apoya[]
+  movimientos_inventario MovimientoInventario[]
+
+  @@map("evento")
+}
+
+model Asiste {
+  id_asiste                Int      @id @default(autoincrement())
+  id_beneficiario          Int
+  id_evento                Int
+  estado_asistencia        String?
+  hora_llegada             String?
+  recibio_kit              Boolean?
+  tipo_kit_recibido        String?
+  observaciones_asistencia String?
+
+  beneficiario Beneficiario @relation(fields: [id_beneficiario], references: [id_beneficiario], onDelete: Cascade)
+  evento       Evento       @relation(fields: [id_evento], references: [id_evento], onDelete: Cascade)
+
+  @@map("asiste")
+}
+
+model Voluntario {
+  id_voluntario       Int       @id @default(autoincrement())
+  nombre_completo     String
+  email               String?
+  telefono            String?
+  rol_especialidad    String?
+  disponibilidad      String?
+  horas_acumuladas    Float?
+  contacto_emergencia String?
+  fecha_ingreso       String?
+  estado              String?
+  created_at          DateTime? @default(now())
+  updated_at          DateTime? @updatedAt
+
+  apoyos                Apoya[]
+  donaciones_monetarias DonacionMonetaria[]
+
+  @@map("voluntario")
+}
+
+model Apoya {
+  id_apoya        Int     @id @default(autoincrement())
+  id_voluntario   Int
+  id_evento       Int
+  rol_en_evento   String?
+  horas_dedicadas Float?
+
+  voluntario Voluntario @relation(fields: [id_voluntario], references: [id_voluntario], onDelete: Cascade)
+  evento     Evento     @relation(fields: [id_evento], references: [id_evento], onDelete: Cascade)
+
+  @@map("apoya")
+}
+
+model Donante {
+  id_donante            Int       @id @default(autoincrement())
+  nombre_o_razon_social String
+  tipo_donante          String
+  nit_o_identificacion  String?
+  telefono              String?
+  email                 String?
+  direccion             String?
+  persona_contacto      String?
+  created_at            DateTime? @default(now())
+  updated_at            DateTime? @updatedAt
+
+  donaciones_monetarias  DonacionMonetaria[]
+  movimientos_inventario MovimientoInventario[]
+
+  @@map("donante")
+}
+
+model DonacionMonetaria {
+  id_donacion      Int       @id @default(autoincrement())
+  numero_recibo    String    @unique
+  monto            Float
+  moneda           String?
+  fecha            String?
+  metodo_pago      String?
+  programa_destino String?
+  id_donante       Int?
+  id_voluntario    Int?
+  created_at       DateTime? @default(now())
+  updated_at       DateTime? @updatedAt
+
+  donante    Donante?    @relation(fields: [id_donante], references: [id_donante], onDelete: SetNull)
+  voluntario Voluntario? @relation(fields: [id_voluntario], references: [id_voluntario], onDelete: SetNull)
+
+  @@map("donacion_monetaria")
+}
+
+model ArticuloInventario {
+  id_articulo         Int       @id @default(autoincrement())
+  nombre              String
+  categoria           String
+  unidad_medida       String
+  cantidad_disponible Float?
+  stock_minimo_alerta Int?
+  ubicacion_bodega    String?
+  fecha_vencimiento   String?
+  estado_stock        String?
+  created_at          DateTime? @default(now())
+  updated_at          DateTime? @updatedAt
+
+  movimientos_inventario MovimientoInventario[]
+
+  @@map("articulo_inventario")
+}
+
+model MovimientoInventario {
+  id_movimiento         Int       @id @default(autoincrement())
+  tipo_movimiento       String
+  cantidad              Float
+  fecha                 String?
+  motivo                String?
+  registrado_por        String?
+  numero_acta_entrega   String?
+  comprobante_recepcion String?
+  id_articulo           Int
+  id_donante            Int?
+  id_evento             Int?
+  created_at            DateTime? @default(now())
+  updated_at            DateTime? @updatedAt
+
+  articulo ArticuloInventario @relation(fields: [id_articulo], references: [id_articulo], onDelete: Cascade)
+  donante  Donante?           @relation(fields: [id_donante], references: [id_donante], onDelete: SetNull)
+  evento   Evento?            @relation(fields: [id_evento], references: [id_evento], onDelete: SetNull)
+
+  @@map("movimiento_inventario")
+}

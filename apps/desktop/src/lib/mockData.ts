@@ -97,21 +97,23 @@ export async function getMujerById(id: string): Promise<Mujer | undefined> {
 export interface Nino {
   id: string;
   codigo: string;
-  nombre: string;
+  nombres: string;
+  apellidos: string;
   edad: number;
-  mujerId: string; // vínculo con el perfil de la madre/tutora
+  mujerId: string; // vínculo interno con el perfil de la madre/tutora
+  dpiMadre: string; // DPI de la madre: es el dato que captura el formulario de registro
   escolaridad: string;
-  tallaRopa: number;
-  tallaCalzado: number;
-  alergia?: string;
-  vulnerabilidad: Vulnerabilidad;
+  tallaCamisa?: string;
+  tallaPantalon?: string;
+  tallaCalzado?: string;
+  observaciones?: string; // texto libre: alergias, condiciones médicas, notas
 }
 
 const NINOS: Nino[] = [
-  { id: "nino-001", codigo: "NIN-2026-001", nombre: "Mateo Gómez Morales", edad: 9, mujerId: "muj-001", escolaridad: "3° Primaria", tallaRopa: 10, tallaCalzado: 32, alergia: "Alérgico a la Penicilina", vulnerabilidad: "Alta" },
-  { id: "nino-002", codigo: "NIN-2026-002", nombre: "Sofía Valentina Herrera", edad: 6, mujerId: "muj-002", escolaridad: "1° Primaria", tallaRopa: 8, tallaCalzado: 29, vulnerabilidad: "Media" },
-  { id: "nino-003", codigo: "NIN-2026-003", nombre: "Samuel David Reyes", edad: 11, mujerId: "muj-003", escolaridad: "5° Primaria", tallaRopa: 12, tallaCalzado: 35, alergia: "Intolerancia a la lactosa", vulnerabilidad: "Media" },
-  { id: "nino-004", codigo: "NIN-2026-004", nombre: "Valery Nicole Peña", edad: 6, mujerId: "muj-003", escolaridad: "Transición / Preescolar", tallaRopa: 6, tallaCalzado: 27, alergia: "Rinitis alérgica con polvo", vulnerabilidad: "Media" },
+  { id: "nino-001", codigo: "NIN-2026-001", nombres: "Mateo", apellidos: "Gómez Morales", edad: 9, mujerId: "muj-001", dpiMadre: "1000000010101", escolaridad: "3° Primaria", tallaCamisa: "10", tallaPantalon: "10", tallaCalzado: "32", observaciones: "Alérgico a la Penicilina" },
+  { id: "nino-002", codigo: "NIN-2026-002", nombres: "Sofía Valentina", apellidos: "Herrera", edad: 6, mujerId: "muj-002", dpiMadre: "1000000020101", escolaridad: "1° Primaria", tallaCamisa: "8", tallaPantalon: "8", tallaCalzado: "29" },
+  { id: "nino-003", codigo: "NIN-2026-003", nombres: "Samuel David", apellidos: "Reyes", edad: 11, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "5° Primaria", tallaCamisa: "12", tallaPantalon: "12", tallaCalzado: "35", observaciones: "Intolerancia a la lactosa" },
+  { id: "nino-004", codigo: "NIN-2026-004", nombres: "Valery Nicole", apellidos: "Peña", edad: 6, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "Transición / Preescolar", tallaCamisa: "6", tallaPantalon: "6", tallaCalzado: "27", observaciones: "Rinitis alérgica con polvo" },
 ];
 
 export async function getNinos(): Promise<Nino[]> {

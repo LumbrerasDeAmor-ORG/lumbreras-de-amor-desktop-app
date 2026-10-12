@@ -59,6 +59,29 @@ import Layout from "../../layouts/Layout.astro";
             <option>3° Básico</option>
             </select>
         </label>
+        
+      <p class="form-seccion">Datos opcionales</p>
+
+      <label>
+        Talla de camisa
+        <input name="tallaCamisa" type="text" placeholder="Ej: 10" />
+      </label>
+      <label>
+        Talla de pantalón
+        <input name="tallaPantalon" type="text" placeholder="Ej: 10" />
+      </label>
+      <label>
+        Talla de calzado
+        <input name="tallaCalzado" type="text" placeholder="Ej: 32" />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Observaciones
+        <textarea
+          name="observaciones"
+          rows="3"
+          placeholder="Información adicional del niño: alergias, condiciones médicas, notas..."
+        ></textarea>
+      </label>
         </div>
 
     <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">

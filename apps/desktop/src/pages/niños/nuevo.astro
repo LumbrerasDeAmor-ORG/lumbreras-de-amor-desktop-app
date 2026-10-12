@@ -14,8 +14,52 @@ import Layout from "../../layouts/Layout.astro";
 
   <form id="form-nino" class="card" style="max-width: 640px;" novalidate>
     <div class="form-grid">
-      <!-- Los campos del formulario se agregan en los siguientes commits -->
-    </div>
+        <p class="form-seccion">Datos obligatorios</p>
+
+        <label style="grid-column: 1 / -1;">
+            DPI de la madre *
+            <input
+            id="dpi-madre"
+            name="dpiMadre"
+            type="text"
+            inputmode="numeric"
+            maxlength="13"
+            pattern="[0-9]{13}"
+            title="El DPI debe tener 13 dígitos"
+            placeholder="13 dígitos, sin espacios"
+            required
+            />
+        </label>
+        <label>
+            Nombres *
+            <input name="nombres" type="text" required />
+        </label>
+        <label>
+            Apellidos *
+            <input name="apellidos" type="text" required />
+        </label>
+        <label>
+            Edad *
+            <input name="edad" type="number" min="0" max="17" required />
+        </label>
+        <label>
+            Escolaridad *
+            <select name="escolaridad" required>
+            <option value="">Seleccionar...</option>
+            <option>No estudia</option>
+            <option>Preescolar</option>
+            <option>1° Primaria</option>
+            <option>2° Primaria</option>
+            <option>3° Primaria</option>
+            <option>4° Primaria</option>
+            <option>5° Primaria</option>
+            <option>6° Primaria</option>
+            <option>1° Básico</option>
+            <option>2° Básico</option>
+            <option>3° Básico</option>
+            </select>
+        </label>
+        </div>
 
     <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
       Completá los campos obligatorios (*) antes de continuar.
@@ -47,6 +91,15 @@ import Layout from "../../layouts/Layout.astro";
     font-weight: 600;
     color: var(--text-main);
   }
+    .form-seccion {
+        grid-column: 1 / -1;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+  }
   .form-grid input,
   .form-grid select,
   .form-grid textarea {
@@ -66,6 +119,12 @@ import Layout from "../../layouts/Layout.astro";
   const errorEl = document.getElementById("form-error");
   const preview = document.getElementById("preview");
   const previewContent = document.getElementById("preview-content");
+  const dpiInput = document.getElementById("dpi-madre") as HTMLInputElement | null;
+
+  // El DPI solo admite dígitos: se limpia cualquier otro carácter al escribir.
+  dpiInput?.addEventListener("input", () => {
+    dpiInput.value = dpiInput.value.replace(/\D/g, "");
+  });
 
   form?.addEventListener("submit", (e) => {
     e.preventDefault();

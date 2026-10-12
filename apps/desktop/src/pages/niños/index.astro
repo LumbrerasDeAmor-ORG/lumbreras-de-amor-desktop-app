@@ -11,8 +11,12 @@ const mujerPorId = new Map(mujeres.map((m) => [m.id, m]));
 <Layout
   title="Niños"
   subtitle="Perfiles vinculados a la mujer/madre o tutora responsable"
-  active="ninos"
->
+  active="ninos"\n>
+
+  <div slot="actions">
+  <a href="/niños/nuevo"><button class="btn btn-primary" type="button">+ Nuevo Niño</button></a>
+  </div>
+  
   <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
     Mostrando {ninos.length} de {ninos.length} niños registrados
   </p>

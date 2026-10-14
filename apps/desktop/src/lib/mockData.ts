@@ -97,21 +97,23 @@ export async function getMujerById(id: string): Promise<Mujer | undefined> {
 export interface Nino {
   id: string;
   codigo: string;
-  nombre: string;
+  nombres: string;
+  apellidos: string;
   edad: number;
-  mujerId: string; // vínculo con el perfil de la madre/tutora
+  mujerId: string; // vínculo interno con el perfil de la madre/tutora
+  dpiMadre: string; // DPI de la madre: es el dato que captura el formulario de registro
   escolaridad: string;
-  tallaRopa: number;
-  tallaCalzado: number;
-  alergia?: string;
-  vulnerabilidad: Vulnerabilidad;
+  tallaCamisa?: string;
+  tallaPantalon?: string;
+  tallaCalzado?: string;
+  observaciones?: string; // texto libre: alergias, condiciones médicas, notas
 }
 
 const NINOS: Nino[] = [
-  { id: "nino-001", codigo: "NIN-2026-001", nombre: "Mateo Gómez Morales", edad: 9, mujerId: "muj-001", escolaridad: "3° Primaria", tallaRopa: 10, tallaCalzado: 32, alergia: "Alérgico a la Penicilina", vulnerabilidad: "Alta" },
-  { id: "nino-002", codigo: "NIN-2026-002", nombre: "Sofía Valentina Herrera", edad: 6, mujerId: "muj-002", escolaridad: "1° Primaria", tallaRopa: 8, tallaCalzado: 29, vulnerabilidad: "Media" },
-  { id: "nino-003", codigo: "NIN-2026-003", nombre: "Samuel David Reyes", edad: 11, mujerId: "muj-003", escolaridad: "5° Primaria", tallaRopa: 12, tallaCalzado: 35, alergia: "Intolerancia a la lactosa", vulnerabilidad: "Media" },
-  { id: "nino-004", codigo: "NIN-2026-004", nombre: "Valery Nicole Peña", edad: 6, mujerId: "muj-003", escolaridad: "Transición / Preescolar", tallaRopa: 6, tallaCalzado: 27, alergia: "Rinitis alérgica con polvo", vulnerabilidad: "Media" },
+  { id: "nino-001", codigo: "NIN-2026-001", nombres: "Mateo", apellidos: "Gómez Morales", edad: 9, mujerId: "muj-001", dpiMadre: "1000000010101", escolaridad: "3° Primaria", tallaCamisa: "10", tallaPantalon: "10", tallaCalzado: "32", observaciones: "Alérgico a la Penicilina" },
+  { id: "nino-002", codigo: "NIN-2026-002", nombres: "Sofía Valentina", apellidos: "Herrera", edad: 6, mujerId: "muj-002", dpiMadre: "1000000020101", escolaridad: "1° Primaria", tallaCamisa: "8", tallaPantalon: "8", tallaCalzado: "29" },
+  { id: "nino-003", codigo: "NIN-2026-003", nombres: "Samuel David", apellidos: "Reyes", edad: 11, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "5° Primaria", tallaCamisa: "12", tallaPantalon: "12", tallaCalzado: "35", observaciones: "Intolerancia a la lactosa" },
+  { id: "nino-004", codigo: "NIN-2026-004", nombres: "Valery Nicole", apellidos: "Peña", edad: 6, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "Transición / Preescolar", tallaCamisa: "6", tallaPantalon: "6", tallaCalzado: "27", observaciones: "Rinitis alérgica con polvo" },
 ];
 
 export async function getNinos(): Promise<Nino[]> {
@@ -144,15 +146,60 @@ export interface Evento {
 }
 
 const EVENTOS: Evento[] = [
-  { id: "evt-001", titulo: "Gran Jornada de Salud Integral y Nutrición Comunitaria", categoria: "Jornada de Salud", estado: "Finalizado", descripcion: "Valoración médica general, control de talla y peso, entrega de suplementos multivitamínicos y kits de higiene.", fecha: "2026-08-08", horario: "08:30 - 13:30", ubicacion: "Centro Comunitario San Jerónimo (Villa Esperanza)", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 1150, presupuestoTotal: 1200, convocados: 8, asistieron: 7, voluntariosAsignados: 3 },
-  { id: "evt-002", titulo: "Jornada Comunitaria de Integración Familiar & Talleres de Creatividad", categoria: "Jornada de Integración Familiar", estado: "Planificado", descripcion: "Estaciones de pintura, dinámicas grupales, y entrega de materiales didácticos y recreativos.", fecha: "2026-08-22", horario: "14:00 - 18:00", ubicacion: "Cancha Polideportiva Brisas del Sur", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 650, presupuestoTotal: 1800, convocados: 8, asistieron: 8, voluntariosAsignados: 5 },
-  { id: "evt-003", titulo: "Comedor Solidario & Entrega de Mercados Nutricionales", categoria: "Comedor Comunitario", estado: "Finalizado", descripcion: "Almuerzo caliente balanceado y entrega de canasta de víveres esenciales a familias de alta vulnerabilidad.", fecha: "2026-07-26", horario: "11:30 - 15:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Chef Martha Cecilia Rojas", presupuestoEjecutado: 920, presupuestoTotal: 950, convocados: 6, asistieron: 5, voluntariosAsignados: 3 },
-  { id: "evt-004", titulo: 'Campaña Educativa "Semillas de Esperanza y Conocimiento"', categoria: "Entrega de Kits & Víveres", estado: "Finalizado", descripcion: "Dotación de morrales con útiles completos, reglas, tijeras y recipientes para hidratación.", fecha: "2026-07-12", horario: "09:00 - 13:00", ubicacion: "Sede Comunitaria La Esperanza", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 1420, presupuestoTotal: 1500, convocados: 5, asistieron: 5, voluntariosAsignados: 3 },
+  { id: "evt-001", titulo: "Celebración Día de la Madre con las Mujeres de la Comunidad", categoria: "Celebración", estado: "Planificado", descripcion: "Convivio con refacción, música y reconocimiento a las mujeres que participan en los talleres de la organización.", fecha: "2026-10-30", horario: "15:00 - 19:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 0, presupuestoTotal: 900, convocados: 40, asistieron: 0, voluntariosAsignados: 6 },
+  { id: "evt-002", titulo: "Cena Benéfica Lumbreras de Amor", categoria: "Recaudación de Fondos", estado: "Planificado", descripcion: "Cena con donantes y aliados para recaudar fondos a favor de los programas de la organización.", fecha: "2026-11-14", horario: "18:30 - 22:00", ubicacion: "Salón Social Villa Esperanza", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 200, presupuestoTotal: 1500, convocados: 60, asistieron: 0, voluntariosAsignados: 8 },
+  { id: "evt-003", titulo: "Taller de Capacitación para Voluntarios", categoria: "Capacitación", estado: "Finalizado", descripcion: "Inducción sobre trato a las familias, manejo de grupos y registro de asistencia en terreno.", fecha: "2026-09-19", horario: "09:00 - 12:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 180, presupuestoTotal: 200, convocados: 6, asistieron: 6, voluntariosAsignados: 2 },
 ];
 
 export async function getEventos(): Promise<Evento[]> {
   return EVENTOS;
 }
+// JORNADAS (módulo independiente de Eventos)
+
+export interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  responsable: string;
+  atendidos: number; // personas atendidas en este servicio
+}
+
+export interface Jornada extends Evento {
+  servicios: Servicio[]; // servicios que se prestan dentro de la jornada
+}
+
+const JORNADAS: Jornada[] = [
+  { id: "jor-001", titulo: "Gran Jornada de Salud Integral y Nutrición Comunitaria", categoria: "Jornada de Salud", estado: "Finalizado", descripcion: "Valoración médica general, control de talla y peso, entrega de suplementos multivitamínicos y kits de higiene.", fecha: "2026-08-08", horario: "08:30 - 13:30", ubicacion: "Centro Comunitario San Jerónimo (Villa Esperanza)", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 1150, presupuestoTotal: 1200, convocados: 8, asistieron: 7, voluntariosAsignados: 3, servicios: [
+    { id: "srv-001", nombre: "Valoración médica general", descripcion: "Consulta médica básica y revisión de signos vitales.", responsable: "Dra. Carolina Méndez", atendidos: 7 },
+    { id: "srv-002", nombre: "Control de talla y peso", descripcion: "Medición antropométrica para el seguimiento nutricional.", responsable: "Lic. Laura Camila Ortiz", atendidos: 7 },
+    { id: "srv-003", nombre: "Entrega de suplementos y kits de higiene", descripcion: "Multivitamínicos y kits de cuidado bucal y personal.", responsable: "Carlos Alberto Navarro", atendidos: 7 },
+  ] },
+  { id: "jor-002", titulo: "Jornada Comunitaria de Integración Familiar & Talleres de Creatividad", categoria: "Jornada de Integración Familiar", estado: "Planificado", descripcion: "Estaciones de pintura, dinámicas grupales, y entrega de materiales didácticos y recreativos.", fecha: "2026-08-22", horario: "14:00 - 18:00", ubicacion: "Cancha Polideportiva Brisas del Sur", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 650, presupuestoTotal: 1800, convocados: 8, asistieron: 8, voluntariosAsignados: 5, servicios: [
+    { id: "srv-004", nombre: "Estaciones de pintura y creatividad", descripcion: "Taller de pintura y obra reflexiva con valores de paz.", responsable: "Mariana Duque Zuluaga", atendidos: 8 },
+    { id: "srv-005", nombre: "Dinámicas grupales", descripcion: "Juegos y actividades de integración familiar.", responsable: "Mariana Duque Zuluaga", atendidos: 8 },
+    { id: "srv-006", nombre: "Entrega de materiales didácticos", descripcion: "Materiales recreativos y educativos para las familias.", responsable: "Carlos Alberto Navarro", atendidos: 0 },
+  ] },
+  { id: "jor-003", titulo: "Comedor Solidario & Entrega de Mercados Nutricionales", categoria: "Comedor Comunitario", estado: "Finalizado", descripcion: "Almuerzo caliente balanceado y entrega de canasta de víveres esenciales a familias de alta vulnerabilidad.", fecha: "2026-07-26", horario: "11:30 - 15:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Chef Martha Cecilia Rojas", presupuestoEjecutado: 920, presupuestoTotal: 950, convocados: 6, asistieron: 5, voluntariosAsignados: 3, servicios: [
+    { id: "srv-007", nombre: "Almuerzo caliente balanceado", descripcion: "Comida nutritiva servida en el comedor comunitario.", responsable: "Chef Martha Cecilia Rojas", atendidos: 5 },
+    { id: "srv-008", nombre: "Entrega de canasta de víveres", descripcion: "Mercado nutricional para familias de alta vulnerabilidad.", responsable: "Carlos Alberto Navarro", atendidos: 5 },
+  ]},
+  { id: "jor-004", titulo: 'Campaña Educativa "Semillas de Esperanza y Conocimiento"', categoria: "Entrega de Kits & Víveres", estado: "Finalizado", descripcion: "Dotación de morrales con útiles completos, reglas, tijeras y recipientes para hidratación.", fecha: "2026-07-12", horario: "09:00 - 13:00", ubicacion: "Sede Comunitaria La Esperanza", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 1420, presupuestoTotal: 1500, convocados: 5, asistieron: 5, voluntariosAsignados: 3, servicios: [
+    { id: "srv-009", nombre: "Entrega de morrales con útiles", descripcion: "Cuadernos, reglas, tijeras y colores completos.", responsable: "Prof. Andrés Felipe Ruiz", atendidos: 5 },
+    { id: "srv-010", nombre: "Entrega de recipientes para hidratación", descripcion: "Botellas reutilizables para cada niño beneficiado.", responsable: "Prof. Andrés Felipe Ruiz", atendidos: 5 },
+  ] },
+];
+
+export async function getJornadas(): Promise<Jornada[]> {
+  return JORNADAS;
+}
+
+export async function getJornadaById(id: string): Promise<Jornada | undefined> {
+  return JORNADAS.find((j) => j.id === id);
+}
+
+
+
+
 
 // VÍVERES & DONACIONES
 
@@ -236,21 +283,24 @@ export interface ResumenReporte {
   periodo: string;
   beneficiariosAtendidos: number;
   eventosRealizados: number;
+  jornadasRealizadas: number;
   fondosRecaudados: number;
   horasVoluntariado: number;
 }
 
 export async function getResumenReporte(): Promise<ResumenReporte> {
-  const [mujeres, ninos, eventos, voluntarios] = await Promise.all([
+    const [mujeres, ninos, eventos, voluntarios, jornadas] = await Promise.all([
     getMujeres(),
     getNinos(),
     getEventos(),
     getVoluntarios(),
+    getJornadas(),
   ]);
   return {
     periodo: "Agosto 2026",
     beneficiariosAtendidos: mujeres.length + ninos.length,
     eventosRealizados: eventos.filter((e) => e.estado === "Finalizado").length,
+    jornadasRealizadas: jornadas.filter((j) => j.estado === "Finalizado").length,
     fondosRecaudados: 6600,
     horasVoluntariado: voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0),
   };

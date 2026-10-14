@@ -1,0 +1,169 @@
+---
+// apps/desktop/src/pages/niños/nuevo.astro
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Nuevo Perfil de Niño"
+  subtitle="Registro de datos del niño vinculado a su madre o tutora"
+  active="ninos"
+>
+  <div slot="actions">
+    <a href="/niños"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+  </div>
+
+  <form id="form-nino" class="card" style="max-width: 640px;" novalidate>
+    <div class="form-grid">
+        <p class="form-seccion">Datos obligatorios</p>
+
+        <label style="grid-column: 1 / -1;">
+            DPI de la madre *
+            <input
+            id="dpi-madre"
+            name="dpiMadre"
+            type="text"
+            inputmode="numeric"
+            maxlength="13"
+            pattern="[0-9]{13}"
+            title="El DPI debe tener 13 dígitos"
+            placeholder="13 dígitos, sin espacios"
+            required
+            />
+        </label>
+        <label>
+            Nombres *
+            <input name="nombres" type="text" required />
+        </label>
+        <label>
+            Apellidos *
+            <input name="apellidos" type="text" required />
+        </label>
+        <label>
+            Edad *
+            <input name="edad" type="number" min="0" max="17" required />
+        </label>
+        <label>
+            Escolaridad *
+            <select name="escolaridad" required>
+            <option value="">Seleccionar...</option>
+            <option>No estudia</option>
+            <option>Preescolar</option>
+            <option>1° Primaria</option>
+            <option>2° Primaria</option>
+            <option>3° Primaria</option>
+            <option>4° Primaria</option>
+            <option>5° Primaria</option>
+            <option>6° Primaria</option>
+            <option>1° Básico</option>
+            <option>2° Básico</option>
+            <option>3° Básico</option>
+            </select>
+        </label>
+        
+      <p class="form-seccion">Datos opcionales</p>
+
+      <label>
+        Talla de camisa
+        <input name="tallaCamisa" type="text" placeholder="Ej: 10" />
+      </label>
+      <label>
+        Talla de pantalón
+        <input name="tallaPantalon" type="text" placeholder="Ej: 10" />
+      </label>
+      <label>
+        Talla de calzado
+        <input name="tallaCalzado" type="text" placeholder="Ej: 32" />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Observaciones
+        <textarea
+          name="observaciones"
+          rows="3"
+          placeholder="Información adicional del niño: alergias, condiciones médicas, notas..."
+        ></textarea>
+      </label>
+        </div>
+
+    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+      Completá los campos obligatorios (*) antes de continuar.
+    </p>
+
+    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Niño</button>
+      <button class="btn btn-ghost" type="reset">Limpiar</button>
+    </div>
+  </form>
+
+  <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
+    <strong style="font-size:0.85rem;">Vista previa del perfil (aún no se guarda en ningún lado, esto es solo UI)</strong>
+    <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+  </div>
+</Layout>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+  }
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+    .form-seccion {
+        grid-column: 1 / -1;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+        margin-top: 0.2rem;
+  }
+  .form-grid input,
+  .form-grid select,
+  .form-grid textarea {
+    font-weight: 400;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-family: inherit;
+  }
+</style>
+
+<script>
+  // Solo UI: valida los campos requeridos y muestra los datos ingresados
+  // como vista previa. No persiste nada todavía.
+  const form = document.getElementById("form-nino") as HTMLFormElement | null;
+  const errorEl = document.getElementById("form-error");
+  const preview = document.getElementById("preview");
+  const previewContent = document.getElementById("preview-content");
+  const dpiInput = document.getElementById("dpi-madre") as HTMLInputElement | null;
+
+  // El DPI solo admite dígitos: se limpia cualquier otro carácter al escribir.
+  dpiInput?.addEventListener("input", () => {
+    dpiInput.value = dpiInput.value.replace(/\D/g, "");
+  });
+
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      if (errorEl) errorEl.style.display = "block";
+      form.reportValidity();
+      return;
+    }
+    if (errorEl) errorEl.style.display = "none";
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    if (preview && previewContent) {
+      previewContent.textContent = JSON.stringify(data, null, 2);
+      preview.style.display = "block";
+      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  });
+</script>

@@ -155,6 +155,28 @@ const EVENTOS: Evento[] = [
 export async function getEventos(): Promise<Evento[]> {
   return EVENTOS;
 }
+// JORNADAS (módulo independiente de Eventos)
+
+export type Jornada = Evento;
+
+const JORNADAS: Jornada[] = [
+  { id: "jor-001", titulo: "Gran Jornada de Salud Integral y Nutrición Comunitaria", categoria: "Jornada de Salud", estado: "Finalizado", descripcion: "Valoración médica general, control de talla y peso, entrega de suplementos multivitamínicos y kits de higiene.", fecha: "2026-08-08", horario: "08:30 - 13:30", ubicacion: "Centro Comunitario San Jerónimo (Villa Esperanza)", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 1150, presupuestoTotal: 1200, convocados: 8, asistieron: 7, voluntariosAsignados: 3 },
+  { id: "jor-002", titulo: "Jornada Comunitaria de Integración Familiar & Talleres de Creatividad", categoria: "Jornada de Integración Familiar", estado: "Planificado", descripcion: "Estaciones de pintura, dinámicas grupales, y entrega de materiales didácticos y recreativos.", fecha: "2026-08-22", horario: "14:00 - 18:00", ubicacion: "Cancha Polideportiva Brisas del Sur", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 650, presupuestoTotal: 1800, convocados: 8, asistieron: 8, voluntariosAsignados: 5 },
+  { id: "jor-003", titulo: "Comedor Solidario & Entrega de Mercados Nutricionales", categoria: "Comedor Comunitario", estado: "Finalizado", descripcion: "Almuerzo caliente balanceado y entrega de canasta de víveres esenciales a familias de alta vulnerabilidad.", fecha: "2026-07-26", horario: "11:30 - 15:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Chef Martha Cecilia Rojas", presupuestoEjecutado: 920, presupuestoTotal: 950, convocados: 6, asistieron: 5, voluntariosAsignados: 3 },
+  { id: "jor-004", titulo: 'Campaña Educativa "Semillas de Esperanza y Conocimiento"', categoria: "Entrega de Kits & Víveres", estado: "Finalizado", descripcion: "Dotación de morrales con útiles completos, reglas, tijeras y recipientes para hidratación.", fecha: "2026-07-12", horario: "09:00 - 13:00", ubicacion: "Sede Comunitaria La Esperanza", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 1420, presupuestoTotal: 1500, convocados: 5, asistieron: 5, voluntariosAsignados: 3 },
+];
+
+export async function getJornadas(): Promise<Jornada[]> {
+  return JORNADAS;
+}
+
+export async function getJornadaById(id: string): Promise<Jornada | undefined> {
+  return JORNADAS.find((j) => j.id === id);
+}
+
+
+
+
 
 // VÍVERES & DONACIONES
 

@@ -1,0 +1,60 @@
+---
+// apps/desktop/src/pages/jornadas/[id].astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getJornadas, getJornadaById } from "../../lib/mockData";
+
+// output: 'static' requiere getStaticPaths para rutas dinámicas.
+export async function getStaticPaths() {
+  const jornadas = await getJornadas();
+  return jornadas.map((j) => ({ params: { id: j.id } }));
+}
+
+const { id } = Astro.params;
+const jornada = await getJornadaById(id as string);
+const porcentaje = jornada ? Math.round((jornada.asistieron / jornada.convocados) * 100) : 0;
+---
+
+<Layout
+  title={jornada ? jornada.titulo : "Jornada no encontrada"}
+  subtitle="Detalle de la jornada comunitaria"
+  active="jornadas"
+>
+  <div slot="actions">
+    <a href="/jornadas"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+    <button class="btn btn-primary" type="button">Tomar / Modificar Asistencia</button>
+  </div>
+
+  {!jornada && <p>No se encontró la jornada solicitada.</p>}
+
+  {jornada && (
+    <div class="card" style="max-width: 720px;">
+      <div style="display:flex; gap:0.4rem; margin-bottom:0.6rem;">
+        <span class={`badge ${jornada.estado === "Finalizado" ? "badge-baja" : "badge-media"}`}>{jornada.estado}</span>
+        <span class="badge badge-media">{jornada.categoria}</span>
+      </div>
+      <p style="font-size:0.85rem; color:var(--text-muted);">{jornada.descripcion}</p>
+
+      <hr style="margin:0.9rem 0; border:none; border-top:1px solid var(--card-border);" />
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.9rem; font-size:0.85rem;">
+        <div><strong><Icon name="calendar" />Fecha</strong><br />{jornada.fecha}</div>
+        <div><strong><Icon name="clock" />Horario</strong><br />{jornada.horario}</div>
+        <div><strong><Icon name="pin" />Ubicación</strong><br />{jornada.ubicacion}</div>
+        <div><strong><Icon name="user" />Coordinador</strong><br />{jornada.coordinador}</div>
+        <div><strong><Icon name="dollar" />Presupuesto</strong><br />${jornada.presupuestoEjecutado} / ${jornada.presupuestoTotal}</div>
+        <div><strong><Icon name="heart" />Voluntarios asignados</strong><br />{jornada.voluntariosAsignados}</div>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted);">
+          <span>Asistencia Confirmada</span>
+          <span>{jornada.asistieron} de {jornada.convocados} ({porcentaje}%)</span>
+        </div>
+        <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
+          <div style={`background:var(--accent); height:6px; border-radius:999px; width:${porcentaje}%;`}></div>
+        </div>
+      </div>
+    </div>
+  )}
+</Layout>

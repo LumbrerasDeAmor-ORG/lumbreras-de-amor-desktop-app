@@ -2,13 +2,20 @@
 // apps/desktop/src/pages/reportes/index.astro
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
-import { getResumenReporte, getEventos, getDonaciones } from "../../lib/mockData";
+import { getResumenReporte, getEventos, getJornadas, getDonaciones } from "../../lib/mockData";
 
-const [resumen, eventos, donaciones] = await Promise.all([
+const [resumen, eventos, jornadas, donaciones] = await Promise.all([
   getResumenReporte(),
   getEventos(),
+  getJornadas(),
   getDonaciones(),
 ]);
+
+// Jornadas y eventos se reportan juntos, identificados por su tipo.
+const actividades = [
+  ...jornadas.map((j) => ({ ...j, tipo: "Jornada" })),
+  ...eventos.map((e) => ({ ...e, tipo: "Evento" })),
+].sort((a, b) => a.fecha.localeCompare(b.fecha));
 ---
 
 <Layout title="Reportes Mensuales Automatizados" subtitle="Informes ejecutivos listos para benefactores, donantes y comités directivos" active="reportes">
@@ -23,13 +30,14 @@ const [resumen, eventos, donaciones] = await Promise.all([
     id="reporte"
     class="card"
     style="max-width: 900px;"
-    data-reporte={JSON.stringify({ resumen, eventos, donaciones })}
+    data-reporte={JSON.stringify({ resumen, actividades, donaciones })}
   >
     <h2 style="font-size:1.1rem;">Informe Mensual de Impacto &amp; Gestión Social</h2>
     <p style="font-size:0.8rem; color:var(--text-muted);">Período: {resumen.periodo}</p>
 
     <div class="grid" style="margin-top:1rem;">
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Beneficiarios Atendidos</div><div style="font-size:1.4rem; font-weight:700;">{resumen.beneficiariosAtendidos}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Realizadas</div><div style="font-size:1.4rem; font-weight:700;">{resumen.jornadasRealizadas}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Eventos Realizados</div><div style="font-size:1.4rem; font-weight:700;">{resumen.eventosRealizados}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">${resumen.fondosRecaudados}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Horas Voluntariado</div><div style="font-size:1.4rem; font-weight:700;">{resumen.horasVoluntariado}h</div></div>
@@ -37,11 +45,12 @@ const [resumen, eventos, donaciones] = await Promise.all([
 
     <h3 style="font-size:0.9rem; margin-top:1.4rem;">Desglose de Jornadas y Eventos</h3>
     <table class="tabla-reporte">
-      <thead><tr><th>Evento</th><th>Categoría</th><th>Asistencia</th><th>Presupuesto</th></tr></thead>
+      <thead><tr><th>Actividad</th><th>Tipo</th><th>Categoría</th><th>Asistencia</th><th>Presupuesto</th></tr></thead>
       <tbody>
-        {eventos.map((e) => (
+        {actividades.map((e) => (
           <tr>
             <td>{e.titulo}<div style="font-size:0.7rem; color:var(--text-muted);">{e.fecha}</div></td>
+            <td>{e.tipo}</td>
             <td>{e.categoria}</td>
             <td>{e.asistieron} / {e.convocados}</td>
             <td>${e.presupuestoEjecutado} USD</td>
@@ -85,9 +94,11 @@ const [resumen, eventos, donaciones] = await Promise.all([
 <script>
   import type { ResumenReporte, Evento, Donacion } from "../../lib/mockData";
 
+  type ActividadReporte = Evento & { tipo: string };
+
   interface DatosReporte {
     resumen: ResumenReporte;
-    eventos: Evento[];
+    actividades: ActividadReporte[];
     donaciones: Donacion[];
   }
 
@@ -104,12 +115,12 @@ const [resumen, eventos, donaciones] = await Promise.all([
   }
 
   // US-11: arma el CSV a partir del mismo mock (sin backend).
-  function construirCsv({ resumen, eventos, donaciones }: DatosReporte): string {
+  function construirCsv({ resumen, actividades, donaciones }: DatosReporte): string {
     const filas: (string | number)[][] = [
       ["Reporte", resumen.periodo],
       [],
-      ["Evento", "Categoria", "Fecha", "Asistieron", "Convocados", "PresupuestoEjecutado"],
-      ...eventos.map((e) => [e.titulo, e.categoria, e.fecha, e.asistieron, e.convocados, e.presupuestoEjecutado]),
+      ["Actividad", "Tipo", "Categoria", "Fecha", "Asistieron", "Convocados", "PresupuestoEjecutado"],
+      ...actividades.map((e) => [e.titulo, e.tipo, e.categoria, e.fecha, e.asistieron, e.convocados, e.presupuestoEjecutado]),
       [],
       ["Recibo", "Donante", "Tipo", "Destino", "Monto"],
       ...donaciones.map((d) => [d.recibo, d.donante, d.tipo, d.destino, d.monto]),

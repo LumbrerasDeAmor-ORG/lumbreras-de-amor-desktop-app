@@ -283,21 +283,24 @@ export interface ResumenReporte {
   periodo: string;
   beneficiariosAtendidos: number;
   eventosRealizados: number;
+  jornadasRealizadas: number;
   fondosRecaudados: number;
   horasVoluntariado: number;
 }
 
 export async function getResumenReporte(): Promise<ResumenReporte> {
-  const [mujeres, ninos, eventos, voluntarios] = await Promise.all([
+    const [mujeres, ninos, eventos, voluntarios, jornadas] = await Promise.all([
     getMujeres(),
     getNinos(),
     getEventos(),
     getVoluntarios(),
+    getJornadas(),
   ]);
   return {
     periodo: "Agosto 2026",
     beneficiariosAtendidos: mujeres.length + ninos.length,
     eventosRealizados: eventos.filter((e) => e.estado === "Finalizado").length,
+    jornadasRealizadas: jornadas.filter((j) => j.estado === "Finalizado").length,
     fondosRecaudados: 6600,
     horasVoluntariado: voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0),
   };

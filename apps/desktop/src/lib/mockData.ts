@@ -157,13 +157,37 @@ export async function getEventos(): Promise<Evento[]> {
 }
 // JORNADAS (módulo independiente de Eventos)
 
-export type Jornada = Evento;
+export interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  responsable: string;
+  atendidos: number; // personas atendidas en este servicio
+}
+
+export interface Jornada extends Evento {
+  servicios: Servicio[]; // servicios que se prestan dentro de la jornada
+}
 
 const JORNADAS: Jornada[] = [
-  { id: "jor-001", titulo: "Gran Jornada de Salud Integral y Nutrición Comunitaria", categoria: "Jornada de Salud", estado: "Finalizado", descripcion: "Valoración médica general, control de talla y peso, entrega de suplementos multivitamínicos y kits de higiene.", fecha: "2026-08-08", horario: "08:30 - 13:30", ubicacion: "Centro Comunitario San Jerónimo (Villa Esperanza)", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 1150, presupuestoTotal: 1200, convocados: 8, asistieron: 7, voluntariosAsignados: 3 },
-  { id: "jor-002", titulo: "Jornada Comunitaria de Integración Familiar & Talleres de Creatividad", categoria: "Jornada de Integración Familiar", estado: "Planificado", descripcion: "Estaciones de pintura, dinámicas grupales, y entrega de materiales didácticos y recreativos.", fecha: "2026-08-22", horario: "14:00 - 18:00", ubicacion: "Cancha Polideportiva Brisas del Sur", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 650, presupuestoTotal: 1800, convocados: 8, asistieron: 8, voluntariosAsignados: 5 },
-  { id: "jor-003", titulo: "Comedor Solidario & Entrega de Mercados Nutricionales", categoria: "Comedor Comunitario", estado: "Finalizado", descripcion: "Almuerzo caliente balanceado y entrega de canasta de víveres esenciales a familias de alta vulnerabilidad.", fecha: "2026-07-26", horario: "11:30 - 15:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Chef Martha Cecilia Rojas", presupuestoEjecutado: 920, presupuestoTotal: 950, convocados: 6, asistieron: 5, voluntariosAsignados: 3 },
-  { id: "jor-004", titulo: 'Campaña Educativa "Semillas de Esperanza y Conocimiento"', categoria: "Entrega de Kits & Víveres", estado: "Finalizado", descripcion: "Dotación de morrales con útiles completos, reglas, tijeras y recipientes para hidratación.", fecha: "2026-07-12", horario: "09:00 - 13:00", ubicacion: "Sede Comunitaria La Esperanza", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 1420, presupuestoTotal: 1500, convocados: 5, asistieron: 5, voluntariosAsignados: 3 },
+  { id: "jor-001", titulo: "Gran Jornada de Salud Integral y Nutrición Comunitaria", categoria: "Jornada de Salud", estado: "Finalizado", descripcion: "Valoración médica general, control de talla y peso, entrega de suplementos multivitamínicos y kits de higiene.", fecha: "2026-08-08", horario: "08:30 - 13:30", ubicacion: "Centro Comunitario San Jerónimo (Villa Esperanza)", coordinador: "Lic. Laura Camila Ortiz", presupuestoEjecutado: 1150, presupuestoTotal: 1200, convocados: 8, asistieron: 7, voluntariosAsignados: 3, servicios: [
+    { id: "srv-001", nombre: "Valoración médica general", descripcion: "Consulta médica básica y revisión de signos vitales.", responsable: "Dra. Carolina Méndez", atendidos: 7 },
+    { id: "srv-002", nombre: "Control de talla y peso", descripcion: "Medición antropométrica para el seguimiento nutricional.", responsable: "Lic. Laura Camila Ortiz", atendidos: 7 },
+    { id: "srv-003", nombre: "Entrega de suplementos y kits de higiene", descripcion: "Multivitamínicos y kits de cuidado bucal y personal.", responsable: "Carlos Alberto Navarro", atendidos: 7 },
+  ] },
+  { id: "jor-002", titulo: "Jornada Comunitaria de Integración Familiar & Talleres de Creatividad", categoria: "Jornada de Integración Familiar", estado: "Planificado", descripcion: "Estaciones de pintura, dinámicas grupales, y entrega de materiales didácticos y recreativos.", fecha: "2026-08-22", horario: "14:00 - 18:00", ubicacion: "Cancha Polideportiva Brisas del Sur", coordinador: "Mariana Duque Zuluaga", presupuestoEjecutado: 650, presupuestoTotal: 1800, convocados: 8, asistieron: 8, voluntariosAsignados: 5, servicios: [
+    { id: "srv-004", nombre: "Estaciones de pintura y creatividad", descripcion: "Taller de pintura y obra reflexiva con valores de paz.", responsable: "Mariana Duque Zuluaga", atendidos: 8 },
+    { id: "srv-005", nombre: "Dinámicas grupales", descripcion: "Juegos y actividades de integración familiar.", responsable: "Mariana Duque Zuluaga", atendidos: 8 },
+    { id: "srv-006", nombre: "Entrega de materiales didácticos", descripcion: "Materiales recreativos y educativos para las familias.", responsable: "Carlos Alberto Navarro", atendidos: 0 },
+  ] },
+  { id: "jor-003", titulo: "Comedor Solidario & Entrega de Mercados Nutricionales", categoria: "Comedor Comunitario", estado: "Finalizado", descripcion: "Almuerzo caliente balanceado y entrega de canasta de víveres esenciales a familias de alta vulnerabilidad.", fecha: "2026-07-26", horario: "11:30 - 15:00", ubicacion: "Sede Lumbreras de Amor", coordinador: "Chef Martha Cecilia Rojas", presupuestoEjecutado: 920, presupuestoTotal: 950, convocados: 6, asistieron: 5, voluntariosAsignados: 3, servicios: [
+    { id: "srv-007", nombre: "Almuerzo caliente balanceado", descripcion: "Comida nutritiva servida en el comedor comunitario.", responsable: "Chef Martha Cecilia Rojas", atendidos: 5 },
+    { id: "srv-008", nombre: "Entrega de canasta de víveres", descripcion: "Mercado nutricional para familias de alta vulnerabilidad.", responsable: "Carlos Alberto Navarro", atendidos: 5 },
+  ]},
+  { id: "jor-004", titulo: 'Campaña Educativa "Semillas de Esperanza y Conocimiento"', categoria: "Entrega de Kits & Víveres", estado: "Finalizado", descripcion: "Dotación de morrales con útiles completos, reglas, tijeras y recipientes para hidratación.", fecha: "2026-07-12", horario: "09:00 - 13:00", ubicacion: "Sede Comunitaria La Esperanza", coordinador: "Prof. Andrés Felipe Ruiz", presupuestoEjecutado: 1420, presupuestoTotal: 1500, convocados: 5, asistieron: 5, voluntariosAsignados: 3, servicios: [
+    { id: "srv-009", nombre: "Entrega de morrales con útiles", descripcion: "Cuadernos, reglas, tijeras y colores completos.", responsable: "Prof. Andrés Felipe Ruiz", atendidos: 5 },
+    { id: "srv-010", nombre: "Entrega de recipientes para hidratación", descripcion: "Botellas reutilizables para cada niño beneficiado.", responsable: "Prof. Andrés Felipe Ruiz", atendidos: 5 },
+  ] },
 ];
 
 export async function getJornadas(): Promise<Jornada[]> {

@@ -10,7 +10,9 @@ export type Vulnerabilidad = "Alta" | "Media" | "Baja";
 export interface Mujer {
   id: string;
   codigo: string; 
-  nombre: string;
+  nombres: string;
+  apellidos: string;
+  nombre?: string; // compatibilidad temporal hasta A8
   edad: number;
   comunidad: string;
   direccion: string;
@@ -27,6 +29,8 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-001",
     codigo: "MUJ-2026-001",
+    nombres: "Rosa Elena",
+    apellidos: "Morales",
     nombre: "Rosa Elena Morales",
     edad: 34,
     comunidad: "Villa Esperanza",
@@ -42,6 +46,8 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-002",
     codigo: "MUJ-2026-002",
+    nombres: "Carmen",
+    apellidos: "Castro",
     nombre: "Carmen Castro",
     edad: 51,
     comunidad: "Altos del Paraíso",
@@ -56,6 +62,8 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-003",
     codigo: "MUJ-2026-003",
+    nombres: "Andrea",
+    apellidos: "Mendoza",
     nombre: "Andrea Mendoza",
     edad: 28,
     comunidad: "Villa Esperanza",
@@ -71,6 +79,8 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-004",
     codigo: "MUJ-2026-004",
+    nombres: "Luz Marina",
+    apellidos: "Pineda",
     nombre: "Luz Marina Pineda",
     edad: 45,
     comunidad: "Altos del Paraíso",

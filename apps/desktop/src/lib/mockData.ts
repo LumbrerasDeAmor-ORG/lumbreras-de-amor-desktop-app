@@ -21,6 +21,7 @@ export interface Mujer {
   telefono: string;
   ocupacion: string;
   estadoCivil: string;
+  terceraEdad: "Sí" | "No";
   hijosACargo: number;
   programas: string[]; // programas/talleres en los que participa
   vulnerabilidad: Vulnerabilidad;
@@ -42,6 +43,7 @@ const MUJERES: Mujer[] = [
     telefono: "+502 300 111 2233",
     ocupacion: "Costurera independiente",
     estadoCivil: "Madre soltera",
+    terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Emprendimiento en el Hogar", "Taller de Costura"],
     vulnerabilidad: "Alta",
@@ -61,6 +63,7 @@ const MUJERES: Mujer[] = [
     telefono: "+502 300 222 3344",
     ocupacion: "Ama de casa",
     estadoCivil: "Casada",
+    terceraEdad: "No",
     hijosACargo: 0,
     programas: ["Huerta Comunitaria"],
     vulnerabilidad: "Media",
@@ -79,6 +82,7 @@ const MUJERES: Mujer[] = [
     telefono: "+502 300 333 4455",
     ocupacion: "Vendedora informal",
     estadoCivil: "Unión libre",
+    terceraEdad: "No",
     hijosACargo: 2,
     programas: ["Emprendimiento en el Hogar", "Nutrición Familiar"],
     vulnerabilidad: "Alta",
@@ -98,6 +102,7 @@ const MUJERES: Mujer[] = [
     telefono: "+502 300 444 5566",
     ocupacion: "Auxiliar de aseo",
     estadoCivil: "Viuda",
+    terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Taller de Costura"],
     vulnerabilidad: "Baja",

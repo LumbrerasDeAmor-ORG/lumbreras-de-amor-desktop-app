@@ -63,16 +63,19 @@ const navItems = [
         --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
       body {
         font-family: var(--font-sans);
         background: var(--content-bg);
         color: var(--text-main);
         display: flex;
         flex-direction: column;
-        height: 100vh;
-        overflow: hidden;
       }
-      .shell { flex: 1; display: flex; min-height: 0; }
+      .shell { flex: 1; display: flex; min-height: 0; overflow: hidden; }
 
       /* Sidebar */
       .sidebar {
@@ -150,12 +153,13 @@ const navItems = [
       .sidebar-footer strong { color: #fff; display: block; margin-bottom: 0.2rem; }
 
       /* Main area */
-      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
       .topbar {
         display: flex; align-items: center; justify-content: space-between;
         padding: 1.1rem 1.75rem;
         background: var(--card-bg);
         border-bottom: 1px solid var(--card-border);
+        flex-shrink: 0;
       }
       .topbar h1 { font-size: 1.15rem; font-weight: 700; }
       .topbar p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
@@ -168,7 +172,7 @@ const navItems = [
       .btn-primary:hover { background: var(--accent-dark); }
       .btn-ghost { background: #f3f4f6; color: var(--text-main); }
 
-      .content { flex: 1; padding: 1.5rem 1.75rem; overflow-y: auto; }
+      .content { flex: 1; padding: 1.5rem 1.75rem; overflow-y: auto; overflow-x: auto; min-height: 0; }
 
       /* Reusable card / grid pieces used across pages */
       .card {

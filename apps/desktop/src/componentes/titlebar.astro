@@ -33,6 +33,7 @@
 <style>
   .titlebar {
     height: 35px;
+    min-height: 35px;
     flex-shrink: 0;
     background: #181818;
     border-bottom: 1px solid #2b2b2b;
@@ -42,8 +43,12 @@
     padding: 0 0 0 12px;
     font-size: 12px;
     color: #cccccc;
-    position: relative;
-    z-index: 1000;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 99999;
   }
   .titlebar-drag-region { position: absolute; inset: 0 140px 0 0; z-index: 1; }
   .titlebar-left { display: flex; align-items: center; gap: 8px; position: relative; z-index: 2; pointer-events: none; }

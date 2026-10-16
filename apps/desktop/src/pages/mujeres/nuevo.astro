@@ -15,11 +15,15 @@ import Layout from "../../layouts/Layout.astro";
   <form id="form-mujer" class="card" style="max-width: 640px;" novalidate>
     <div class="form-grid">
       <label>
-        Nombre completo *
-        <input name="nombre" type="text" required />
+        Nombres *
+        <input name="nombres" type="text" required />
       </label>
       <label>
-        DPI *
+        Apellidos *
+        <input name="apellidos" type="text" required />
+      </label>
+      <label>
+        DPI
         <input
           id="dpi-mujer"
           name="dpi"
@@ -29,16 +33,11 @@ import Layout from "../../layouts/Layout.astro";
           pattern="[0-9]{13}"
           title="El DPI debe tener 13 dígitos"
           placeholder="13 dígitos, sin espacios"
-          required
         />
       </label>
       <label>
         Edad *
         <input name="edad" type="number" min="0" max="120" required />
-      </label>
-      <label>
-        Comunidad *
-        <input name="comunidad" type="text" required />
       </label>
       <label>
         Dirección *
@@ -49,8 +48,8 @@ import Layout from "../../layouts/Layout.astro";
         <input name="colonia" type="text" required />
       </label>
       <label>
-        Teléfono *
-        <input name="telefono" type="tel" required />
+        Teléfono
+        <input name="telefono" type="tel" />
       </label>
       <label>
         Ocupación
@@ -78,17 +77,9 @@ import Layout from "../../layouts/Layout.astro";
         Hijos a cargo
         <input name="hijosACargo" type="number" min="0" value="0" />
       </label>
-      <label style="grid-column: 1 / -1;">
-        Programas / Talleres (separados por coma)
-        <input name="programas" type="text" placeholder="Ej: Taller de Costura, Nutrición Familiar" />
-      </label>
-      <label style="grid-column: 1 / -1;">
-        Problemas sociales (separados por coma)
-        <input name="problemasSociales" type="text" placeholder="Ej: Violencia intrafamiliar, Desempleo" />
-      </label>
       <label>
-        Fuentes de ingreso *
-        <select name="fuentesDeIngreso" required>
+        Fuentes de ingreso
+        <select name="fuentesDeIngreso">
           <option value="">Seleccionar...</option>
           <option value="desempleada">desempleada</option>
           <option value="vendedora informal">vendedora informal</option>
@@ -96,6 +87,14 @@ import Layout from "../../layouts/Layout.astro";
           <option value="dependiente">dependiente</option>
           <option value="asalariada y dependiente">asalariada y dependiente</option>
         </select>
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Programas / Talleres (separados por coma)
+        <input name="programas" type="text" placeholder="Ej: Taller de Costura, Nutrición Familiar" />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Problemas sociales (separados por coma)
+        <input name="problemasSociales" type="text" placeholder="Ej: Violencia intrafamiliar, Desempleo" />
       </label>
     </div>
 

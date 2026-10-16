@@ -10,6 +10,7 @@ export type Vulnerabilidad = "Alta" | "Media" | "Baja";
 export interface Mujer {
   id: string;
   codigo: string; 
+  dpi: string;
   nombres: string;
   apellidos: string;
   nombre?: string; // compatibilidad temporal hasta A8
@@ -29,6 +30,7 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-001",
     codigo: "MUJ-2026-001",
+    dpi: "1000000010101",
     nombres: "Rosa Elena",
     apellidos: "Morales",
     nombre: "Rosa Elena Morales",
@@ -46,6 +48,7 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-002",
     codigo: "MUJ-2026-002",
+    dpi: "1000000020101",
     nombres: "Carmen",
     apellidos: "Castro",
     nombre: "Carmen Castro",
@@ -62,6 +65,7 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-003",
     codigo: "MUJ-2026-003",
+    dpi: "1000000030101",
     nombres: "Andrea",
     apellidos: "Mendoza",
     nombre: "Andrea Mendoza",
@@ -79,6 +83,7 @@ const MUJERES: Mujer[] = [
   {
     id: "muj-004",
     codigo: "MUJ-2026-004",
+    dpi: "1000000040101",
     nombres: "Luz Marina",
     apellidos: "Pineda",
     nombre: "Luz Marina Pineda",

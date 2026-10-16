@@ -1,6 +1,15 @@
 ---
 // apps/desktop/src/pages/niños/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
+import { getMujeres } from "../../lib/mockData";
+
+// Datos mínimos de las madres registradas, para buscarlas por DPI en el cliente.
+const mujeres = await getMujeres();
+const madres = mujeres.map((m) => ({
+  id: m.id,
+  dpi: m.dpi,
+  nombre: `${m.nombres} ${m.apellidos}`,
+}));
 ---
 
 <Layout
@@ -12,7 +21,7 @@ import Layout from "../../layouts/Layout.astro";
     <a href="/niños"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
   </div>
 
-  <form id="form-nino" class="card" style="max-width: 640px;" novalidate>
+  <form id="form-nino" class="card" style="max-width: 640px;" data-madres={JSON.stringify(madres)} novalidate>
     <div class="form-grid">
         <p class="form-seccion">Datos obligatorios</p>
 
@@ -29,6 +38,7 @@ import Layout from "../../layouts/Layout.astro";
             placeholder="13 dígitos, sin espacios"
             required
             />
+            <small id="dpi-estado" class="dpi-estado"></small>
         </label>
         <label>
             Nombres *
@@ -106,6 +116,17 @@ import Layout from "../../layouts/Layout.astro";
     grid-template-columns: 1fr 1fr;
     gap: 0.9rem;
   }
+
+
+  .dpi-estado {
+    font-weight: 400;
+    font-size: 0.75rem;
+    min-height: 1rem;
+  }
+  .dpi-estado.ok { color: #166534; }
+  .dpi-estado.error { color: #b91c1c; }
+  .dpi-estado a { color: var(--accent); }
+
   .form-grid label {
     display: flex;
     flex-direction: column;
@@ -143,10 +164,43 @@ import Layout from "../../layouts/Layout.astro";
   const preview = document.getElementById("preview");
   const previewContent = document.getElementById("preview-content");
   const dpiInput = document.getElementById("dpi-madre") as HTMLInputElement | null;
+  const dpiEstado = document.getElementById("dpi-estado");
+
+  interface Madre {
+    id: string;
+    dpi: string;
+    nombre: string;
+  }
+  const madres: Madre[] = form?.dataset.madres ? JSON.parse(form.dataset.madres) : [];
+
+  // Busca a la madre por DPI. Si no existe, marca el campo como inválido
+  // para que el formulario no se pueda guardar.
+  function validarMadre(): Madre | undefined {
+    if (!dpiInput || !dpiEstado) return undefined;
+    const dpi = dpiInput.value;
+    dpiInput.setCustomValidity("");
+    dpiEstado.className = "dpi-estado";
+    dpiEstado.textContent = "";
+
+    if (dpi.length !== 13) return undefined;
+
+    const madre = madres.find((m) => m.dpi === dpi);
+    if (madre) {
+      dpiEstado.className = "dpi-estado ok";
+      dpiEstado.textContent = `Madre encontrada: ${madre.nombre}`;
+      return madre;
+    }
+
+    dpiInput.setCustomValidity("No existe una mujer registrada con ese DPI");
+    dpiEstado.className = "dpi-estado error";
+    dpiEstado.innerHTML = 'No existe una mujer registrada con ese DPI. <a href="/mujeres/nuevo">Registrar mujer</a>';
+    return undefined;
+  }
 
   // El DPI solo admite dígitos: se limpia cualquier otro carácter al escribir.
   dpiInput?.addEventListener("input", () => {
     dpiInput.value = dpiInput.value.replace(/\D/g, "");
+    validarMadre();
   });
 
   form?.addEventListener("submit", (e) => {
@@ -159,11 +213,17 @@ import Layout from "../../layouts/Layout.astro";
     }
     if (errorEl) errorEl.style.display = "none";
 
-    const data = Object.fromEntries(new FormData(form).entries());
+    const madre = validarMadre();
+    if (!madre) {
+      form.reportValidity();
+      return;
+    }
+
+    const data = { ...Object.fromEntries(new FormData(form).entries()), mujerId: madre.id, madre: madre.nombre };
     if (preview && previewContent) {
       previewContent.textContent = JSON.stringify(data, null, 2);
       preview.style.display = "block";
       preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
   });
-</script>
+</script> 

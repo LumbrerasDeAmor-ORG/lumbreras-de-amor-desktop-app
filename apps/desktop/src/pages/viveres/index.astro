@@ -1,9 +1,12 @@
 ---
 // apps/desktop/src/pages/viveres/index.astro
 import Layout from "../../layouts/Layout.astro";
-import { getViveres } from "../../lib/mockData";
+import Icon from "../../componentes/icon.astro";
+import { getViveres, getDonaciones } from "../../lib/mockData";
 
-const items = await getViveres();
+const [items, donaciones] = await Promise.all([getViveres(), getDonaciones()]);
+
+const totalFondos = donaciones.reduce((sum, d) => sum + d.monto, 0);
 
 const estadoClass: Record<string, string> = {
   "Óptimo": "badge-baja",
@@ -12,41 +15,135 @@ const estadoClass: Record<string, string> = {
 };
 ---
 
-<Layout title="Inventario de Víveres & Donaciones" subtitle="Gestión de alimentos, kits de apoyo, insumos y aportes" active="viveres">
+<Layout title="Víveres & Donaciones" subtitle="Gestión clasificada por donativos económicos y donativos en especie (inventario)" active="viveres">
   <div slot="actions">
-    <button class="btn btn-primary" type="button">+ Nuevo Artículo</button>
+    <button id="btn-nuevo-especie" class="btn btn-primary" type="button">+ Nuevo Donativo en Especie</button>
+    <button id="btn-nuevo-economico" class="btn btn-primary" type="button" style="display:none;">+ Nueva Donación Económica</button>
   </div>
 
-  <table class="tabla-viveres">
-    <thead>
-      <tr>
-        <th>Artículo</th>
-        <th>Categoría</th>
-        <th>Cantidad</th>
-        <th>Mínimo</th>
-        <th>Bodega</th>
-        <th>Estado</th>
-      </tr>
-    </thead>
-    <tbody>
-      {items.map((item) => (
+  <div class="tab-bar">
+    <button id="tab-especie" class="tab-btn active" type="button">
+      <Icon name="archive" /> Donativos en Especie ({items.length})
+    </button>
+    <button id="tab-economicos" class="tab-btn" type="button">
+      <Icon name="heart" /> Donativos Económicos ({donaciones.length})
+    </button>
+  </div>
+
+  <!-- SECCIÓN 1: DONATIVOS EN ESPECIE (INVENTARIO) -->
+  <div id="panel-especie" class="tab-panel">
+    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
+      Registro de alimentos, suplementos nutricionales, insumos escolares y ropa recibidos en calidad de donación en especie.
+    </p>
+
+    <table class="tabla-viveres">
+      <thead>
         <tr>
-          <td>
-            <div style="font-weight:600;">{item.nombre}</div>
-            <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
-          </td>
-          <td>{item.categoria}</td>
-          <td>{item.cantidadActual} {item.unidad}</td>
-          <td>{item.minimo} {item.unidad}</td>
-          <td>{item.ubicacionBodega}</td>
-          <td><span class={`badge ${estadoClass[item.estado]}`}>{item.estado}</span></td>
+          <th>Artículo</th>
+          <th>Categoría</th>
+          <th>Cantidad</th>
+          <th>Mínimo</th>
+          <th>Bodega</th>
+          <th>Estado</th>
         </tr>
-      ))}
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        {items.map((item) => (
+          <tr>
+            <td>
+              <div style="font-weight:600;">{item.nombre}</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
+            </td>
+            <td>{item.categoria}</td>
+            <td>{item.cantidadActual} {item.unidad}</td>
+            <td>{item.minimo} {item.unidad}</td>
+            <td>{item.ubicacionBodega}</td>
+            <td><span class={`badge ${estadoClass[item.estado]}`}>{item.estado}</span></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECCIÓN 2: DONATIVOS ECONÓMICOS -->
+  <div id="panel-economicos" class="tab-panel" style="display: none;">
+    <div class="grid" style="margin-bottom: 1rem;">
+      <div class="card">
+        <div style="font-size:0.72rem; color:var(--text-muted);">Total Donaciones Económicas</div>
+        <div style="font-size:1.4rem; font-weight:700;">{donaciones.length}</div>
+      </div>
+      <div class="card">
+        <div style="font-size:0.72rem; color:var(--text-muted);">Total Fondos Recaudados</div>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--accent);">${totalFondos.toLocaleString()} USD</div>
+      </div>
+    </div>
+
+    <table class="tabla-viveres">
+      <thead>
+        <tr>
+          <th>Recibo</th>
+          <th>Donante</th>
+          <th>Tipo</th>
+          <th>Destino / Programa</th>
+          <th>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {donaciones.map((d) => (
+          <tr>
+            <td>
+              <span style="font-family: monospace; font-weight: 600;">{d.recibo}</span>
+            </td>
+            <td>
+              <div style="font-weight: 600;">{d.donante}</div>
+            </td>
+            <td>
+              <span class="badge badge-media">{d.tipo}</span>
+            </td>
+            <td>{d.destino}</td>
+            <td>
+              <strong style="color: var(--accent);">+${d.monto.toLocaleString()} USD</strong>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 </Layout>
 
 <style>
+  .tab-bar {
+    display: flex;
+    gap: 0.6rem;
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: 1rem;
+    padding-bottom: 0.2rem;
+  }
+  .tab-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.15s ease-in-out;
+  }
+  .tab-btn:hover {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-main);
+  }
+  .tab-btn.active {
+    background: var(--card-bg);
+    color: var(--accent);
+    border-color: var(--card-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
   .tabla-viveres {
     width: 100%;
     border-collapse: collapse;
@@ -69,3 +166,33 @@ const estadoClass: Record<string, string> = {
     border-top: 1px solid var(--card-border);
   }
 </style>
+
+<script>
+  const tabEspecie = document.getElementById("tab-especie");
+  const tabEconomicos = document.getElementById("tab-economicos");
+  const panelEspecie = document.getElementById("panel-especie");
+  const panelEconomicos = document.getElementById("panel-economicos");
+  const btnNuevoEspecie = document.getElementById("btn-nuevo-especie");
+  const btnNuevoEconomico = document.getElementById("btn-nuevo-economico");
+
+  function cambiarPestaña(activa: "especie" | "economicos") {
+    if (activa === "especie") {
+      tabEspecie?.classList.add("active");
+      tabEconomicos?.classList.remove("active");
+      if (panelEspecie) panelEspecie.style.display = "block";
+      if (panelEconomicos) panelEconomicos.style.display = "none";
+      if (btnNuevoEspecie) btnNuevoEspecie.style.display = "inline-block";
+      if (btnNuevoEconomico) btnNuevoEconomico.style.display = "none";
+    } else {
+      tabEconomicos?.classList.add("active");
+      tabEspecie?.classList.remove("active");
+      if (panelEspecie) panelEspecie.style.display = "none";
+      if (panelEconomicos) panelEconomicos.style.display = "block";
+      if (btnNuevoEspecie) btnNuevoEspecie.style.display = "none";
+      if (btnNuevoEconomico) btnNuevoEconomico.style.display = "inline-block";
+    }
+  }
+
+  tabEspecie?.addEventListener("click", () => cambiarPestaña("especie"));
+  tabEconomicos?.addEventListener("click", () => cambiarPestaña("economicos"));
+</script>

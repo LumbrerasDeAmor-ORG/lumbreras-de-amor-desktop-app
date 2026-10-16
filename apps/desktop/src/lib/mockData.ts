@@ -15,6 +15,7 @@ export interface Mujer {
   apellidos: string;
   nombre?: string; // compatibilidad temporal hasta A8
   edad: number;
+  colonia: string;
   comunidad: string;
   direccion: string;
   telefono: string;
@@ -35,6 +36,7 @@ const MUJERES: Mujer[] = [
     apellidos: "Morales",
     nombre: "Rosa Elena Morales",
     edad: 34,
+    colonia: "Villa Esperanza",
     comunidad: "Villa Esperanza",
     direccion: "Calle 45 # 12-30",
     telefono: "+502 300 111 2233",
@@ -53,6 +55,7 @@ const MUJERES: Mujer[] = [
     apellidos: "Castro",
     nombre: "Carmen Castro",
     edad: 51,
+    colonia: "Altos del Paraíso",
     comunidad: "Altos del Paraíso",
     direccion: "Carrera 8A # 67-14",
     telefono: "+502 300 222 3344",
@@ -70,6 +73,7 @@ const MUJERES: Mujer[] = [
     apellidos: "Mendoza",
     nombre: "Andrea Mendoza",
     edad: 28,
+    colonia: "Villa Esperanza",
     comunidad: "Villa Esperanza",
     direccion: "Diagonal 22 # 5-80",
     telefono: "+502 300 333 4455",
@@ -88,6 +92,7 @@ const MUJERES: Mujer[] = [
     apellidos: "Pineda",
     nombre: "Luz Marina Pineda",
     edad: 45,
+    colonia: "Altos del Paraíso",
     comunidad: "Altos del Paraíso",
     direccion: "Carrera 15 # 40-55",
     telefono: "+502 300 444 5566",

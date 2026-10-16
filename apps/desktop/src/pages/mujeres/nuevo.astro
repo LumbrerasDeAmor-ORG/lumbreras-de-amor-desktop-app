@@ -45,6 +45,10 @@ import Layout from "../../layouts/Layout.astro";
         <input name="direccion" type="text" required />
       </label>
       <label>
+        Colonia *
+        <input name="colonia" type="text" required />
+      </label>
+      <label>
         Teléfono *
         <input name="telefono" type="tel" required />
       </label>
@@ -53,13 +57,14 @@ import Layout from "../../layouts/Layout.astro";
         <input name="ocupacion" type="text" />
       </label>
       <label>
-        Estado civil
-        <select name="estadoCivil">
-          <option>Soltera</option>
-          <option>Madre soltera</option>
-          <option>Casada</option>
-          <option>Unión libre</option>
-          <option>Viuda</option>
+        Estado civil *
+        <select name="estadoCivil" required>
+          <option value="">Seleccionar...</option>
+          <option value="Soltera">Soltera</option>
+          <option value="Madre soltera">Madre soltera</option>
+          <option value="Casada">Casada</option>
+          <option value="Unión libre">Unión libre</option>
+          <option value="Viuda">Viuda</option>
         </select>
       </label>
       <label>

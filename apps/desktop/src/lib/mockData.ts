@@ -20,7 +20,6 @@ export interface Mujer {
   dpi: string;
   nombres: string;
   apellidos: string;
-  nombre?: string; // compatibilidad temporal hasta A8
   edad: number;
   colonia: string;
   comunidad: string;
@@ -44,7 +43,6 @@ const MUJERES: Mujer[] = [
     dpi: "1000000010101",
     nombres: "Rosa Elena",
     apellidos: "Morales",
-    nombre: "Rosa Elena Morales",
     edad: 34,
     colonia: "Villa Esperanza",
     comunidad: "Villa Esperanza",
@@ -66,7 +64,6 @@ const MUJERES: Mujer[] = [
     dpi: "1000000020101",
     nombres: "Carmen",
     apellidos: "Castro",
-    nombre: "Carmen Castro",
     edad: 51,
     colonia: "Altos del Paraíso",
     comunidad: "Altos del Paraíso",
@@ -87,7 +84,6 @@ const MUJERES: Mujer[] = [
     dpi: "1000000030101",
     nombres: "Andrea",
     apellidos: "Mendoza",
-    nombre: "Andrea Mendoza",
     edad: 28,
     colonia: "Villa Esperanza",
     comunidad: "Villa Esperanza",
@@ -109,7 +105,6 @@ const MUJERES: Mujer[] = [
     dpi: "1000000040101",
     nombres: "Luz Marina",
     apellidos: "Pineda",
-    nombre: "Luz Marina Pineda",
     edad: 45,
     colonia: "Altos del Paraíso",
     comunidad: "Altos del Paraíso",

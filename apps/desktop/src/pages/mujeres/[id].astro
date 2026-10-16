@@ -22,7 +22,7 @@ const badgeFuenteClass: Record<string, string> = {
 ---
 
 <Layout
-  title={mujer ? mujer.nombre : "Perfil no encontrado"}
+  title={mujer ? `${mujer.nombres} ${mujer.apellidos}` : "Perfil no encontrado"}
   subtitle="Perfil integral de la mujer"
   active="mujeres"
 >
@@ -37,8 +37,8 @@ const badgeFuenteClass: Record<string, string> = {
     <div class="card" style="max-width: 640px;">
       <div style="display:flex; justify-content:space-between; align-items:center;">
         <div>
-          <div style="font-weight:700; font-size:1.05rem;">{mujer.nombre}</div>
-          <div style="font-size:0.78rem; color:var(--text-muted);">{mujer.codigo}</div>
+          <div style="font-weight:700; font-size:1.05rem;">{mujer.nombres} {mujer.apellidos}</div>
+          <div style="font-size:0.78rem; color:var(--text-muted);">{mujer.codigo} · DPI: {mujer.dpi}</div>
         </div>
         <span class={`badge ${badgeFuenteClass[mujer.fuentesDeIngreso] ?? "badge-media"}`}>{mujer.fuentesDeIngreso}</span>
       </div>
@@ -46,13 +46,16 @@ const badgeFuenteClass: Record<string, string> = {
       <hr style="margin:0.9rem 0; border:none; border-top:1px solid var(--card-border);" />
 
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.9rem; font-size:0.85rem;">
+        <div><strong>DPI</strong><br />{mujer.dpi}</div>
         <div><strong>Edad</strong><br />{mujer.edad} años</div>
         <div><strong>Estado civil</strong><br />{mujer.estadoCivil}</div>
-        <div><strong>Comunidad</strong><br />{mujer.comunidad}</div>
+        <div><strong>Tercera edad</strong><br />{mujer.terceraEdad}</div>
+        <div><strong>Colonia</strong><br />{mujer.colonia}</div>
         <div><strong>Dirección</strong><br />{mujer.direccion}</div>
         <div><strong>Teléfono</strong><br />{mujer.telefono}</div>
         <div><strong>Ocupación</strong><br />{mujer.ocupacion}</div>
         <div><strong>Hijos a cargo</strong><br />{mujer.hijosACargo}</div>
+        <div><strong>Fuentes de ingreso</strong><br />{mujer.fuentesDeIngreso}</div>
       </div>
 
       <div style="margin-top:1rem;">
@@ -61,6 +64,19 @@ const badgeFuenteClass: Record<string, string> = {
           {mujer.programas.map((p) => (
             <span class="badge badge-media">{p}</span>
           ))}
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <strong style="font-size:0.85rem;">Problemas sociales identificados</strong>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem;">
+          {mujer.problemasSociales && mujer.problemasSociales.length > 0 ? (
+            mujer.problemasSociales.map((prob) => (
+              <span class="badge badge-alta">{prob}</span>
+            ))
+          ) : (
+            <span style="font-size:0.8rem; color:var(--text-muted);">Sin problemas sociales registrados</span>
+          )}
         </div>
       </div>
 

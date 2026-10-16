@@ -40,7 +40,7 @@ const mujerPorId = new Map(mujeres.map((m) => [m.id, m]));
             <span><Icon name="shirt" /> Camisa: {nino.tallaCamisa ?? "—"} · Pantalón: {nino.tallaPantalon ?? "—"} · Calzado: {nino.tallaCalzado ?? "—"}</span>
             {madre && (
               <a href={`/mujeres/${madre.id}`} style="color: var(--accent); text-decoration:none;">
-                <Icon name="user" /> Madre/Tutora: {madre.nombre}
+                <Icon name="user" /> Madre/Tutora: {madre.nombres} {madre.apellidos}
               </a>
             )}
           </div>

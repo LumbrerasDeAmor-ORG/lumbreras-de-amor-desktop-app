@@ -31,6 +31,7 @@ export interface Mujer {
   terceraEdad: "Sí" | "No";
   hijosACargo: number;
   programas: string[]; // programas/talleres en los que participa
+  problemasSociales: string[]; // problemas sociales identificados
   fuentesDeIngreso: FuentesIngreso;
   vulnerabilidad: Vulnerabilidad;
   nota?: string; // alerta o nota de seguimiento, ej: "Requiere apoyo psicológico"
@@ -54,6 +55,7 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Emprendimiento en el Hogar", "Taller de Costura"],
+    problemasSociales: ["Desempleo", "Falta de acceso a salud"],
     fuentesDeIngreso: "vendedora informal",
     vulnerabilidad: "vendedora informal",
     nota: "Prioridad para próximo taller de emprendimiento",
@@ -75,6 +77,7 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 0,
     programas: ["Huerta Comunitaria"],
+    problemasSociales: ["Dependencia económica"],
     fuentesDeIngreso: "dependiente",
     vulnerabilidad: "dependiente",
   },
@@ -95,6 +98,7 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 2,
     programas: ["Emprendimiento en el Hogar", "Nutrición Familiar"],
+    problemasSociales: ["Violencia intrafamiliar", "Inseguridad alimentaria"],
     fuentesDeIngreso: "vendedora informal",
     vulnerabilidad: "vendedora informal",
     nota: "Requiere seguimiento nutricional del hogar",
@@ -116,6 +120,7 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Taller de Costura"],
+    problemasSociales: ["Duelo familiar", "Bajos ingresos"],
     fuentesDeIngreso: "asalariada",
     vulnerabilidad: "asalariada",
   },

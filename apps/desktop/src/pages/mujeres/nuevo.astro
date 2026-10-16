@@ -83,12 +83,14 @@ import Layout from "../../layouts/Layout.astro";
         <input name="programas" type="text" placeholder="Ej: Taller de Costura, Nutrición Familiar" />
       </label>
       <label>
-        Nivel de vulnerabilidad *
-        <select name="vulnerabilidad" required>
+        Fuentes de ingreso *
+        <select name="fuentesDeIngreso" required>
           <option value="">Seleccionar...</option>
-          <option value="Alta">Alta</option>
-          <option value="Media">Media</option>
-          <option value="Baja">Baja</option>
+          <option value="desempleada">desempleada</option>
+          <option value="vendedora informal">vendedora informal</option>
+          <option value="asalariada">asalariada</option>
+          <option value="dependiente">dependiente</option>
+          <option value="asalariada y dependiente">asalariada y dependiente</option>
         </select>
       </label>
     </div>

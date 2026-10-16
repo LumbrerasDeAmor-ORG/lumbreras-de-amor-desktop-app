@@ -6,11 +6,16 @@ import { getMujeres } from "../../lib/mockData";
 
 const mujeres = await getMujeres();
 
-const badgeClass = {
+const badgeClass: Record<string, string> = {
+  desempleada: "badge-alta",
+  "vendedora informal": "badge-media",
+  asalariada: "badge-baja",
+  dependiente: "badge-media",
+  "asalariada y dependiente": "badge-baja",
   Alta: "badge-alta",
   Media: "badge-media",
   Baja: "badge-baja",
-} as const;
+};
 ---
 
 <Layout

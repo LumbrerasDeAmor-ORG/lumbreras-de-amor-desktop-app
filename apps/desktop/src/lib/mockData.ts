@@ -5,7 +5,14 @@
 // reemplazar el cuerpo de cada función por un fetch a
 // http://127.0.0.1:4111/... sin tocar las páginas que las consumen.
 
-export type Vulnerabilidad = "Alta" | "Media" | "Baja";
+export type FuentesIngreso =
+  | "desempleada"
+  | "vendedora informal"
+  | "asalariada"
+  | "dependiente"
+  | "asalariada y dependiente";
+
+export type Vulnerabilidad = FuentesIngreso;
 
 export interface Mujer {
   id: string;
@@ -24,6 +31,7 @@ export interface Mujer {
   terceraEdad: "Sí" | "No";
   hijosACargo: number;
   programas: string[]; // programas/talleres en los que participa
+  fuentesDeIngreso: FuentesIngreso;
   vulnerabilidad: Vulnerabilidad;
   nota?: string; // alerta o nota de seguimiento, ej: "Requiere apoyo psicológico"
 }
@@ -46,7 +54,8 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Emprendimiento en el Hogar", "Taller de Costura"],
-    vulnerabilidad: "Alta",
+    fuentesDeIngreso: "vendedora informal",
+    vulnerabilidad: "vendedora informal",
     nota: "Prioridad para próximo taller de emprendimiento",
   },
   {
@@ -66,7 +75,8 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 0,
     programas: ["Huerta Comunitaria"],
-    vulnerabilidad: "Media",
+    fuentesDeIngreso: "dependiente",
+    vulnerabilidad: "dependiente",
   },
   {
     id: "muj-003",
@@ -85,7 +95,8 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 2,
     programas: ["Emprendimiento en el Hogar", "Nutrición Familiar"],
-    vulnerabilidad: "Alta",
+    fuentesDeIngreso: "vendedora informal",
+    vulnerabilidad: "vendedora informal",
     nota: "Requiere seguimiento nutricional del hogar",
   },
   {
@@ -105,7 +116,8 @@ const MUJERES: Mujer[] = [
     terceraEdad: "No",
     hijosACargo: 1,
     programas: ["Taller de Costura"],
-    vulnerabilidad: "Baja",
+    fuentesDeIngreso: "asalariada",
+    vulnerabilidad: "asalariada",
   },
 ];
 

@@ -12,6 +12,13 @@ export async function getStaticPaths() {
 
 const { id } = Astro.params;
 const mujer = await getMujerById(id as string);
+const badgeFuenteClass: Record<string, string> = {
+  desempleada: "badge-alta",
+  "vendedora informal": "badge-media",
+  asalariada: "badge-baja",
+  dependiente: "badge-media",
+  "asalariada y dependiente": "badge-baja",
+};
 ---
 
 <Layout
@@ -33,7 +40,7 @@ const mujer = await getMujerById(id as string);
           <div style="font-weight:700; font-size:1.05rem;">{mujer.nombre}</div>
           <div style="font-size:0.78rem; color:var(--text-muted);">{mujer.codigo}</div>
         </div>
-        <span class={`badge badge-${mujer.vulnerabilidad.toLowerCase()}`}>{mujer.vulnerabilidad}</span>
+        <span class={`badge ${badgeFuenteClass[mujer.fuentesDeIngreso] ?? "badge-media"}`}>{mujer.fuentesDeIngreso}</span>
       </div>
 
       <hr style="margin:0.9rem 0; border:none; border-top:1px solid var(--card-border);" />

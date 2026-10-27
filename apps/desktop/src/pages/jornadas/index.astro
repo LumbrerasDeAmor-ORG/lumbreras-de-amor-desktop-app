@@ -27,7 +27,7 @@ const jornadas = await getJornadas();
           <span><Icon name="calendar" /> {jornada.fecha} · {jornada.horario}</span>
           <span><Icon name="pin" /> {jornada.ubicacion}</span>
           <span><Icon name="user" /> Coord: {jornada.coordinador}</span>
-          <span><Icon name="dollar" /> Presupuesto: ${jornada.presupuestoEjecutado} / ${jornada.presupuestoTotal}</span>
+          <span><Icon name="quetzal" /> Presupuesto: Q{jornada.presupuestoEjecutado} / Q{jornada.presupuestoTotal}</span>
         </div>
 
         <div style="margin-top:0.8rem;">

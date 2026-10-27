@@ -26,7 +26,7 @@ const eventos = await getEventos();
           <span><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
           <span><Icon name="pin" /> {evento.ubicacion}</span>
           <span><Icon name="user" /> Coord: {evento.coordinador}</span>
-          <span><Icon name="dollar" /> Presupuesto: ${evento.presupuestoEjecutado} / ${evento.presupuestoTotal}</span>
+          <span><Icon name="quetzal" /> Presupuesto: Q{evento.presupuestoEjecutado} / Q{evento.presupuestoTotal}</span>
         </div>
 
         <div style="margin-top:0.8rem;">

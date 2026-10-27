@@ -39,7 +39,7 @@ const actividades = [
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Beneficiarios Atendidos</div><div style="font-size:1.4rem; font-weight:700;">{resumen.beneficiariosAtendidos}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Realizadas</div><div style="font-size:1.4rem; font-weight:700;">{resumen.jornadasRealizadas}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Eventos Realizados</div><div style="font-size:1.4rem; font-weight:700;">{resumen.eventosRealizados}</div></div>
-      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">${resumen.fondosRecaudados}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">Q{resumen.fondosRecaudados}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Horas Voluntariado</div><div style="font-size:1.4rem; font-weight:700;">{resumen.horasVoluntariado}h</div></div>
     </div>
 
@@ -53,7 +53,7 @@ const actividades = [
             <td>{e.tipo}</td>
             <td>{e.categoria}</td>
             <td>{e.asistieron} / {e.convocados}</td>
-            <td>${e.presupuestoEjecutado} USD</td>
+            <td>Q{e.presupuestoEjecutado} GTQ</td>
           </tr>
         ))}
       </tbody>
@@ -69,7 +69,7 @@ const actividades = [
             <td>{d.donante}</td>
             <td>{d.tipo}</td>
             <td>{d.destino}</td>
-            <td>+${d.monto} USD</td>
+            <td>+Q{d.monto} GTQ</td>
           </tr>
         ))}
       </tbody>

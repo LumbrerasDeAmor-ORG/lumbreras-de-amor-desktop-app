@@ -1,34 +1,37 @@
 ---
 // apps/desktop/src/pages/jornadas/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
-import Icon from "../../componentes/icon.astro";
+import { CATEGORIAS_JORNADA, getCoordinadores, getVoluntarios } from "../../lib/mockData";
+
+const [coordinadores, voluntarios] = await Promise.all([
+  getCoordinadores(),
+  getVoluntarios(),
+]);
 ---
 
 <Layout
   title="Nueva Jornada Comunitaria"
-  subtitle="Planificación de jornadas de salud, comedores y entregas con servicios multidisciplinarios"
+  subtitle="Planificación de jornadas médicas, dentales, entregas de víveres, juguetes, vestimenta y alimentos servidos"
   active="jornadas"
 >
   <div slot="actions">
     <a href="/jornadas"><button class="btn btn-ghost" type="button">← Volver a Jornadas</button></a>
   </div>
 
-  <form id="form-jornada" class="card" style="max-width: 680px;" novalidate>
+  <form id="form-jornada" class="card" style="max-width: 700px;" novalidate>
     <div class="form-grid">
       <label style="grid-column: 1 / -1;">
         Título de la jornada *
-        <input name="titulo" type="text" placeholder="Ej: Gran Jornada de Salud Integral y Nutrición" required />
+        <input name="titulo" type="text" placeholder="Ej: Gran Jornada Multidisciplinaria de Salud y Nutrición" required />
       </label>
 
       <label>
         Categoría de jornada *
         <select name="categoria" required>
           <option value="">Seleccionar...</option>
-          <option value="Jornada de Salud">Jornada de Salud</option>
-          <option value="Jornada de Integración Familiar">Jornada de Integración Familiar</option>
-          <option value="Comedor Comunitario">Comedor Comunitario</option>
-          <option value="Entrega de Kits & Víveres">Entrega de Kits & Víveres</option>
-          <option value="Atención Psicosocial">Atención Psicosocial</option>
+          {CATEGORIAS_JORNADA.map((cat) => (
+            <option value={cat}>{cat}</option>
+          ))}
         </select>
       </label>
 
@@ -36,6 +39,7 @@ import Icon from "../../componentes/icon.astro";
         Estado *
         <select name="estado" required>
           <option value="Planificado" selected>Planificado</option>
+          <option value="En curso">En curso</option>
           <option value="Finalizado">Finalizado</option>
         </select>
       </label>
@@ -57,12 +61,17 @@ import Icon from "../../componentes/icon.astro";
 
       <label>
         Coordinador general *
-        <input name="coordinador" type="text" placeholder="Ej: Lic. Laura Camila Ortiz" required />
+        <select name="coordinador" required>
+          <option value="">Seleccionar coordinador...</option>
+          {coordinadores.map((c) => (
+            <option value={c.nombre}>{c.nombre} — {c.especialidad}</option>
+          ))}
+        </select>
       </label>
 
       <label>
-        Presupuesto estimado (GTQ)
-        <input name="presupuestoTotal" type="number" min="0" step="0.01" placeholder="Ej: 1200" />
+        Presupuesto estimado (Q)
+        <input name="presupuestoTotal" type="number" min="0" step="0.01" placeholder="Ej: 1200.00" />
       </label>
 
       <label>
@@ -71,8 +80,12 @@ import Icon from "../../componentes/icon.astro";
       </label>
 
       <label>
-        Voluntarios asignados
-        <input name="voluntariosAsignados" type="number" min="0" placeholder="Ej: 6" />
+        Voluntarios asignados (Equipo de Voluntarios)
+        <select name="voluntariosAsignadosNombres" multiple size="3" title="Mantené presionado Ctrl para seleccionar varios">
+          {voluntarios.map((v) => (
+            <option value={`${v.nombre} (${v.tipo})`}>{v.nombre} — {v.tipo} ({v.especialidad})</option>
+          ))}
+        </select>
       </label>
 
       <label style="grid-column: 1 / -1;">
@@ -114,9 +127,12 @@ import Icon from "../../componentes/icon.astro";
     </div>
   </form>
 
-  <div id="preview" class="card" style="display:none; max-width: 680px; margin-top: 1.2rem;">
-    <strong style="font-size:0.85rem;">Vista previa de la jornada (aún no se guarda en ningún lado — esto es solo UI)</strong>
+  <div id="preview" class="card" style="display:none; max-width: 700px; margin-top: 1.2rem;">
+    <strong style="font-size:0.85rem; color:#166534;">✔ Jornada registrada correctamente</strong>
     <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+    <div style="margin-top:0.8rem;">
+      <a href="/jornadas"><button class="btn btn-primary" type="button">Volver al listado de Jornadas</button></a>
+    </div>
   </div>
 </Layout>
 
@@ -183,6 +199,7 @@ import Icon from "../../componentes/icon.astro";
     const nombres = formData.getAll("servicio_nombre[]");
     const responsables = formData.getAll("servicio_responsable[]");
     const descripciones = formData.getAll("servicio_descripcion[]");
+    const voluntariosSeleccionados = formData.getAll("voluntariosAsignadosNombres").map(String);
 
     const servicios = nombres.map((nom, i) => ({
       nombre: nom,
@@ -194,6 +211,13 @@ import Icon from "../../componentes/icon.astro";
     delete data["servicio_nombre[]"];
     delete data["servicio_responsable[]"];
     delete data["servicio_descripcion[]"];
+    delete data["voluntariosAsignadosNombres"];
+
+    const montoNum = parseFloat(String(data.presupuestoTotal || "0")) || 0;
+    data.presupuestoTotal = Number(montoNum.toFixed(2));
+    data.presupuestoFormateado = `Q ${montoNum.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    data.voluntariosAsignados = voluntariosSeleccionados.length;
+    data.voluntariosNombres = voluntariosSeleccionados;
     data.servicios = servicios;
 
     if (preview && previewContent) {

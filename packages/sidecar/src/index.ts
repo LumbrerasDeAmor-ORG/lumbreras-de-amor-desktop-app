@@ -11,7 +11,21 @@ if (typeof (Module as any)._initPaths === "function") {
   (Module as any)._initPaths();
 }
 
-const { createDatabaseClient, seedDatabaseIfNeeded } = await import("@lumbreras/database");
+const {
+  createDatabaseClient,
+  seedDatabaseIfNeeded,
+  crearEventoConVoluntarios,
+  obtenerEventos,
+  obtenerEventoPorId,
+  crearVoluntario,
+  obtenerVoluntarios,
+  obtenerVoluntarioPorId,
+  crearDonacionMonetaria,
+  obtenerDonacionesMonetarias,
+  crearJornadaConServicios,
+  obtenerJornadas,
+  obtenerJornadaPorId,
+} = await import("@lumbreras/database");
 
 const PORT = Number(process.env.PORT) || 4111;
 const db = createDatabaseClient({ mode: "local", url: process.env.DATABASE_URL });
@@ -20,7 +34,7 @@ const db = createDatabaseClient({ mode: "local", url: process.env.DATABASE_URL }
 try {
   const seeded = await seedDatabaseIfNeeded(db);
   console.log(
-    `[Sidecar] Base de datos SQLite sincronizada (${seeded.mujeresCount} mujeres, ${seeded.ninosCount} niños)`
+    `[Sidecar] Base de datos SQLite sincronizada (${seeded.mujeresCount} mujeres, ${seeded.ninosCount} niños, ${seeded.voluntariosCount} voluntarios, ${seeded.eventosCount} eventos, ${seeded.jornadasCount} jornadas, ${seeded.donacionesCount} donaciones)`
   );
 } catch (err) {
   console.warn("[Sidecar] No se pudo verificar el seed inicial:", (err as Error).message);
@@ -94,15 +108,97 @@ function mapBeneficiarioToNino(b: any) {
   };
 }
 
-const server = Bun.serve({
-  port: PORT,
-  hostname: "0.0.0.0",
-  async fetch(req) {
-    if (req.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders });
-    }
+function mapVoluntario(v: any) {
+  return {
+    id: String(v.id_voluntario),
+    nombre: v.nombre_completo,
+    tipo: (v.tipo_voluntario as "Propio" | "Externo") || "Propio",
+    especialidad: v.rol_especialidad || "General",
+    email: v.email || "",
+    telefono: v.telefono || "",
+    disponibilidad: v.disponibilidad || "Flexible",
+    habilidades: v.rol_especialidad ? [v.rol_especialidad] : [],
+    horasAcumuladas: v.horas_acumuladas ?? 0,
+    estado: v.estado || "Activo",
+  };
+}
 
-    const url = new URL(req.url);
+function mapEvento(e: any) {
+  const voluntarios = (e.apoyos || [])
+    .map((a: any) => (a.voluntario ? mapVoluntario(a.voluntario) : null))
+    .filter(Boolean);
+
+  return {
+    id: String(e.id_evento),
+    titulo: e.titulo,
+    categoria: e.categoria,
+    estado: e.estado,
+    descripcion: e.descripcion || "",
+    fecha: e.fecha,
+    horario: e.hora_inicio || "",
+    horaInicio: e.hora_inicio || "",
+    ubicacion: e.lugar || "",
+    lugar: e.lugar || "",
+    coordinador: e.coordinador_responsable || "",
+    coordinadorResponsable: e.coordinador_responsable || "",
+    presupuestoTotal: e.presupuesto_estimado ?? 0,
+    presupuestoEstimado: e.presupuesto_estimado ?? 0,
+    presupuestoEjecutado: e.presupuesto_ejecutado ?? 0,
+    convocados: e.meta_asistentes ?? 0,
+    metaAsistentes: e.meta_asistentes ?? 0,
+    asistieron: 0,
+    voluntariosAsignados: voluntarios.length,
+    voluntarios,
+    voluntarioIds: (e.apoyos || []).map((a: any) => a.id_voluntario),
+  };
+}
+
+function mapJornada(j: any) {
+  return {
+    id: String(j.id_jornada),
+    titulo: j.titulo,
+    categoria: j.categoria,
+    estado: j.estado,
+    descripcion: j.descripcion || "",
+    fecha: j.fecha,
+    horario: j.horario || "",
+    ubicacion: j.ubicacion,
+    coordinador: j.coordinador || "",
+    presupuestoTotal: j.presupuesto_total ?? 0,
+    presupuestoEjecutado: j.presupuesto_ejecutado ?? 0,
+    convocados: j.convocados ?? 0,
+    asistieron: j.asistieron ?? 0,
+    voluntariosAsignados: j.voluntarios_asignados ?? 0,
+    servicios: (j.servicios || []).map((s: any) => ({
+      id: String(s.id_servicio),
+      nombre: s.nombre,
+      descripcion: s.descripcion || "",
+      responsable: s.responsable || "",
+      atendidos: s.atendidos ?? 0,
+    })),
+  };
+}
+
+function mapDonacion(d: any) {
+  return {
+    id: String(d.id_donacion),
+    recibo: d.numero_recibo,
+    monto: d.monto,
+    moneda: d.moneda || "GTQ",
+    descripcion: d.descripcion || "",
+    destino: d.programa_destino || "General",
+    donante: d.donante?.nombre_o_razon_social || "Donante Anónimo",
+    tipo: d.donante?.tipo_donante || "Persona Natural",
+    fecha: d.fecha || "",
+  };
+}
+
+export async function handleRequest(req: Request, database = db): Promise<Response> {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  const url = new URL(req.url);
 
     if (url.pathname === "/health") {
       return jsonResponse({ status: "ok", timestamp: new Date().toISOString() });
@@ -304,6 +400,256 @@ const server = Bun.serve({
       }
     }
 
+    // =========================================================================
+    // MÓDULO: VOLUNTARIOS
+    // =========================================================================
+    if (url.pathname === "/voluntarios" && req.method === "GET") {
+      try {
+        const tipo = url.searchParams.get("tipo") || undefined;
+        const rol = url.searchParams.get("rol") || undefined;
+        const rows = await obtenerVoluntarios(db, { tipo, rol });
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapVoluntario),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/voluntarios/") && req.method === "GET") {
+      try {
+        const rawId = decodeURIComponent(url.pathname.replace("/voluntarios/", ""));
+        const numericId = Number(rawId);
+        const row = await obtenerVoluntarioPorId(db, numericId);
+        if (!row) {
+          return jsonResponse({ success: false, error: "Voluntario no encontrado" }, 404);
+        }
+        return jsonResponse({ success: true, data: mapVoluntario(row) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/voluntarios" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        const created = await crearVoluntario(db, {
+          nombre_completo: String(body.nombre_completo || body.nombre || "").trim(),
+          tipo_voluntario: body.tipo_voluntario || body.tipo || "Propio",
+          email: body.email ? String(body.email).trim() : null,
+          telefono: body.telefono ? String(body.telefono).trim() : null,
+          rol_especialidad: body.rol_especialidad || body.especialidad || null,
+          disponibilidad: body.disponibilidad ? String(body.disponibilidad).trim() : null,
+          horas_acumuladas: Number(body.horas_acumuladas || body.horasAcumuladas) || 0,
+          contacto_emergencia: body.contacto_emergencia || null,
+          fecha_ingreso: body.fecha_ingreso || new Date().toISOString().slice(0, 10),
+          estado: body.estado || "Activo",
+        });
+        return jsonResponse({ success: true, data: mapVoluntario(created) }, 201);
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: EVENTOS
+    // =========================================================================
+    if (url.pathname === "/eventos" && req.method === "GET") {
+      try {
+        const estado = url.searchParams.get("estado") || undefined;
+        const categoria = url.searchParams.get("categoria") || undefined;
+        const rows = await obtenerEventos(db, { estado, categoria });
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapEvento),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/eventos/") && req.method === "GET") {
+      try {
+        const rawId = decodeURIComponent(url.pathname.replace("/eventos/", ""));
+        const numericId = Number(rawId);
+        const row = await obtenerEventoPorId(db, numericId);
+        if (!row) {
+          return jsonResponse({ success: false, error: "Evento no encontrado" }, 404);
+        }
+        return jsonResponse({ success: true, data: mapEvento(row) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/eventos" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        if (!body.titulo || !body.categoria || !body.fecha) {
+          return jsonResponse(
+            { success: false, error: "Los campos título, categoría y fecha son obligatorios" },
+            400
+          );
+        }
+
+        const voluntarioIds: number[] = Array.isArray(body.voluntarioIds)
+          ? body.voluntarioIds.map(Number).filter((n) => !isNaN(n))
+          : Array.isArray(body.voluntario_ids)
+            ? body.voluntario_ids.map(Number).filter((n) => !isNaN(n))
+            : [];
+
+        const created = await crearEventoConVoluntarios(db, {
+          titulo: String(body.titulo).trim(),
+          categoria: String(body.categoria).trim(),
+          estado: body.estado || "Planificado",
+          fecha: String(body.fecha).trim(),
+          horario: body.horario ? String(body.horario).trim() : undefined,
+          hora_inicio: body.hora_inicio ? String(body.hora_inicio).trim() : undefined,
+          ubicacion: body.ubicacion ? String(body.ubicacion).trim() : undefined,
+          lugar: body.lugar ? String(body.lugar).trim() : undefined,
+          coordinador: body.coordinador ? String(body.coordinador).trim() : undefined,
+          coordinador_responsable: body.coordinador_responsable
+            ? String(body.coordinador_responsable).trim()
+            : undefined,
+          presupuestoTotal:
+            Number(
+              body.presupuestoTotal ??
+                body.presupuesto_estimado ??
+                body.presupuestoEstimado
+            ) || 0,
+          presupuestoEjecutado:
+            Number(body.presupuestoEjecutado ?? body.presupuesto_ejecutado) || 0,
+          convocados:
+            Number(
+              body.convocados ?? body.meta_asistentes ?? body.metaAsistentes
+            ) || 0,
+          descripcion: body.descripcion ? String(body.descripcion).trim() : undefined,
+          voluntarioIds,
+        });
+
+        return jsonResponse({ success: true, data: mapEvento(created) }, 201);
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 400);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: JORNADAS
+    // =========================================================================
+    if (url.pathname === "/jornadas" && req.method === "GET") {
+      try {
+        const rows = await obtenerJornadas(db);
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapJornada),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/jornadas/") && req.method === "GET") {
+      try {
+        const rawId = decodeURIComponent(url.pathname.replace("/jornadas/", ""));
+        const numericId = Number(rawId);
+        const row = await obtenerJornadaPorId(db, numericId);
+        if (!row) {
+          return jsonResponse({ success: false, error: "Jornada no encontrada" }, 404);
+        }
+        return jsonResponse({ success: true, data: mapJornada(row) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/jornadas" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        if (!body.titulo || !body.categoria || !body.fecha || !body.ubicacion) {
+          return jsonResponse(
+            {
+              success: false,
+              error:
+                "Los campos título, categoría, fecha y ubicación son obligatorios",
+            },
+            400
+          );
+        }
+
+        const created = await crearJornadaConServicios(db, {
+          titulo: String(body.titulo).trim(),
+          categoria: String(body.categoria).trim(),
+          estado: body.estado || "Planificado",
+          fecha: String(body.fecha).trim(),
+          horario: body.horario ? String(body.horario).trim() : undefined,
+          ubicacion: String(body.ubicacion).trim(),
+          coordinador: body.coordinador ? String(body.coordinador).trim() : undefined,
+          presupuestoTotal:
+            Number(body.presupuestoTotal ?? body.presupuesto_total) || 0,
+          presupuestoEjecutado:
+            Number(body.presupuestoEjecutado ?? body.presupuesto_ejecutado) || 0,
+          convocados: Number(body.convocados) || 0,
+          asistieron: Number(body.asistieron) || 0,
+          voluntariosAsignados:
+            Number(body.voluntariosAsignados ?? body.voluntarios_asignados) || 0,
+          descripcion: body.descripcion ? String(body.descripcion).trim() : undefined,
+          servicios: Array.isArray(body.servicios) ? body.servicios : [],
+        });
+
+        return jsonResponse({ success: true, data: mapJornada(created) }, 201);
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 400);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: DONACIONES
+    // =========================================================================
+    if (url.pathname === "/donaciones" && req.method === "GET") {
+      try {
+        const rows = await obtenerDonacionesMonetarias(db);
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapDonacion),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/donaciones" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        const monto = Number(body.monto);
+        if (isNaN(monto) || monto <= 0) {
+          return jsonResponse(
+            {
+              success: false,
+              error: "El monto debe ser un valor numérico positivo mayor a 0",
+            },
+            400
+          );
+        }
+
+        const created = await crearDonacionMonetaria(db, {
+          numero_recibo: body.numero_recibo || body.recibo || undefined,
+          monto,
+          descripcion: body.descripcion ? String(body.descripcion).trim() : undefined,
+          moneda: body.moneda || "GTQ",
+          fecha: body.fecha || undefined,
+          metodo_pago: body.metodo_pago || body.metodoPago || undefined,
+          programa_destino: body.programa_destino || body.destino || undefined,
+          id_donante: body.id_donante ? Number(body.id_donante) : undefined,
+          id_voluntario: body.id_voluntario ? Number(body.id_voluntario) : undefined,
+        });
+
+        return jsonResponse({ success: true, data: mapDonacion(created) }, 201);
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 400);
+      }
+    }
+
     if (url.pathname === "/query" && req.method === "POST") {
       try {
         const body = (await req.json()) as { query: string; params?: unknown[] };
@@ -321,7 +667,19 @@ const server = Bun.serve({
       status: 200,
       headers: corsHeaders,
     });
-  },
-});
+}
 
-console.log(`[Sidecar] Servidor iniciado en http://localhost:${server.port}`);
+// Iniciar servidor Bun si está en entorno de ejecución Bun
+let serverInstance: any = null;
+if (typeof Bun !== "undefined" && typeof (Bun as any).serve === "function") {
+  serverInstance = (Bun as any).serve({
+    port: PORT,
+    hostname: "0.0.0.0",
+    fetch(req: Request) {
+      return handleRequest(req, db);
+    },
+  });
+  console.log(`[Sidecar] Servidor iniciado en http://localhost:${serverInstance.port}`);
+}
+
+export { db, serverInstance, mapVoluntario, mapEvento, mapJornada, mapDonacion };

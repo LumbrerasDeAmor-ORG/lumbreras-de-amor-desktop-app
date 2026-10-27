@@ -6,7 +6,9 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "push": "prisma db push",
+    "seed": "bun run src/seed.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",

@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getViveres, getDonaciones } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 const [items, donaciones] = await Promise.all([getViveres(), getDonaciones()]);
 
@@ -15,7 +16,11 @@ const estadoClass: Record<string, string> = {
 };
 ---
 
-<Layout title="Víveres & Donaciones" subtitle="Gestión clasificada por donativos económicos y donativos en especie (inventario)" active="viveres">
+<Layout
+  title="Víveres & Donaciones"
+  subtitle="Gestión práctica clasificada por donativos en especie (inventario) y donativos económicos en Quetzales (Q)"
+  active="viveres"
+>
   <div slot="actions">
     <button id="btn-nuevo-especie" class="btn btn-primary" type="button">+ Nuevo Donativo en Especie</button>
     <button id="btn-nuevo-economico" class="btn btn-primary" type="button" style="display:none;">+ Nueva Donación Económica</button>
@@ -23,23 +28,125 @@ const estadoClass: Record<string, string> = {
 
   <div class="tab-bar">
     <button id="tab-especie" class="tab-btn active" type="button">
-      <Icon name="archive" /> Donativos en Especie ({items.length})
+      <Icon name="archive" /> Donativos en Especie (<span id="count-especie">{items.length}</span>)
     </button>
     <button id="tab-economicos" class="tab-btn" type="button">
-      <Icon name="heart" /> Donativos Económicos ({donaciones.length})
+      <Icon name="heart" /> Donativos Económicos (<span id="count-economicos">{donaciones.length}</span>)
     </button>
   </div>
+
+  <!-- FORMULARIO RÁPIDO: NUEVO DONATIVO EN ESPECIE -->
+  <form id="form-especie" class="card form-donativo" style="display:none;" novalidate>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+      <strong style="font-size:0.9rem;">Registrar Donativo en Especie (Víveres / Insumos)</strong>
+      <span class="badge badge-baja">Ingreso a Bodega</span>
+    </div>
+    <div class="donativo-grid">
+      <label>
+        Artículo / Insumo *
+        <input name="nombre" type="text" placeholder="Ej: Incaparina fortificada (Bolsa 450g)" required />
+      </label>
+      <label>
+        Categoría *
+        <select name="categoria" required>
+          <option value="Víveres no perecederos">Víveres no perecederos</option>
+          <option value="Nutrición & Suplementos">Nutrición &amp; Suplementos</option>
+          <option value="Material Educativo & Didáctico">Material Educativo &amp; Didáctico</option>
+          <option value="Ropa y Calzado">Ropa y Calzado</option>
+        </select>
+      </label>
+      <label>
+        Donante / Fuente *
+        <input name="fuente" type="text" placeholder="Ej: Alimentos S.A. / Donante Particular" required />
+      </label>
+      <label>
+        Ubicación en Bodega *
+        <input name="ubicacionBodega" type="text" placeholder="Ej: Bodega A - Estante 2" required />
+      </label>
+      <label>
+        Cantidad Recibida *
+        <input name="cantidadActual" type="number" min="1" step="1" placeholder="Ej: 50" required />
+      </label>
+      <label>
+        Unidad y Stock Mínimo *
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.4rem;">
+          <input name="unidad" type="text" placeholder="bolsas / kg / cajas" required />
+          <input name="minimo" type="number" min="1" value="15" placeholder="Mínimo" required />
+        </div>
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Descripción práctica del donativo *
+        <textarea
+          name="descripcion"
+          rows="2"
+          placeholder="Detallá qué contiene el donativo, estado de los insumos y a qué jornada o grupo beneficiario se destinará..."
+          required
+        ></textarea>
+      </label>
+    </div>
+    <div style="margin-top:0.85rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Donativo en Especie</button>
+      <button id="cancel-especie" class="btn btn-ghost" type="button">Cancelar</button>
+    </div>
+  </form>
+
+  <!-- FORMULARIO RÁPIDO: NUEVA DONACIÓN ECONÓMICA -->
+  <form id="form-economico" class="card form-donativo" style="display:none;" novalidate>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+      <strong style="font-size:0.9rem;">Registrar Nueva Donación Económica (Q)</strong>
+      <span class="badge badge-curso">Moneda: Quetzales (Q)</span>
+    </div>
+    <div class="donativo-grid">
+      <label>
+        Número de Recibo *
+        <input name="recibo" type="text" placeholder="Ej: REC-2026-092" required />
+      </label>
+      <label>
+        Nombre del Donante *
+        <input name="donante" type="text" placeholder="Ej: Cooperativa El Quetzal" required />
+      </label>
+      <label>
+        Tipo de Donante *
+        <select name="tipo" required>
+          <option value="Empresa">Empresa</option>
+          <option value="Persona Natural">Persona Natural</option>
+        </select>
+      </label>
+      <label>
+        Monto del Donativo (Q) *
+        <input name="monto" type="number" min="0.01" step="0.01" placeholder="Ej: 1500.00" required />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Destino / Programa *
+        <input name="destino" type="text" placeholder="Ej: Jornada Multidisciplinaria Salud / Entrega de Víveres" required />
+      </label>
+      <label style="grid-column: 1 / -1;">
+        Descripción práctica del donativo *
+        <textarea
+          name="descripcion"
+          rows="2"
+          placeholder="Especificá claramente para qué fin práctico se destina este aporte económico (compra de medicamentos, canastas básicas, etc.)..."
+          required
+        ></textarea>
+      </label>
+    </div>
+    <div style="margin-top:0.85rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Donación Económica</button>
+      <button id="cancel-economico" class="btn btn-ghost" type="button">Cancelar</button>
+    </div>
+  </form>
 
   <!-- SECCIÓN 1: DONATIVOS EN ESPECIE (INVENTARIO) -->
   <div id="panel-especie" class="tab-panel">
     <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
-      Registro de alimentos, suplementos nutricionales, insumos escolares y ropa recibidos en calidad de donación en especie.
+      Registro práctico de alimentos, suplementos nutricionales, juguetes, insumos escolares y vestimenta recibidos como donativo en especie.
     </p>
 
     <table class="tabla-viveres">
       <thead>
         <tr>
-          <th>Artículo</th>
+          <th>Artículo &amp; Fuente</th>
+          <th>Descripción del Donativo</th>
           <th>Categoría</th>
           <th>Cantidad</th>
           <th>Mínimo</th>
@@ -47,15 +154,18 @@ const estadoClass: Record<string, string> = {
           <th>Estado</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="tbody-especie">
         {items.map((item) => (
           <tr>
             <td>
               <div style="font-weight:600;">{item.nombre}</div>
               <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
             </td>
+            <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">
+              {item.descripcion}
+            </td>
             <td>{item.categoria}</td>
-            <td>{item.cantidadActual} {item.unidad}</td>
+            <td><strong>{item.cantidadActual}</strong> {item.unidad}</td>
             <td>{item.minimo} {item.unidad}</td>
             <td>{item.ubicacionBodega}</td>
             <td><span class={`badge ${estadoClass[item.estado]}`}>{item.estado}</span></td>
@@ -70,11 +180,13 @@ const estadoClass: Record<string, string> = {
     <div class="grid" style="margin-bottom: 1rem;">
       <div class="card">
         <div style="font-size:0.72rem; color:var(--text-muted);">Total Donaciones Económicas</div>
-        <div style="font-size:1.4rem; font-weight:700;">{donaciones.length}</div>
+        <div id="kpi-count-donaciones" style="font-size:1.4rem; font-weight:700;">{donaciones.length}</div>
       </div>
       <div class="card">
         <div style="font-size:0.72rem; color:var(--text-muted);">Total Fondos Recaudados</div>
-        <div style="font-size:1.4rem; font-weight:700; color:var(--accent);">Q{totalFondos.toLocaleString()} GTQ</div>
+        <div id="kpi-total-fondos" data-total={totalFondos} style="font-size:1.4rem; font-weight:700; color:var(--accent);">
+          {formatQ(totalFondos)}
+        </div>
       </div>
     </div>
 
@@ -85,10 +197,11 @@ const estadoClass: Record<string, string> = {
           <th>Donante</th>
           <th>Tipo</th>
           <th>Destino / Programa</th>
+          <th>Descripción del Donativo</th>
           <th>Monto</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="tbody-economicos">
         {donaciones.map((d) => (
           <tr>
             <td>
@@ -101,8 +214,11 @@ const estadoClass: Record<string, string> = {
               <span class="badge badge-media">{d.tipo}</span>
             </td>
             <td>{d.destino}</td>
-            <td>
-              <strong style="color: var(--accent);">+Q{d.monto.toLocaleString()} GTQ</strong>
+            <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">
+              {d.descripcion}
+            </td>
+            <td style="white-space: nowrap;">
+              <strong style="color: var(--accent);">{formatQ(d.monto)}</strong>
             </td>
           </tr>
         ))}
@@ -144,6 +260,34 @@ const estadoClass: Record<string, string> = {
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
+  .form-donativo {
+    max-width: 760px;
+    margin-bottom: 1.2rem;
+  }
+  .donativo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  .donativo-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .donativo-grid input,
+  .donativo-grid select,
+  .donativo-grid textarea {
+    font-weight: 400;
+    padding: 0.48rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-family: inherit;
+  }
+
   .tabla-viveres {
     width: 100%;
     border-collapse: collapse;
@@ -164,16 +308,31 @@ const estadoClass: Record<string, string> = {
   .tabla-viveres td {
     padding: 0.7rem 0.9rem;
     border-top: 1px solid var(--card-border);
+    vertical-align: top;
   }
 </style>
 
 <script>
+  import { formatQ } from "../../lib/currency";
+
   const tabEspecie = document.getElementById("tab-especie");
   const tabEconomicos = document.getElementById("tab-economicos");
   const panelEspecie = document.getElementById("panel-especie");
   const panelEconomicos = document.getElementById("panel-economicos");
   const btnNuevoEspecie = document.getElementById("btn-nuevo-especie");
   const btnNuevoEconomico = document.getElementById("btn-nuevo-economico");
+
+  const formEspecie = document.getElementById("form-especie") as HTMLFormElement | null;
+  const formEconomico = document.getElementById("form-economico") as HTMLFormElement | null;
+  const cancelEspecie = document.getElementById("cancel-especie");
+  const cancelEconomico = document.getElementById("cancel-economico");
+
+  const tbodyEspecie = document.getElementById("tbody-especie");
+  const tbodyEconomicos = document.getElementById("tbody-economicos");
+  const countEspecie = document.getElementById("count-especie");
+  const countEconomicos = document.getElementById("count-economicos");
+  const kpiCountDonaciones = document.getElementById("kpi-count-donaciones");
+  const kpiTotalFondos = document.getElementById("kpi-total-fondos");
 
   function cambiarPestaña(activa: "especie" | "economicos") {
     if (activa === "especie") {
@@ -183,6 +342,7 @@ const estadoClass: Record<string, string> = {
       if (panelEconomicos) panelEconomicos.style.display = "none";
       if (btnNuevoEspecie) btnNuevoEspecie.style.display = "inline-block";
       if (btnNuevoEconomico) btnNuevoEconomico.style.display = "none";
+      if (formEconomico) formEconomico.style.display = "none";
     } else {
       tabEconomicos?.classList.add("active");
       tabEspecie?.classList.remove("active");
@@ -190,9 +350,117 @@ const estadoClass: Record<string, string> = {
       if (panelEconomicos) panelEconomicos.style.display = "block";
       if (btnNuevoEspecie) btnNuevoEspecie.style.display = "none";
       if (btnNuevoEconomico) btnNuevoEconomico.style.display = "inline-block";
+      if (formEspecie) formEspecie.style.display = "none";
     }
   }
 
   tabEspecie?.addEventListener("click", () => cambiarPestaña("especie"));
   tabEconomicos?.addEventListener("click", () => cambiarPestaña("economicos"));
+
+  btnNuevoEspecie?.addEventListener("click", () => {
+    if (!formEspecie) return;
+    formEspecie.style.display = formEspecie.style.display === "none" ? "block" : "none";
+  });
+  cancelEspecie?.addEventListener("click", () => {
+    if (formEspecie) formEspecie.style.display = "none";
+  });
+
+  btnNuevoEconomico?.addEventListener("click", () => {
+    if (!formEconomico) return;
+    formEconomico.style.display = formEconomico.style.display === "none" ? "block" : "none";
+  });
+  cancelEconomico?.addEventListener("click", () => {
+    if (formEconomico) formEconomico.style.display = "none";
+  });
+
+  formEspecie?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!formEspecie.checkValidity()) {
+      formEspecie.reportValidity();
+      return;
+    }
+    const fd = new FormData(formEspecie);
+    const nombre = String(fd.get("nombre") ?? "");
+    const categoria = String(fd.get("categoria") ?? "");
+    const fuente = String(fd.get("fuente") ?? "");
+    const ubicacionBodega = String(fd.get("ubicacionBodega") ?? "");
+    const cantidad = Number(fd.get("cantidadActual") ?? 0);
+    const unidad = String(fd.get("unidad") ?? "unidades");
+    const minimo = Number(fd.get("minimo") ?? 10);
+    const descripcion = String(fd.get("descripcion") ?? "");
+
+    const estado = cantidad <= Math.floor(minimo * 0.4) ? "Crítico" : cantidad < minimo ? "Bajo Stock" : "Óptimo";
+    const badgeCls = estado === "Óptimo" ? "badge-baja" : estado === "Bajo Stock" ? "badge-media" : "badge-alta";
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <div style="font-weight:600;">${nombre}</div>
+        <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: ${fuente}</div>
+      </td>
+      <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
+      <td>${categoria}</td>
+      <td><strong>${cantidad}</strong> ${unidad}</td>
+      <td>${minimo} ${unidad}</td>
+      <td>${ubicacionBodega}</td>
+      <td><span class="badge ${badgeCls}">${estado}</span></td>
+    `;
+    tbodyEspecie?.prepend(tr);
+    if (countEspecie && tbodyEspecie) {
+      countEspecie.textContent = String(tbodyEspecie.querySelectorAll("tr").length);
+    }
+    formEspecie.reset();
+    formEspecie.style.display = "none";
+  });
+
+  formEconomico?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!formEconomico.checkValidity()) {
+      formEconomico.reportValidity();
+      return;
+    }
+    const fd = new FormData(formEconomico);
+    const recibo = String(fd.get("recibo") ?? "");
+    const donante = String(fd.get("donante") ?? "");
+    const tipo = String(fd.get("tipo") ?? "Empresa");
+    const destino = String(fd.get("destino") ?? "");
+    const descripcion = String(fd.get("descripcion") ?? "");
+    const monto = parseFloat(String(fd.get("monto") ?? "0")) || 0;
+
+    try {
+      await fetch("http://127.0.0.1:4111/donaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recibo, donante, tipo, destino, descripcion, monto }),
+      });
+    } catch {
+      // Fallback directo en tabla UI si el sidecar no está disponible
+    }
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><span style="font-family: monospace; font-weight: 600;">${recibo}</span></td>
+      <td><div style="font-weight: 600;">${donante}</div></td>
+      <td><span class="badge badge-media">${tipo}</span></td>
+      <td>${destino}</td>
+      <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
+      <td style="white-space: nowrap;"><strong style="color: var(--accent);">${formatQ(monto)}</strong></td>
+    `;
+    tbodyEconomicos?.prepend(tr);
+
+    if (tbodyEconomicos) {
+      const totalRows = tbodyEconomicos.querySelectorAll("tr").length;
+      if (countEconomicos) countEconomicos.textContent = String(totalRows);
+      if (kpiCountDonaciones) kpiCountDonaciones.textContent = String(totalRows);
+    }
+    if (kpiTotalFondos) {
+      const actual = parseFloat(kpiTotalFondos.dataset.total ?? "0") || 0;
+      const nuevoTotal = actual + monto;
+      kpiTotalFondos.dataset.total = String(nuevoTotal);
+      kpiTotalFondos.textContent = formatQ(nuevoTotal);
+    }
+
+    formEconomico.reset();
+    formEconomico.style.display = "none";
+  });
 </script>

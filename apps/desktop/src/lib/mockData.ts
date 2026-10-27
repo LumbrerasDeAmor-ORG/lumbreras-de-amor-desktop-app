@@ -84,27 +84,238 @@ export interface Nino {
   observaciones?: string; // texto libre: alergias, condiciones médicas, notas
 }
 
+const MUJERES_FALLBACK: Mujer[] = [
+  {
+    id: "1",
+    codigo: "MUJ-2026-001",
+    dpi: "1000000010101",
+    nombres: "Rosa Elena",
+    apellidos: "Morales",
+    edad: 34,
+    colonia: "Villa Esperanza",
+    comunidad: "Villa Esperanza",
+    direccion: "Calle 45 # 12-30",
+    telefono: "+502 300 111 2233",
+    ocupacion: "Costurera independiente",
+    estadoCivil: "Madre soltera",
+    terceraEdad: "No",
+    hijosACargo: 1,
+    programas: ["Emprendimiento en el Hogar", "Taller de Costura"],
+    problemasSociales: ["Desempleo", "Falta de acceso a salud"],
+    fuentesDeIngreso: "vendedora informal",
+    vulnerabilidad: "vendedora informal",
+    nota: "Prioridad para próximo taller de emprendimiento",
+  },
+  {
+    id: "2",
+    codigo: "MUJ-2026-002",
+    dpi: "1000000020101",
+    nombres: "Carmen",
+    apellidos: "Castro",
+    edad: 51,
+    colonia: "Altos del Paraíso",
+    comunidad: "Altos del Paraíso",
+    direccion: "Carrera 8A # 67-14",
+    telefono: "+502 300 222 3344",
+    ocupacion: "Ama de casa",
+    estadoCivil: "Casada",
+    terceraEdad: "No",
+    hijosACargo: 1,
+    programas: ["Huerta Comunitaria"],
+    problemasSociales: ["Dependencia económica"],
+    fuentesDeIngreso: "dependiente",
+    vulnerabilidad: "dependiente",
+  },
+  {
+    id: "3",
+    codigo: "MUJ-2026-003",
+    dpi: "1000000030101",
+    nombres: "Andrea",
+    apellidos: "Mendoza",
+    edad: 28,
+    colonia: "Villa Esperanza",
+    comunidad: "Villa Esperanza",
+    direccion: "Diagonal 22 # 5-80",
+    telefono: "+502 300 333 4455",
+    ocupacion: "Vendedora informal",
+    estadoCivil: "Unión libre",
+    terceraEdad: "No",
+    hijosACargo: 2,
+    programas: ["Emprendimiento en el Hogar", "Nutrición Familiar"],
+    problemasSociales: ["Violencia intrafamiliar", "Inseguridad alimentaria"],
+    fuentesDeIngreso: "vendedora informal",
+    vulnerabilidad: "vendedora informal",
+    nota: "Requiere seguimiento nutricional del hogar",
+  },
+  {
+    id: "4",
+    codigo: "MUJ-2026-004",
+    dpi: "1000000040101",
+    nombres: "Luz Marina",
+    apellidos: "Pineda",
+    edad: 45,
+    colonia: "Altos del Paraíso",
+    comunidad: "Altos del Paraíso",
+    direccion: "Carrera 15 # 40-55",
+    telefono: "+502 300 444 5566",
+    ocupacion: "Auxiliar de aseo",
+    estadoCivil: "Viuda",
+    terceraEdad: "No",
+    hijosACargo: 1,
+    programas: ["Taller de Costura"],
+    problemasSociales: ["Duelo familiar", "Bajos ingresos"],
+    fuentesDeIngreso: "asalariada",
+    vulnerabilidad: "asalariada",
+  },
+  {
+    id: "5",
+    codigo: "MUJ-2026-005",
+    dpi: "1000000050101",
+    nombres: "Marta Alicia",
+    apellidos: "Chávez López",
+    edad: 63,
+    colonia: "Brisas del Sur",
+    comunidad: "Brisas del Sur",
+    direccion: "3a Avenida 4-12 Zona 2",
+    telefono: "+502 300 555 6677",
+    ocupacion: "Artesana textil",
+    estadoCivil: "Viuda",
+    terceraEdad: "Sí",
+    hijosACargo: 1,
+    programas: ["Artesanías y Tejido", "Salud Integral del Adulto Mayor"],
+    problemasSociales: ["Falta de acceso a medicamentos", "Desempleo"],
+    fuentesDeIngreso: "desempleada",
+    vulnerabilidad: "desempleada",
+    nota: "Control mensual de presión arterial en jornada médica",
+  },
+  {
+    id: "6",
+    codigo: "MUJ-2026-006",
+    dpi: "1000000060101",
+    nombres: "Silvia Patricia",
+    apellidos: "Orozco Gómez",
+    edad: 31,
+    colonia: "La Esperanza",
+    comunidad: "La Esperanza",
+    direccion: "Callejón Los Pinos Lote 18",
+    telefono: "+502 300 666 7788",
+    ocupacion: "Panadera artesanal",
+    estadoCivil: "Madre soltera",
+    terceraEdad: "No",
+    hijosACargo: 1,
+    programas: ["Panadería Comunitaria", "Emprendimiento en el Hogar"],
+    problemasSociales: ["Bajos ingresos"],
+    fuentesDeIngreso: "asalariada y dependiente",
+    vulnerabilidad: "asalariada y dependiente",
+  },
+];
+
+const NINOS_FALLBACK: Nino[] = [
+  {
+    id: "7",
+    codigo: "NIN-2026-001",
+    nombres: "Mateo",
+    apellidos: "Gómez Morales",
+    edad: 9,
+    mujerId: "1",
+    dpiMadre: "1000000010101",
+    escolaridad: "3° Primaria",
+    tallaCamisa: "10",
+    tallaPantalon: "10",
+    tallaCalzado: "32",
+    observaciones: "Alérgico a la Penicilina",
+  },
+  {
+    id: "8",
+    codigo: "NIN-2026-002",
+    nombres: "Sofía Valentina",
+    apellidos: "Herrera Castro",
+    edad: 6,
+    mujerId: "2",
+    dpiMadre: "1000000020101",
+    escolaridad: "1° Primaria",
+    tallaCamisa: "8",
+    tallaPantalon: "8",
+    tallaCalzado: "29",
+  },
+  {
+    id: "9",
+    codigo: "NIN-2026-003",
+    nombres: "Samuel David",
+    apellidos: "Reyes Mendoza",
+    edad: 11,
+    mujerId: "3",
+    dpiMadre: "1000000030101",
+    escolaridad: "5° Primaria",
+    tallaCamisa: "12",
+    tallaPantalon: "12",
+    tallaCalzado: "35",
+    observaciones: "Intolerancia a la lactosa",
+  },
+  {
+    id: "10",
+    codigo: "NIN-2026-004",
+    nombres: "Valery Nicole",
+    apellidos: "Peña Mendoza",
+    edad: 6,
+    mujerId: "3",
+    dpiMadre: "1000000030101",
+    escolaridad: "Preescolar",
+    tallaCamisa: "6",
+    tallaPantalon: "6",
+    tallaCalzado: "27",
+    observaciones: "Rinitis alérgica con polvo",
+  },
+  {
+    id: "11",
+    codigo: "NIN-2026-005",
+    nombres: "Diego Alejandro",
+    apellidos: "Chávez",
+    edad: 13,
+    mujerId: "5",
+    dpiMadre: "1000000050101",
+    escolaridad: "1° Básico",
+    tallaCamisa: "14",
+    tallaPantalon: "14",
+    tallaCalzado: "37",
+    observaciones: "Requiere refuerzo escolar en matemáticas",
+  },
+  {
+    id: "12",
+    codigo: "NIN-2026-006",
+    nombres: "Camila Fernanda",
+    apellidos: "Orozco",
+    edad: 8,
+    mujerId: "6",
+    dpiMadre: "1000000060101",
+    escolaridad: "2° Primaria",
+    tallaCamisa: "8",
+    tallaPantalon: "8",
+    tallaCalzado: "30",
+  },
+];
+
 export async function getMujeres(): Promise<Mujer[]> {
   try {
     const res = await fetch(`${SIDECAR_BASE_URL}/mujeres`, {
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(1500),
     });
     if (res.ok) {
       const payload = (await res.json()) as { success: boolean; data: Mujer[] };
-      if (payload.success && Array.isArray(payload.data)) {
+      if (payload.success && Array.isArray(payload.data) && payload.data.length > 0) {
         return payload.data;
       }
     }
   } catch (err) {
-    console.warn("[mockData] No se pudo conectar al Sidecar (/mujeres):", (err as Error).message);
+    console.warn("[mockData] Usando datos locales de Mujeres (Sidecar offline):", (err as Error).message);
   }
-  return [];
+  return MUJERES_FALLBACK;
 }
 
 export async function getMujerById(id: string): Promise<Mujer | undefined> {
   try {
     const res = await fetch(`${SIDECAR_BASE_URL}/mujeres/${encodeURIComponent(id)}`, {
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(1500),
     });
     if (res.ok) {
       const payload = (await res.json()) as { success: boolean; data: Mujer };
@@ -112,8 +323,8 @@ export async function getMujerById(id: string): Promise<Mujer | undefined> {
         return payload.data;
       }
     }
-  } catch (err) {
-    console.warn(`[mockData] No se pudo conectar al Sidecar (/mujeres/${id}):`, (err as Error).message);
+  } catch {
+    // Fallback a lista local
   }
 
   const mujeres = await getMujeres();
@@ -125,24 +336,24 @@ export async function getMujerById(id: string): Promise<Mujer | undefined> {
 export async function getNinos(): Promise<Nino[]> {
   try {
     const res = await fetch(`${SIDECAR_BASE_URL}/ninos`, {
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(1500),
     });
     if (res.ok) {
       const payload = (await res.json()) as { success: boolean; data: Nino[] };
-      if (payload.success && Array.isArray(payload.data)) {
+      if (payload.success && Array.isArray(payload.data) && payload.data.length > 0) {
         return payload.data;
       }
     }
   } catch (err) {
-    console.warn("[mockData] No se pudo conectar al Sidecar (/ninos):", (err as Error).message);
+    console.warn("[mockData] Usando datos locales de Niños (Sidecar offline):", (err as Error).message);
   }
-  return [];
+  return NINOS_FALLBACK;
 }
 
 export async function getNinoById(id: string): Promise<Nino | undefined> {
   try {
     const res = await fetch(`${SIDECAR_BASE_URL}/ninos/${encodeURIComponent(id)}`, {
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(1500),
     });
     if (res.ok) {
       const payload = (await res.json()) as { success: boolean; data: Nino };
@@ -150,8 +361,8 @@ export async function getNinoById(id: string): Promise<Nino | undefined> {
         return payload.data;
       }
     }
-  } catch (err) {
-    console.warn(`[mockData] No se pudo conectar al Sidecar (/ninos/${id}):`, (err as Error).message);
+  } catch {
+    // Fallback a lista local
   }
 
   const ninos = await getNinos();

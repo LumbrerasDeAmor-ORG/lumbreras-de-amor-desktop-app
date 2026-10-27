@@ -15,7 +15,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
 
 <Layout
   title="Nuevo Evento"
-  subtitle="Registro paginado de eventos, coordinación y asignación de equipo de voluntarios propios y externos"
+  subtitle="Registro y edición paginada de eventos, coordinación y asignación de equipo de voluntarios propios y externos"
   active="eventos"
 >
   <div slot="actions">
@@ -50,12 +50,14 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   </div>
 
   <form id="form-evento" class="card" style="max-width: 780px;" novalidate>
+    <input type="hidden" id="ev-id-editar" name="idEditar" value="" />
+
     <!-- =================================================================== -->
     <!-- PÁGINA 1: DATOS GENERALES Y LOGÍSTICA                               -->
     <!-- =================================================================== -->
     <section class="wizard-page" data-page="1">
       <div class="page-header">
-        <h3>1. Datos Generales y Logística del Evento</h3>
+        <h3 id="wizard-main-heading">1. Datos Generales y Logística del Evento</h3>
         <p>Definí la información principal, el estado actual y la ubicación del evento.</p>
       </div>
 
@@ -493,9 +495,9 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     flex-direction: column;
     gap: 0.25rem;
   }
-  .vol-option-item {
-    display: flex !important;
-    flex-direction: row !important;
+  .vol-list label.vol-option-item {
+    display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 0.55rem;
     padding: 0.42rem 0.5rem;
@@ -503,7 +505,10 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     cursor: pointer;
     transition: background 0.12s;
   }
-  .vol-option-item:hover {
+  .vol-list label.vol-option-item.is-hidden {
+    display: none;
+  }
+  .vol-list label.vol-option-item:hover {
     background: #f3f4f6;
   }
   .vol-option-info {
@@ -567,10 +572,21 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   const pages = Array.from(document.querySelectorAll<HTMLElement>(".wizard-page"));
   const indicators = Array.from(document.querySelectorAll<HTMLElement>("[data-step-indicator]"));
 
+  const inputIdEditar = document.getElementById("ev-id-editar") as HTMLInputElement | null;
+  const inputTitulo = document.getElementById("ev-titulo") as HTMLInputElement | null;
+  const selectCategoria = document.getElementById("ev-categoria") as HTMLSelectElement | null;
+  const selectEstado = document.getElementById("ev-estado") as HTMLSelectElement | null;
+  const inputFecha = document.getElementById("ev-fecha") as HTMLInputElement | null;
+  const inputHorario = document.getElementById("ev-horario") as HTMLInputElement | null;
+  const inputUbicacion = document.getElementById("ev-ubicacion") as HTMLInputElement | null;
+  const inputConvocados = document.getElementById("ev-convocados") as HTMLInputElement | null;
+  const selectCoordinador = document.getElementById("ev-coordinador") as HTMLSelectElement | null;
   const inputPresupuesto = document.getElementById("ev-presupuesto") as HTMLInputElement | null;
   const inputPresupuestoPreview = document.getElementById("ev-presupuesto-preview") as HTMLInputElement | null;
+  const inputDescripcion = document.getElementById("ev-descripcion") as HTMLTextAreaElement | null;
   const resumenGrid = document.getElementById("resumen-previo-grid");
   const btnSubmit = document.getElementById("btn-submit-evento") as HTMLButtonElement | null;
+  const headingEl = document.getElementById("wizard-main-heading");
 
   // Controles de voluntarios
   const checkboxes = Array.from(
@@ -586,6 +602,8 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   const totalExternosDisponibles = checkboxes.filter((c) => c.dataset.tipo === "Externo").length;
 
   let currentPage = 1;
+  let presupuestoEjecutadoActual = 0;
+  let asistieronActual = 0;
 
   function obtenerVoluntariosSeleccionados() {
     return checkboxes
@@ -642,12 +660,46 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     cb.addEventListener("change", actualizarUIAsignacionVoluntarios);
   });
 
-  searchInput?.addEventListener("input", () => {
-    const q = searchInput.value.trim().toLowerCase();
+  function filtrarVoluntariosPorTexto() {
+    const q = (searchInput?.value ?? "").trim().toLowerCase();
     const items = Array.from(document.querySelectorAll<HTMLElement>(".vol-option-item"));
     for (const item of items) {
       const text = item.dataset.search ?? "";
-      item.style.display = !q || text.includes(q) ? "" : "none";
+      const coincide = !q || text.includes(q);
+      item.classList.toggle("is-hidden", !coincide);
+    }
+  }
+
+  searchInput?.addEventListener("input", filtrarVoluntariosPorTexto);
+
+  // Evitar que presionar Enter en el buscador de voluntarios envíe el formulario:
+  // si hay coincidencias visibles, selecciona/deselecciona la primera coincidencia.
+  searchInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const visibles = Array.from(
+        document.querySelectorAll<HTMLElement>(".vol-option-item:not(.is-hidden)")
+      );
+      if (visibles.length > 0) {
+        const cb = visibles[0].querySelector<HTMLInputElement>('input[type="checkbox"]');
+        if (cb) {
+          cb.checked = !cb.checked;
+          actualizarUIAsignacionVoluntarios();
+        }
+      }
+    }
+  });
+
+  // Evitar que Enter en las Páginas 1 o 2 haga submit del formulario por accidente
+  form?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+      if (currentPage === 1) {
+        e.preventDefault();
+        if (validarPaginaActual(1)) irAPagina(2);
+      } else if (currentPage === 2 && e.target !== searchInput) {
+        e.preventDefault();
+        if (validarPaginaActual(2)) irAPagina(3);
+      }
     }
   });
 
@@ -658,6 +710,51 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
       inputPresupuestoPreview.value = formatQ(val);
     }
   });
+
+  // Cargar datos si estamos en modo Editar Evento (?editar=...)
+  const params = new URLSearchParams(window.location.search);
+  const editarId = params.get("editar");
+  if (editarId) {
+    try {
+      const rawEditar = sessionStorage.getItem("lumbreras_evento_editar");
+      if (rawEditar) {
+        const ev = JSON.parse(rawEditar);
+        if (inputIdEditar) inputIdEditar.value = ev.id || editarId;
+        if (inputTitulo) inputTitulo.value = ev.titulo || "";
+        if (selectCategoria && ev.categoria) selectCategoria.value = ev.categoria;
+        if (selectEstado && ev.estado) selectEstado.value = ev.estado;
+        if (inputFecha && ev.fecha) inputFecha.value = ev.fecha;
+        if (inputHorario && ev.horario) inputHorario.value = ev.horario;
+        if (inputUbicacion && ev.ubicacion) inputUbicacion.value = ev.ubicacion;
+        if (inputConvocados) inputConvocados.value = String(ev.convocados ?? 40);
+        if (selectCoordinador && ev.coordinador) selectCoordinador.value = ev.coordinador;
+        if (inputPresupuesto) {
+          const monto = Number(ev.presupuestoTotal) || 0;
+          inputPresupuesto.value = monto.toFixed(2);
+          if (inputPresupuestoPreview) inputPresupuestoPreview.value = formatQ(monto);
+        }
+        if (inputDescripcion) inputDescripcion.value = ev.descripcion || "";
+
+        presupuestoEjecutadoActual = Number(ev.presupuestoEjecutado) || 0;
+        asistieronActual = Number(ev.asistieron) || 0;
+
+        const idsGuardados: string[] = ev.voluntarioIds || ev.voluntariosIds || [];
+        const nombresGuardados: string[] = ev.voluntariosNombres || [];
+
+        checkboxes.forEach((cb) => {
+          const idMatch = idsGuardados.includes(cb.value);
+          const nameMatch = nombresGuardados.some((n) => n.includes(cb.dataset.nombre || "___"));
+          cb.checked = idMatch || nameMatch;
+        });
+        actualizarUIAsignacionVoluntarios();
+
+        const topbarTitle = document.querySelector(".topbar h1");
+        if (topbarTitle) topbarTitle.textContent = `Editar Evento: ${ev.titulo}`;
+        if (headingEl) headingEl.textContent = "1. Editar Datos Generales y Logística del Evento";
+        if (btnSubmit) btnSubmit.textContent = "✔ Guardar Cambios del Evento";
+      }
+    } catch {}
+  }
 
   function validarPaginaActual(pagina: number): boolean {
     const pageEl = pages.find((p) => Number(p.dataset.page) === pagina);
@@ -683,13 +780,13 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
 
   function poblarResumenPrevio() {
     if (!resumenGrid) return;
-    const titulo = (document.getElementById("ev-titulo") as HTMLInputElement | null)?.value || "—";
-    const categoria = (document.getElementById("ev-categoria") as HTMLSelectElement | null)?.value || "—";
-    const estado = (document.getElementById("ev-estado") as HTMLSelectElement | null)?.value || "Planificado";
-    const fecha = (document.getElementById("ev-fecha") as HTMLInputElement | null)?.value || "—";
-    const horario = (document.getElementById("ev-horario") as HTMLInputElement | null)?.value || "—";
-    const ubicacion = (document.getElementById("ev-ubicacion") as HTMLInputElement | null)?.value || "—";
-    const coordinador = (document.getElementById("ev-coordinador") as HTMLSelectElement | null)?.value || "—";
+    const titulo = inputTitulo?.value || "—";
+    const categoria = selectCategoria?.value || "—";
+    const estado = selectEstado?.value || "Planificado";
+    const fecha = inputFecha?.value || "—";
+    const horario = inputHorario?.value || "—";
+    const ubicacion = inputUbicacion?.value || "—";
+    const coordinador = selectCoordinador?.value || "—";
     const presupuesto = parseFloat(inputPresupuesto?.value || "0") || 0;
     const seleccionados = obtenerVoluntariosSeleccionados();
 
@@ -743,8 +840,10 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     const voluntariosNombres = seleccionados.map((v) => `${v.nombre} (${v.tipo})`);
     const voluntarioIds = seleccionados.map((v) => v.id);
     const montoNum = parseFloat(String(fd.get("presupuestoTotal") ?? "0")) || 0;
+    const idEdicion = String(fd.get("idEditar") ?? "").trim();
 
     const payload = {
+      id: idEdicion || `evt-${Date.now()}`,
       titulo: String(fd.get("titulo") ?? "").trim(),
       categoria: String(fd.get("categoria") ?? "").trim(),
       estado: String(fd.get("estado") ?? "Planificado").trim(),
@@ -754,10 +853,13 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
       convocados: Number(fd.get("convocados") ?? 0) || 0,
       coordinador: String(fd.get("coordinador") ?? "").trim(),
       presupuestoTotal: Number(montoNum.toFixed(2)),
+      presupuestoEjecutado: presupuestoEjecutadoActual,
+      asistieron: asistieronActual,
       descripcion: String(fd.get("descripcion") ?? "").trim(),
       voluntariosAsignados: seleccionados.length,
       voluntarioIds,
       voluntario_ids: voluntarioIds,
+      voluntariosIds: voluntarioIds,
       voluntariosNombres,
     };
 
@@ -767,8 +869,11 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     }
 
     try {
-      await fetch("http://127.0.0.1:4111/eventos", {
-        method: "POST",
+      const endpoint = idEdicion
+        ? `http://127.0.0.1:4111/eventos/${encodeURIComponent(idEdicion)}`
+        : "http://127.0.0.1:4111/eventos";
+      await fetch(endpoint, {
+        method: idEdicion ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -778,16 +883,17 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
 
     try {
       const prevRaw = localStorage.getItem("lumbreras_eventos_creados");
-      const prevList = prevRaw ? JSON.parse(prevRaw) : [];
-      prevList.unshift({
-        id: `evt-${Date.now()}`,
-        ...payload,
-        presupuestoEjecutado: 0,
-        asistieron: 0,
-      });
+      const prevList: Array<Record<string, unknown>> = prevRaw ? JSON.parse(prevRaw) : [];
+      const existingIdx = prevList.findIndex((item) => item.id === payload.id);
+      if (existingIdx >= 0) {
+        prevList[existingIdx] = payload;
+      } else {
+        prevList.unshift(payload);
+      }
       localStorage.setItem("lumbreras_eventos_creados", JSON.stringify(prevList));
+      sessionStorage.removeItem("lumbreras_evento_editar");
     } catch {}
 
-    window.location.href = "/eventos?creado=1";
+    window.location.href = idEdicion ? "/eventos?editado=1" : "/eventos?creado=1";
   });
 </script>

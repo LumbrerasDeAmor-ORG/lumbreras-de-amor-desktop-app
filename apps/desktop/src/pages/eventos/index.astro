@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getEventos } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 const eventos = await getEventos();
 ---
@@ -26,7 +27,7 @@ const eventos = await getEventos();
           <span><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
           <span><Icon name="pin" /> {evento.ubicacion}</span>
           <span><Icon name="user" /> Coord: {evento.coordinador}</span>
-          <span><Icon name="quetzal" /> Presupuesto: Q{evento.presupuestoEjecutado} / Q{evento.presupuestoTotal}</span>
+          <span><Icon name="quetzal" /> Presupuesto: {formatQ(evento.presupuestoEjecutado)} / {formatQ(evento.presupuestoTotal)}</span>
         </div>
 
         <div style="margin-top:0.8rem;">

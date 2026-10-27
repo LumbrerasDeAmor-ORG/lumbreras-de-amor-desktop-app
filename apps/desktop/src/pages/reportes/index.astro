@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getResumenReporte, getEventos, getJornadas, getDonaciones } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 const [resumen, eventos, jornadas, donaciones] = await Promise.all([
   getResumenReporte(),
@@ -39,7 +40,7 @@ const actividades = [
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Beneficiarios Atendidos</div><div style="font-size:1.4rem; font-weight:700;">{resumen.beneficiariosAtendidos}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Realizadas</div><div style="font-size:1.4rem; font-weight:700;">{resumen.jornadasRealizadas}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Eventos Realizados</div><div style="font-size:1.4rem; font-weight:700;">{resumen.eventosRealizados}</div></div>
-      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">Q{resumen.fondosRecaudados}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700;">{formatQ(resumen.fondosRecaudados)}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Horas Voluntariado</div><div style="font-size:1.4rem; font-weight:700;">{resumen.horasVoluntariado}h</div></div>
     </div>
 
@@ -53,7 +54,7 @@ const actividades = [
             <td>{e.tipo}</td>
             <td>{e.categoria}</td>
             <td>{e.asistieron} / {e.convocados}</td>
-            <td>Q{e.presupuestoEjecutado} GTQ</td>
+            <td>{formatQ(e.presupuestoEjecutado)}</td>
           </tr>
         ))}
       </tbody>

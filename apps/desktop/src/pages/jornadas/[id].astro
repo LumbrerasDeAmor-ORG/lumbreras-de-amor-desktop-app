@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getJornadas, getJornadaById } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 // output: 'static' requiere getStaticPaths para rutas dinámicas.
 export async function getStaticPaths() {
@@ -42,7 +43,7 @@ const porcentaje = jornada ? Math.round((jornada.asistieron / jornada.convocados
         <div><strong><Icon name="clock" />Horario</strong><br />{jornada.horario}</div>
         <div><strong><Icon name="pin" />Ubicación</strong><br />{jornada.ubicacion}</div>
         <div><strong><Icon name="user" />Coordinador</strong><br />{jornada.coordinador}</div>
-        <div><strong><Icon name="quetzal" />Presupuesto</strong><br />Q{jornada.presupuestoEjecutado} / Q{jornada.presupuestoTotal}</div>
+        <div><strong><Icon name="quetzal" />Presupuesto</strong><br />{formatQ(jornada.presupuestoEjecutado)} / {formatQ(jornada.presupuestoTotal)}</div>
         <div><strong><Icon name="heart" />Voluntarios asignados</strong><br />{jornada.voluntariosAsignados}</div>
       </div>
 

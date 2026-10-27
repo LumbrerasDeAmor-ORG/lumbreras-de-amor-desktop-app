@@ -4,6 +4,7 @@
 import Layout from "../layouts/Layout.astro";
 import Icon from "../componentes/icon.astro";
 import { getMujeres, getNinos, getEventos, getJornadas, getResumenReporte } from "../lib/mockData";
+import { formatQ } from "../lib/currency";
 
 const [mujeres, ninos, eventos, jornadas, resumen] = await Promise.all([
   getMujeres(),
@@ -42,7 +43,7 @@ const jornadasPlanificadas = jornadas.filter((j) => j.estado === "Planificado");
     </div>
     <div class="card">
       <div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div>
-      <div style="font-size:1.6rem; font-weight:700;">Q{resumen.fondosRecaudados}</div>
+      <div style="font-size:1.6rem; font-weight:700;">{formatQ(resumen.fondosRecaudados)}</div>
     </div>
   </div>
 

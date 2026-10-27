@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getJornadas } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 const jornadas = await getJornadas();
 ---
@@ -27,7 +28,7 @@ const jornadas = await getJornadas();
           <span><Icon name="calendar" /> {jornada.fecha} · {jornada.horario}</span>
           <span><Icon name="pin" /> {jornada.ubicacion}</span>
           <span><Icon name="user" /> Coord: {jornada.coordinador}</span>
-          <span><Icon name="quetzal" /> Presupuesto: Q{jornada.presupuestoEjecutado} / Q{jornada.presupuestoTotal}</span>
+          <span><Icon name="quetzal" /> Presupuesto: {formatQ(jornada.presupuestoEjecutado)} / {formatQ(jornada.presupuestoTotal)}</span>
         </div>
 
         <div style="margin-top:0.8rem;">

@@ -3,6 +3,7 @@
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getViveres, getDonaciones } from "../../lib/mockData";
+import { formatQ } from "../../lib/currency";
 
 const [items, donaciones] = await Promise.all([getViveres(), getDonaciones()]);
 
@@ -74,7 +75,7 @@ const estadoClass: Record<string, string> = {
       </div>
       <div class="card">
         <div style="font-size:0.72rem; color:var(--text-muted);">Total Fondos Recaudados</div>
-        <div style="font-size:1.4rem; font-weight:700; color:var(--accent);">Q{totalFondos.toLocaleString()} GTQ</div>
+        <div style="font-size:1.4rem; font-weight:700; color:var(--accent);">{formatQ(totalFondos)}</div>
       </div>
     </div>
 
@@ -102,7 +103,7 @@ const estadoClass: Record<string, string> = {
             </td>
             <td>{d.destino}</td>
             <td>
-              <strong style="color: var(--accent);">+Q{d.monto.toLocaleString()} GTQ</strong>
+              <strong style="color: var(--accent);">+{formatQ(d.monto)}</strong>
             </td>
           </tr>
         ))}

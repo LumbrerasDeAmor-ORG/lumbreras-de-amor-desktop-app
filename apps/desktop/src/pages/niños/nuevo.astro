@@ -105,8 +105,11 @@ const madres = mujeres.map((m) => ({
   </form>
 
   <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
-    <strong style="font-size:0.85rem;">Vista previa del perfil (aún no se guarda en ningún lado, esto es solo UI)</strong>
+    <strong id="preview-title" style="font-size:0.85rem; color:#166534;">✔ Niño guardado en la base de datos SQLite local</strong>
     <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+    <div style="margin-top:0.8rem;">
+      <a href="/niños"><button class="btn btn-primary" type="button">Ir al listado de Niños</button></a>
+    </div>
   </div>
 </Layout>
 
@@ -157,11 +160,10 @@ const madres = mujeres.map((m) => ({
 </style>
 
 <script>
-  // Solo UI: valida los campos requeridos y muestra los datos ingresados
-  // como vista previa. No persiste nada todavía.
   const form = document.getElementById("form-nino") as HTMLFormElement | null;
   const errorEl = document.getElementById("form-error");
   const preview = document.getElementById("preview");
+  const previewTitle = document.getElementById("preview-title");
   const previewContent = document.getElementById("preview-content");
   const dpiInput = document.getElementById("dpi-madre") as HTMLInputElement | null;
   const dpiEstado = document.getElementById("dpi-estado");
@@ -171,7 +173,21 @@ const madres = mujeres.map((m) => ({
     dpi: string;
     nombre: string;
   }
-  const madres: Madre[] = form?.dataset.madres ? JSON.parse(form.dataset.madres) : [];
+  let madres: Madre[] = form?.dataset.madres ? JSON.parse(form.dataset.madres) : [];
+
+  // Sincronizar lista de madres desde el Sidecar SQLite en vivo
+  fetch("http://127.0.0.1:4111/mujeres")
+    .then((r) => r.json())
+    .then((payload) => {
+      if (payload?.success && Array.isArray(payload.data)) {
+        madres = payload.data.map((m: any) => ({
+          id: m.id,
+          dpi: m.dpi,
+          nombre: `${m.nombres} ${m.apellidos}`,
+        }));
+      }
+    })
+    .catch(() => {});
 
   // Busca a la madre por DPI. Si no existe, marca el campo como inválido
   // para que el formulario no se pueda guardar.
@@ -203,11 +219,14 @@ const madres = mujeres.map((m) => ({
     validarMadre();
   });
 
-  form?.addEventListener("submit", (e) => {
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     if (!form.checkValidity()) {
-      if (errorEl) errorEl.style.display = "block";
+      if (errorEl) {
+        errorEl.textContent = "Completá los campos obligatorios (*) antes de continuar.";
+        errorEl.style.display = "block";
+      }
       form.reportValidity();
       return;
     }
@@ -220,10 +239,35 @@ const madres = mujeres.map((m) => ({
     }
 
     const data = { ...Object.fromEntries(new FormData(form).entries()), mujerId: madre.id, madre: madre.nombre };
-    if (preview && previewContent) {
-      previewContent.textContent = JSON.stringify(data, null, 2);
-      preview.style.display = "block";
-      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    try {
+      const res = await fetch("http://127.0.0.1:4111/ninos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "No se pudo guardar el niño en SQLite");
+      }
+
+      if (preview && previewContent) {
+        if (previewTitle) {
+          previewTitle.textContent = `✔ Niño guardado en SQLite (${result.data.codigo})`;
+        }
+        previewContent.textContent = JSON.stringify({ ...result.data, madre: madre.nombre }, null, 2);
+        preview.style.display = "block";
+        preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      form.reset();
+      if (dpiEstado) {
+        dpiEstado.className = "dpi-estado";
+        dpiEstado.textContent = "";
+      }
+    } catch (err) {
+      if (errorEl) {
+        errorEl.textContent = `Error al guardar en base de datos: ${(err as Error).message}`;
+        errorEl.style.display = "block";
+      }
     }
   });
-</script> 
+</script>

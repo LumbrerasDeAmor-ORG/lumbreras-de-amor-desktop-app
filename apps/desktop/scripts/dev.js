@@ -37,6 +37,10 @@ async function main() {
         PATH: `${process.env.HOME}/.bun/bin:${process.env.PATH}`,
       },
     });
+    for (let i = 0; i < 20; i++) {
+      if (await checkSidecarRunning()) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
   } else {
     console.log("[Dev Runner] Sidecar ya activo en http://localhost:4111");
   }

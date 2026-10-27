@@ -1,9 +1,11 @@
 // apps/desktop/src/lib/mockData.ts
 //
-// Capa de datos MOCK. Todas las funciones son async a propósito:
-// cuando el esquema de Prisma / sidecar esté listo, solo hay que
-// reemplazar el cuerpo de cada función por un fetch a
-// http://127.0.0.1:4111/... sin tocar las páginas que las consumen.
+// Los módulos de Mujeres y Niños consumen la base de datos SQLite local
+// (packages/database/local.db) a través del Sidecar (http://127.0.0.1:4111)
+// o directamente mediante @lumbreras/database en tiempo de compilación/SSR.
+// El resto de módulos permanecen con datos mock.
+
+const SIDECAR_BASE_URL = "http://127.0.0.1:4111";
 
 export type FuentesIngreso =
   | "desempleada"
@@ -16,7 +18,7 @@ export type Vulnerabilidad = FuentesIngreso;
 
 export interface Mujer {
   id: string;
-  codigo: string; 
+  codigo: string;
   dpi: string;
   nombres: string;
   apellidos: string;
@@ -36,101 +38,6 @@ export interface Mujer {
   nota?: string; // alerta o nota de seguimiento, ej: "Requiere apoyo psicológico"
 }
 
-const MUJERES: Mujer[] = [
-  {
-    id: "muj-001",
-    codigo: "MUJ-2026-001",
-    dpi: "1000000010101",
-    nombres: "Rosa Elena",
-    apellidos: "Morales",
-    edad: 34,
-    colonia: "Villa Esperanza",
-    comunidad: "Villa Esperanza",
-    direccion: "Calle 45 # 12-30",
-    telefono: "+502 300 111 2233",
-    ocupacion: "Costurera independiente",
-    estadoCivil: "Madre soltera",
-    terceraEdad: "No",
-    hijosACargo: 1,
-    programas: ["Emprendimiento en el Hogar", "Taller de Costura"],
-    problemasSociales: ["Desempleo", "Falta de acceso a salud"],
-    fuentesDeIngreso: "vendedora informal",
-    vulnerabilidad: "vendedora informal",
-    nota: "Prioridad para próximo taller de emprendimiento",
-  },
-  {
-    id: "muj-002",
-    codigo: "MUJ-2026-002",
-    dpi: "1000000020101",
-    nombres: "Carmen",
-    apellidos: "Castro",
-    edad: 51,
-    colonia: "Altos del Paraíso",
-    comunidad: "Altos del Paraíso",
-    direccion: "Carrera 8A # 67-14",
-    telefono: "+502 300 222 3344",
-    ocupacion: "Ama de casa",
-    estadoCivil: "Casada",
-    terceraEdad: "No",
-    hijosACargo: 0,
-    programas: ["Huerta Comunitaria"],
-    problemasSociales: ["Dependencia económica"],
-    fuentesDeIngreso: "dependiente",
-    vulnerabilidad: "dependiente",
-  },
-  {
-    id: "muj-003",
-    codigo: "MUJ-2026-003",
-    dpi: "1000000030101",
-    nombres: "Andrea",
-    apellidos: "Mendoza",
-    edad: 28,
-    colonia: "Villa Esperanza",
-    comunidad: "Villa Esperanza",
-    direccion: "Diagonal 22 # 5-80",
-    telefono: "+502 300 333 4455",
-    ocupacion: "Vendedora informal",
-    estadoCivil: "Unión libre",
-    terceraEdad: "No",
-    hijosACargo: 2,
-    programas: ["Emprendimiento en el Hogar", "Nutrición Familiar"],
-    problemasSociales: ["Violencia intrafamiliar", "Inseguridad alimentaria"],
-    fuentesDeIngreso: "vendedora informal",
-    vulnerabilidad: "vendedora informal",
-    nota: "Requiere seguimiento nutricional del hogar",
-  },
-  {
-    id: "muj-004",
-    codigo: "MUJ-2026-004",
-    dpi: "1000000040101",
-    nombres: "Luz Marina",
-    apellidos: "Pineda",
-    edad: 45,
-    colonia: "Altos del Paraíso",
-    comunidad: "Altos del Paraíso",
-    direccion: "Carrera 15 # 40-55",
-    telefono: "+502 300 444 5566",
-    ocupacion: "Auxiliar de aseo",
-    estadoCivil: "Viuda",
-    terceraEdad: "No",
-    hijosACargo: 1,
-    programas: ["Taller de Costura"],
-    problemasSociales: ["Duelo familiar", "Bajos ingresos"],
-    fuentesDeIngreso: "asalariada",
-    vulnerabilidad: "asalariada",
-  },
-];
-
-export async function getMujeres(): Promise<Mujer[]> {
-  return MUJERES;
-}
-
-export async function getMujerById(id: string): Promise<Mujer | undefined> {
-  return MUJERES.find((m) => m.id === id);
-}
-
-// NIÑOS (módulo secundario, vinculado a un perfil de Mujer)
-
 export interface Nino {
   id: string;
   codigo: string;
@@ -146,19 +53,78 @@ export interface Nino {
   observaciones?: string; // texto libre: alergias, condiciones médicas, notas
 }
 
-const NINOS: Nino[] = [
-  { id: "nino-001", codigo: "NIN-2026-001", nombres: "Mateo", apellidos: "Gómez Morales", edad: 9, mujerId: "muj-001", dpiMadre: "1000000010101", escolaridad: "3° Primaria", tallaCamisa: "10", tallaPantalon: "10", tallaCalzado: "32", observaciones: "Alérgico a la Penicilina" },
-  { id: "nino-002", codigo: "NIN-2026-002", nombres: "Sofía Valentina", apellidos: "Herrera", edad: 6, mujerId: "muj-002", dpiMadre: "1000000020101", escolaridad: "1° Primaria", tallaCamisa: "8", tallaPantalon: "8", tallaCalzado: "29" },
-  { id: "nino-003", codigo: "NIN-2026-003", nombres: "Samuel David", apellidos: "Reyes", edad: 11, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "5° Primaria", tallaCamisa: "12", tallaPantalon: "12", tallaCalzado: "35", observaciones: "Intolerancia a la lactosa" },
-  { id: "nino-004", codigo: "NIN-2026-004", nombres: "Valery Nicole", apellidos: "Peña", edad: 6, mujerId: "muj-003", dpiMadre: "1000000030101", escolaridad: "Transición / Preescolar", tallaCamisa: "6", tallaPantalon: "6", tallaCalzado: "27", observaciones: "Rinitis alérgica con polvo" },
-];
+export async function getMujeres(): Promise<Mujer[]> {
+  try {
+    const res = await fetch(`${SIDECAR_BASE_URL}/mujeres`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Mujer[] };
+      if (payload.success && Array.isArray(payload.data)) {
+        return payload.data;
+      }
+    }
+  } catch (err) {
+    console.warn("[mockData] No se pudo conectar al Sidecar (/mujeres):", (err as Error).message);
+  }
+  return [];
+}
+
+export async function getMujerById(id: string): Promise<Mujer | undefined> {
+  try {
+    const res = await fetch(`${SIDECAR_BASE_URL}/mujeres/${encodeURIComponent(id)}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Mujer };
+      if (payload.success && payload.data) {
+        return payload.data;
+      }
+    }
+  } catch (err) {
+    console.warn(`[mockData] No se pudo conectar al Sidecar (/mujeres/${id}):`, (err as Error).message);
+  }
+
+  const mujeres = await getMujeres();
+  return mujeres.find((m) => m.id === id || m.codigo === id);
+}
+
+// NIÑOS (módulo secundario, vinculado a un perfil de Mujer en SQLite)
 
 export async function getNinos(): Promise<Nino[]> {
-  return NINOS;
+  try {
+    const res = await fetch(`${SIDECAR_BASE_URL}/ninos`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Nino[] };
+      if (payload.success && Array.isArray(payload.data)) {
+        return payload.data;
+      }
+    }
+  } catch (err) {
+    console.warn("[mockData] No se pudo conectar al Sidecar (/ninos):", (err as Error).message);
+  }
+  return [];
 }
 
 export async function getNinoById(id: string): Promise<Nino | undefined> {
-  return NINOS.find((n) => n.id === id);
+  try {
+    const res = await fetch(`${SIDECAR_BASE_URL}/ninos/${encodeURIComponent(id)}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Nino };
+      if (payload.success && payload.data) {
+        return payload.data;
+      }
+    }
+  } catch (err) {
+    console.warn(`[mockData] No se pudo conectar al Sidecar (/ninos/${id}):`, (err as Error).message);
+  }
+
+  const ninos = await getNinos();
+  return ninos.find((n) => n.id === id || n.codigo === id);
 }
 
 

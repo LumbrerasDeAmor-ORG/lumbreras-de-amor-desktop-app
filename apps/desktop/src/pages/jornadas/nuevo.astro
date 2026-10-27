@@ -25,7 +25,6 @@ import Icon from "../../componentes/icon.astro";
         <select name="categoria" required>
           <option value="">Seleccionar...</option>
           <option value="Jornada de Salud">Jornada de Salud</option>
-          <option value="Jornada de Integración Familiar">Jornada de Integración Familiar</option>
           <option value="Comedor Comunitario">Comedor Comunitario</option>
           <option value="Entrega de Kits & Víveres">Entrega de Kits & Víveres</option>
           <option value="Atención Psicosocial">Atención Psicosocial</option>
@@ -36,6 +35,7 @@ import Icon from "../../componentes/icon.astro";
         Estado *
         <select name="estado" required>
           <option value="Planificado" selected>Planificado</option>
+          <option value="En curso">En curso</option>
           <option value="Finalizado">Finalizado</option>
         </select>
       </label>
@@ -169,7 +169,7 @@ import Icon from "../../componentes/icon.astro";
     listaServicios.appendChild(item);
   });
 
-  form?.addEventListener("submit", (e) => {
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     if (!form.checkValidity()) {
@@ -196,10 +196,29 @@ import Icon from "../../componentes/icon.astro";
     delete data["servicio_descripcion[]"];
     data.servicios = servicios;
 
-    if (preview && previewContent) {
-      previewContent.textContent = JSON.stringify(data, null, 2);
-      preview.style.display = "block";
-      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    try {
+      const res = await fetch("http://127.0.0.1:4111/jornadas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "No se pudo guardar la jornada en SQLite");
+      }
+
+      if (preview && previewContent) {
+        previewContent.textContent = JSON.stringify(result.data, null, 2);
+        preview.style.display = "block";
+        preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      form.reset();
+    } catch (err) {
+      if (errorEl) {
+        errorEl.textContent = `Error al guardar en base de datos: ${(err as Error).message}`;
+        errorEl.style.display = "block";
+      }
     }
   });
 </script>

@@ -27,7 +27,6 @@ import Layout from "../../layouts/Layout.astro";
           <option value="Recaudación de Fondos">Recaudación de Fondos</option>
           <option value="Capacitación">Capacitación</option>
           <option value="Taller Comunitario">Taller Comunitario</option>
-          <option value="Integración Familiar">Integración Familiar</option>
         </select>
       </label>
 
@@ -35,6 +34,7 @@ import Layout from "../../layouts/Layout.astro";
         Estado *
         <select name="estado" required>
           <option value="Planificado" selected>Planificado</option>
+          <option value="En curso">En curso</option>
           <option value="Finalizado">Finalizado</option>
         </select>
       </label>
@@ -95,8 +95,11 @@ import Layout from "../../layouts/Layout.astro";
   </form>
 
   <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
-    <strong style="font-size:0.85rem;">Vista previa del evento (aún no se guarda en ningún lado — esto es solo UI)</strong>
+    <strong id="preview-title" style="font-size:0.85rem; color:#15803d;">✔ Evento guardado en base de datos SQLite</strong>
     <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+    <div style="margin-top:0.8rem;">
+      <a href="/eventos"><button class="btn btn-primary" type="button">Ir al listado de Eventos</button></a>
+    </div>
   </div>
 </Layout>
 
@@ -130,23 +133,63 @@ import Layout from "../../layouts/Layout.astro";
   const form = document.getElementById("form-evento") as HTMLFormElement | null;
   const errorEl = document.getElementById("form-error");
   const preview = document.getElementById("preview");
+  const previewTitle = document.getElementById("preview-title");
   const previewContent = document.getElementById("preview-content");
 
-  form?.addEventListener("submit", (e) => {
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     if (!form.checkValidity()) {
-      if (errorEl) errorEl.style.display = "block";
+      if (errorEl) {
+        errorEl.textContent = "Completá los campos obligatorios (*) antes de continuar.";
+        errorEl.style.display = "block";
+      }
       form.reportValidity();
       return;
     }
     if (errorEl) errorEl.style.display = "none";
 
-    const data = Object.fromEntries(new FormData(form).entries());
-    if (preview && previewContent) {
-      previewContent.textContent = JSON.stringify(data, null, 2);
-      preview.style.display = "block";
-      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const raw = Object.fromEntries(new FormData(form).entries());
+    const payload = {
+      titulo: raw.titulo,
+      categoria: raw.categoria,
+      estado: raw.estado || "Planificado",
+      fecha: raw.fecha,
+      horario: raw.horario,
+      ubicacion: raw.ubicacion,
+      coordinador: raw.coordinador,
+      presupuestoTotal: Number(raw.presupuestoTotal) || 0,
+      convocados: Number(raw.convocados) || 0,
+      descripcion: raw.descripcion,
+      voluntarioIds: [],
+    };
+
+    try {
+      const res = await fetch("http://127.0.0.1:4111/eventos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || "No se pudo guardar el evento en SQLite");
+      }
+
+      if (preview && previewContent) {
+        if (previewTitle) {
+          previewTitle.textContent = `✔ Evento guardado en base de datos SQLite (${result.data.titulo})`;
+        }
+        previewContent.textContent = JSON.stringify(result.data, null, 2);
+        preview.style.display = "block";
+        preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      form.reset();
+    } catch (err) {
+      if (errorEl) {
+        errorEl.textContent = `Error al guardar en base de datos: ${(err as Error).message}`;
+        errorEl.style.display = "block";
+      }
     }
   });
 </script>

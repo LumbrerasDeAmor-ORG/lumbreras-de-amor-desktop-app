@@ -26,31 +26,31 @@ model Familia {
 }
 
 model Beneficiario {
-  id_beneficiario               Int       @id @default(autoincrement())
-  codigo_expediente             String    @unique
-  dpi_identificacion            String?
-  nombres                       String
-  apellidos                     String
-  fecha_nacimiento              String?
-  edad                          Int?
-  genero                        String?
-  tipo_beneficiario             String    // "Mujer" | "Niño" | "Adulto"
-  
+  id_beneficiario    Int     @id @default(autoincrement())
+  codigo_expediente  String  @unique
+  dpi_identificacion String?
+  nombres            String
+  apellidos          String
+  fecha_nacimiento   String?
+  edad               Int?
+  genero             String?
+  tipo_beneficiario  String // "Mujer" | "Niño" | "Adulto"
+
   // Datos de contacto y ubicación
-  direccion                     String?
-  colonia                       String?
-  telefono                      String?
+  direccion String?
+  colonia   String?
+  telefono  String?
 
   // Datos específicos de Mujer
-  estado_civil                  String?
-  tercera_edad                  String?   // "Sí" | "No"
-  ocupacion                     String?
-  fuentes_de_ingreso            String?   // desempleada, vendedora informal, asalariada, etc.
-  nivel_vulnerabilidad          String?
-  hijos_a_cargo                 Int?      @default(0)
-  programas                     String?   // programas/talleres separados por coma
-  problemas_sociales            String?   // problemas sociales separados por coma
-  nota                          String?   // alertas de seguimiento
+  estado_civil         String?
+  tercera_edad         String? // "Sí" | "No"
+  ocupacion            String?
+  fuentes_de_ingreso   String? // desempleada, vendedora informal, asalariada, etc.
+  nivel_vulnerabilidad String?
+  hijos_a_cargo        Int?    @default(0)
+  programas            String? // programas/talleres separados por coma
+  problemas_sociales   String? // problemas sociales separados por coma
+  nota                 String? // alertas de seguimiento
 
   // Datos específicos de Niños
   escolaridad                   String?
@@ -64,24 +64,24 @@ model Beneficiario {
   observaciones                 String?
 
   // Estado general
-  estado_gestacion_lactancia    String?
-  estado                        String    @default("Activo")
-  fecha_ingreso                 String?
-  
+  estado_gestacion_lactancia String?
+  estado                     String  @default("Activo")
+  fecha_ingreso              String?
+
   // Relación con Familia (opcional para permitir registro directo desde formularios)
-  id_familia                    Int?
-  rol_familiar                  String?
-  es_tutor_principal            Boolean?  @default(false)
-  convive_en_mismo_hogar        Boolean?  @default(true)
+  id_familia             Int?
+  rol_familiar           String?
+  es_tutor_principal     Boolean? @default(false)
+  convive_en_mismo_hogar Boolean? @default(true)
 
   // Vinculación Madre - Niños (conectar a los niños con sus madres mediante ID o DPI)
-  id_madre                      Int?
-  dpi_madre                     String?
-  madre                         Beneficiario?  @relation("MadreHijos", fields: [id_madre], references: [id_beneficiario], onDelete: SetNull)
-  hijos                         Beneficiario[] @relation("MadreHijos")
+  id_madre  Int?
+  dpi_madre String?
+  madre     Beneficiario?  @relation("MadreHijos", fields: [id_madre], references: [id_beneficiario], onDelete: SetNull)
+  hijos     Beneficiario[] @relation("MadreHijos")
 
-  created_at                    DateTime? @default(now())
-  updated_at                    DateTime? @updatedAt
+  created_at DateTime? @default(now())
+  updated_at DateTime? @updatedAt
 
   familia     Familia? @relation(fields: [id_familia], references: [id_familia], onDelete: Cascade)
   asistencias Asiste[]
@@ -90,24 +90,24 @@ model Beneficiario {
 }
 
 model Jornada {
-  id_jornada             Int        @id @default(autoincrement())
-  titulo                 String
-  categoria              String
-  fecha                  String
-  horario                String?
-  ubicacion              String
-  coordinador            String?
-  estado                 String     // "Planificado" | "Finalizado"
-  descripcion            String?
-  presupuesto_total      Float?
-  presupuesto_ejecutado  Float?
-  convocados             Int?
-  asistieron             Int?
-  voluntarios_asignados  Int?
-  created_at             DateTime?  @default(now())
-  updated_at             DateTime?  @updatedAt
+  id_jornada            Int       @id @default(autoincrement())
+  titulo                String
+  categoria             String // "Jornada de Salud" | "Comedor Comunitario" | "Entrega de Kits & Víveres" | "Atención Psicosocial"
+  fecha                 String
+  horario               String?
+  ubicacion             String
+  coordinador           String?
+  estado                String // "Planificado" | "En curso" | "Finalizado"
+  descripcion           String?
+  presupuesto_total     Float?
+  presupuesto_ejecutado Float?
+  convocados            Int?
+  asistieron            Int?
+  voluntarios_asignados Int?
+  created_at            DateTime? @default(now())
+  updated_at            DateTime? @updatedAt
 
-  servicios              Servicio[]
+  servicios Servicio[]
 
   @@map("jornada")
 }
@@ -122,7 +122,7 @@ model Servicio {
   created_at  DateTime? @default(now())
   updated_at  DateTime? @updatedAt
 
-  jornada     Jornada   @relation(fields: [id_jornada], references: [id_jornada], onDelete: Cascade)
+  jornada Jornada @relation(fields: [id_jornada], references: [id_jornada], onDelete: Cascade)
 
   @@map("servicio")
 }
@@ -130,7 +130,7 @@ model Servicio {
 model Evento {
   id_evento               Int       @id @default(autoincrement())
   titulo                  String
-  categoria               String
+  categoria               String // "Celebración" | "Recaudación de Fondos" | "Capacitación" | "Taller Comunitario"
   fecha                   String
   hora_inicio             String?
   lugar                   String
@@ -138,7 +138,7 @@ model Evento {
   presupuesto_estimado    Float?
   presupuesto_ejecutado   Float?
   coordinador_responsable String?
-  estado                  String
+  estado                  String // "Planificado" | "En curso" | "Finalizado"
   descripcion             String?
   created_at              DateTime? @default(now())
   updated_at              DateTime? @updatedAt
@@ -168,6 +168,7 @@ model Asiste {
 
 model Voluntario {
   id_voluntario       Int       @id @default(autoincrement())
+  tipo_voluntario     String    @default("Propio") // "Propio" | "Externo"
   nombre_completo     String
   email               String?
   telefono            String?
@@ -223,6 +224,7 @@ model DonacionMonetaria {
   id_donacion      Int       @id @default(autoincrement())
   numero_recibo    String    @unique
   monto            Float
+  descripcion      String?
   moneda           String?
   fecha            String?
   metodo_pago      String?
@@ -240,21 +242,21 @@ model DonacionMonetaria {
 
 // Donativos tipo 2: Donativos en especie
 model DonacionEspecie {
-  id_donacion_especie   Int       @id @default(autoincrement())
-  numero_recibo         String?   @unique
-  descripcion           String
-  categoria             String?
-  cantidad              Float
-  unidad_medida         String?
-  fecha                 String?
-  destino_o_programa    String?
-  id_donante            Int?
-  id_articulo           Int?
-  created_at            DateTime? @default(now())
-  updated_at            DateTime? @updatedAt
+  id_donacion_especie Int       @id @default(autoincrement())
+  numero_recibo       String?   @unique
+  descripcion         String
+  categoria           String?
+  cantidad            Float
+  unidad_medida       String?
+  fecha               String?
+  destino_o_programa  String?
+  id_donante          Int?
+  id_articulo         Int?
+  created_at          DateTime? @default(now())
+  updated_at          DateTime? @updatedAt
 
-  donante               Donante?            @relation(fields: [id_donante], references: [id_donante], onDelete: SetNull)
-  articulo              ArticuloInventario? @relation(fields: [id_articulo], references: [id_articulo], onDelete: SetNull)
+  donante  Donante?            @relation(fields: [id_donante], references: [id_donante], onDelete: SetNull)
+  articulo ArticuloInventario? @relation(fields: [id_articulo], references: [id_articulo], onDelete: SetNull)
 
   @@map("donacion_especie")
 }

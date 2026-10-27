@@ -1,0 +1,127 @@
+---
+// apps/desktop/src/pages/coordinadores/index.astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getCoordinadores, getEventos, getJornadas } from "../../lib/mockData";
+
+const [coordinadores, eventos, jornadas] = await Promise.all([
+  getCoordinadores(),
+  getEventos(),
+  getJornadas(),
+]);
+
+const totalActividadesCoordinadas = eventos.length + jornadas.length;
+---
+
+<Layout
+  title="Coordinadores de Programas y Actividades"
+  subtitle="Responsables de dirección, supervisión logística y coordinación de eventos y jornadas comunitarias"
+  active="coordinadores"
+>
+  <div slot="actions">
+    <a href="/eventos/nuevo"><button class="btn btn-ghost" type="button">+ Asignar en Evento</button></a>
+    <a href="/voluntarios"><button class="btn btn-primary" type="button">Ver Equipo de Voluntarios</button></a>
+  </div>
+
+  <div class="grid" style="margin-bottom: 1.2rem;">
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Coordinadores Activos</div>
+      <div style="font-size:1.6rem; font-weight:700; color:var(--accent);">{coordinadores.length} Coordinadores</div>
+    </div>
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Eventos &amp; Jornadas Supervisadas</div>
+      <div style="font-size:1.6rem; font-weight:700;">{totalActividadesCoordinadas} Actividades</div>
+    </div>
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Horas de Coordinación</div>
+      <div style="font-size:1.6rem; font-weight:700;">
+        {coordinadores.reduce((acc, c) => acc + c.horasAcumuladas, 0)} Horas
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom: 1.1rem; display:flex; gap:0.8rem; align-items:center; flex-wrap:wrap;">
+    <input
+      id="buscar-coord"
+      type="search"
+      placeholder="Buscar coordinador por nombre, área o especialidad..."
+      style="flex: 1; min-width: 240px; padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.85rem;"
+    />
+    <span id="contador-coord" style="font-size:0.8rem; color:var(--text-muted);">
+      Mostrando {coordinadores.length} coordinadores habilitados
+    </span>
+  </div>
+
+  <div id="grid-coordinadores" class="grid">
+    {coordinadores.map((c) => {
+      const eventosAsignados = eventos.filter((e) => e.coordinador === c.nombre);
+      const jornadasAsignadas = jornadas.filter((j) => j.coordinador === c.nombre);
+      return (
+        <div
+          class="card coord-card"
+          data-nombre={c.nombre.toLowerCase()}
+          data-especialidad={c.especialidad.toLowerCase()}
+        >
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+            <div>
+              <div style="font-weight:700; font-size:0.95rem;">{c.nombre}</div>
+              <span class="badge badge-media" style="margin-top:0.25rem;">{c.especialidad}</span>
+            </div>
+            <span class="badge badge-curso">Coordinador ONG</span>
+          </div>
+
+          <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.28rem;">
+            <span><Icon name="mail" /> {c.email}</span>
+            <span><Icon name="phone" /> {c.telefono}</span>
+            <span><Icon name="clock" /> Disponibilidad: {c.disponibilidad}</span>
+          </div>
+
+          <div style="margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid var(--card-border); font-size:0.76rem;">
+            <strong style="display:block; margin-bottom:0.35rem; color:var(--text-main);">
+              Actividades bajo su coordinación ({eventosAsignados.length + jornadasAsignadas.length}):
+            </strong>
+            {eventosAsignados.length === 0 && jornadasAsignadas.length === 0 ? (
+              <span style="color:var(--text-muted);">Disponible para próxima asignación</span>
+            ) : (
+              <ul style="list-style:none; display:flex; flex-direction:column; gap:0.25rem; color:var(--text-muted);">
+                {eventosAsignados.map((ev) => (
+                  <li>• <strong>Evento:</strong> {ev.titulo} ({ev.estado})</li>
+                ))}
+                {jornadasAsignadas.map((jor) => (
+                  <li>• <strong>Jornada:</strong> {jor.titulo} ({jor.estado})</li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <div style="margin-top:0.75rem; display:flex; gap:0.3rem; flex-wrap:wrap;">
+            {c.habilidades.map((h) => (
+              <span class="badge badge-baja">{h}</span>
+            ))}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</Layout>
+
+<script>
+  const inputBuscar = document.getElementById("buscar-coord") as HTMLInputElement | null;
+  const contador = document.getElementById("contador-coord");
+  const cards = Array.from(document.querySelectorAll<HTMLElement>(".coord-card"));
+
+  inputBuscar?.addEventListener("input", () => {
+    const q = inputBuscar.value.trim().toLowerCase();
+    let visibles = 0;
+    for (const card of cards) {
+      const nom = card.dataset.nombre ?? "";
+      const esp = card.dataset.especialidad ?? "";
+      const match = !q || nom.includes(q) || esp.includes(q);
+      card.style.display = match ? "" : "none";
+      if (match) visibles++;
+    }
+    if (contador) {
+      contador.textContent = `Mostrando ${visibles} de ${cards.length} coordinadores habilitados`;
+    }
+  });
+</script>

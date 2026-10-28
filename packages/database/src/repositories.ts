@@ -124,6 +124,84 @@ export async function obtenerEventoPorId(db: PrismaClient, id: number) {
   });
 }
 
+export async function actualizarEvento(
+  db: PrismaClient,
+  id: number,
+  data: Partial<CrearEventoInput> & { asistieron?: number }
+) {
+  return await db.$transaction(async (tx) => {
+    const existing = await tx.evento.findUnique({
+      where: { id_evento: id },
+    });
+    if (!existing) {
+      throw new Error(`Evento con ID ${id} no encontrado`);
+    }
+
+    const lugar = data.ubicacion !== undefined ? data.ubicacion : data.lugar;
+    const hora_inicio = data.horario !== undefined ? data.horario : data.hora_inicio;
+    const coordinador_responsable =
+      data.coordinador !== undefined ? data.coordinador : data.coordinador_responsable;
+    const presupuesto_estimado =
+      data.presupuestoTotal !== undefined
+        ? data.presupuestoTotal
+        : data.presupuesto_estimado;
+    const presupuesto_ejecutado =
+      data.presupuestoEjecutado !== undefined
+        ? data.presupuestoEjecutado
+        : data.presupuesto_ejecutado;
+    const meta_asistentes =
+      data.convocados !== undefined ? data.convocados : data.meta_asistentes;
+
+    await tx.evento.update({
+      where: { id_evento: id },
+      data: {
+        ...(data.titulo ? { titulo: data.titulo } : {}),
+        ...(data.categoria ? { categoria: data.categoria } : {}),
+        ...(data.estado ? { estado: data.estado } : {}),
+        ...(data.fecha ? { fecha: data.fecha } : {}),
+        ...(hora_inicio !== undefined ? { hora_inicio } : {}),
+        ...(lugar !== undefined ? { lugar } : {}),
+        ...(coordinador_responsable !== undefined ? { coordinador_responsable } : {}),
+        ...(presupuesto_estimado !== undefined ? { presupuesto_estimado } : {}),
+        ...(presupuesto_ejecutado !== undefined ? { presupuesto_ejecutado } : {}),
+        ...(meta_asistentes !== undefined ? { meta_asistentes } : {}),
+        ...(data.descripcion !== undefined ? { descripcion: data.descripcion } : {}),
+      },
+    });
+
+    const ids = data.voluntarioIds || data.voluntario_ids;
+    if (Array.isArray(ids)) {
+      await tx.apoya.deleteMany({
+        where: { id_evento: id },
+      });
+      for (const volId of ids) {
+        const vol = await tx.voluntario.findUnique({
+          where: { id_voluntario: volId },
+        });
+        if (vol) {
+          await tx.apoya.create({
+            data: {
+              id_evento: id,
+              id_voluntario: volId,
+            },
+          });
+        }
+      }
+    }
+
+    return await tx.evento.findUnique({
+      where: { id_evento: id },
+      include: {
+        apoyos: {
+          include: {
+            voluntario: true,
+          },
+        },
+      },
+    });
+  });
+}
+
 export async function obtenerVoluntarios(
   db: PrismaClient,
   filters?: { tipo?: string; rol?: string }

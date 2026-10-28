@@ -3,6 +3,7 @@ import {
   createDatabaseClient,
   type PrismaClient,
   crearEventoConVoluntarios,
+  actualizarEvento,
   obtenerEventos,
   obtenerEventoPorId,
   crearVoluntario,
@@ -120,6 +121,34 @@ describe("Database Repositories & Transactions (Prisma libSQL)", () => {
           fecha: "2026-11-01",
         })
       ).rejects.toThrow(/Campos obligatorios requeridos/);
+    });
+
+    it("debe actualizar un evento y reasignar sus voluntarios atómicamente", async () => {
+      const voluntarios = await obtenerVoluntarios(db);
+      expect(voluntarios.length).toBeGreaterThanOrEqual(3);
+
+      const evento = await crearEventoConVoluntarios(db, {
+        titulo: "Evento Original",
+        categoria: "Celebración",
+        estado: "Planificado",
+        fecha: "2026-11-15",
+        voluntarioIds: [voluntarios[0]!.id_voluntario],
+      });
+
+      const actualizado = await actualizarEvento(db, evento!.id_evento, {
+        titulo: "Evento Modificado",
+        estado: "En curso",
+        presupuestoTotal: 1200,
+        voluntarioIds: [voluntarios[1]!.id_voluntario, voluntarios[2]!.id_voluntario],
+      });
+
+      expect(actualizado?.titulo).toBe("Evento Modificado");
+      expect(actualizado?.estado).toBe("En curso");
+      expect(actualizado?.presupuesto_estimado).toBe(1200);
+      expect(actualizado?.apoyos).toHaveLength(2);
+
+      // Limpieza
+      await db.evento.delete({ where: { id_evento: evento!.id_evento } });
     });
   });
 

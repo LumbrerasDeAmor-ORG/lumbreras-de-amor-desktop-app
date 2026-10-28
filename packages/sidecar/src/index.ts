@@ -15,6 +15,7 @@ const {
   createDatabaseClient,
   seedDatabaseIfNeeded,
   crearEventoConVoluntarios,
+  actualizarEvento,
   obtenerEventos,
   obtenerEventoPorId,
   crearVoluntario,
@@ -114,6 +115,7 @@ function mapVoluntario(v: any) {
     nombre: v.nombre_completo,
     tipo: (v.tipo_voluntario as "Propio" | "Externo") || "Propio",
     especialidad: v.rol_especialidad || "General",
+    esCoordinador: (v.rol_especialidad || "").toLowerCase().includes("coordinador"),
     email: v.email || "",
     telefono: v.telefono || "",
     disponibilidad: v.disponibilidad || "Flexible",
@@ -150,7 +152,27 @@ function mapEvento(e: any) {
     voluntariosAsignados: voluntarios.length,
     voluntarios,
     voluntarioIds: (e.apoyos || []).map((a: any) => a.id_voluntario),
+    voluntariosIds: (e.apoyos || []).map((a: any) => String(a.id_voluntario)),
+    voluntariosNombres: voluntarios.map((v: any) => `${v.nombre} (${v.tipo})`),
   };
+}
+
+function parseVoluntarioIds(body: Record<string, any>): number[] {
+  const rawIds = Array.isArray(body.voluntarioIds)
+    ? body.voluntarioIds
+    : Array.isArray(body.voluntario_ids)
+      ? body.voluntario_ids
+      : Array.isArray(body.voluntariosIds)
+        ? body.voluntariosIds
+        : [];
+  return rawIds
+    .map((id: any) => {
+      if (typeof id === "string" && id.startsWith("vol-")) {
+        return parseInt(id.replace("vol-", ""), 10);
+      }
+      return Number(id);
+    })
+    .filter((n: number) => !isNaN(n) && n > 0);
 }
 
 function mapJornada(j: any) {
@@ -493,11 +515,7 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
           );
         }
 
-        const voluntarioIds: number[] = Array.isArray(body.voluntarioIds)
-          ? body.voluntarioIds.map(Number).filter((n) => !isNaN(n))
-          : Array.isArray(body.voluntario_ids)
-            ? body.voluntario_ids.map(Number).filter((n) => !isNaN(n))
-            : [];
+        const voluntarioIds: number[] = parseVoluntarioIds(body);
 
         const created = await crearEventoConVoluntarios(db, {
           titulo: String(body.titulo).trim(),
@@ -531,6 +549,58 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
         return jsonResponse({ success: true, data: mapEvento(created) }, 201);
       } catch (error) {
         return jsonResponse({ success: false, error: (error as Error).message }, 400);
+      }
+    }
+
+    if (url.pathname.startsWith("/eventos/") && req.method === "PUT") {
+      try {
+        const rawId = decodeURIComponent(url.pathname.replace("/eventos/", ""));
+        const numericId = rawId.startsWith("evt-")
+          ? parseInt(rawId.replace("evt-", ""), 10)
+          : Number(rawId);
+        if (isNaN(numericId) || numericId <= 0) {
+          return jsonResponse({ success: false, error: "ID de evento inválido" }, 400);
+        }
+
+        const body = (await req.json()) as Record<string, any>;
+        const voluntarioIds = parseVoluntarioIds(body);
+
+        const updated = await actualizarEvento(db, numericId, {
+          titulo: body.titulo ? String(body.titulo).trim() : undefined,
+          categoria: body.categoria ? String(body.categoria).trim() : undefined,
+          estado: body.estado,
+          fecha: body.fecha ? String(body.fecha).trim() : undefined,
+          horario: body.horario ? String(body.horario).trim() : undefined,
+          hora_inicio: body.hora_inicio ? String(body.hora_inicio).trim() : undefined,
+          ubicacion: body.ubicacion ? String(body.ubicacion).trim() : undefined,
+          lugar: body.lugar ? String(body.lugar).trim() : undefined,
+          coordinador: body.coordinador ? String(body.coordinador).trim() : undefined,
+          coordinador_responsable: body.coordinador_responsable
+            ? String(body.coordinador_responsable).trim()
+            : undefined,
+          presupuestoTotal:
+            body.presupuestoTotal !== undefined
+              ? Number(body.presupuestoTotal)
+              : undefined,
+          presupuestoEjecutado:
+            body.presupuestoEjecutado !== undefined
+              ? Number(body.presupuestoEjecutado)
+              : undefined,
+          convocados:
+            body.convocados !== undefined ? Number(body.convocados) : undefined,
+          descripcion:
+            body.descripcion !== undefined ? String(body.descripcion).trim() : undefined,
+          voluntarioIds:
+            voluntarioIds.length > 0 ||
+            Array.isArray(body.voluntarioIds) ||
+            Array.isArray(body.voluntariosIds)
+              ? voluntarioIds
+              : undefined,
+        });
+
+        return jsonResponse({ success: true, data: mapEvento(updated) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
       }
     }
 

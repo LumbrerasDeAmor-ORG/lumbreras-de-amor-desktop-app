@@ -182,6 +182,32 @@ describe("Sidecar Endpoints Integration Tests", () => {
       expect(encontrado.voluntariosAsignados).toBe(2);
     });
 
+    it("debe actualizar un evento mediante PUT /eventos/:id", async () => {
+      const vol = await db.voluntario.findFirst();
+      expect(vol).toBeDefined();
+
+      const updatePayload = {
+        titulo: "Celebración Navideña Comunitaria - Editada",
+        estado: "En curso",
+        presupuestoTotal: 2500,
+        voluntarioIds: [vol!.id_voluntario],
+      };
+      const req = new Request(`http://localhost:4111/eventos/${creadoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload),
+      });
+      const res = await handleRequest(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.titulo).toBe(updatePayload.titulo);
+      expect(json.data.estado).toBe("En curso");
+      expect(json.data.presupuestoTotal).toBe(2500);
+      expect(json.data.voluntariosAsignados).toBe(1);
+    });
+
     afterAll(async () => {
       if (creadoId) {
         await db.evento.delete({ where: { id_evento: creadoId } }).catch(() => {});

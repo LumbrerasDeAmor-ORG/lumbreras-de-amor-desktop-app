@@ -19,8 +19,8 @@ const prioritarios: { id: string; nombre: string; motivo: string }[] = [
   ...mujeres.flatMap((m) => (m.nota ? [{ id: m.id, nombre: `${m.nombres} ${m.apellidos}`, motivo: m.nota }] : [])),
   ...ninos.flatMap((n) => (n.observaciones ? [{ id: n.id, nombre: `${n.nombres} ${n.apellidos}`, motivo: n.observaciones }] : [])),
 ];
-const eventosPlanificados = eventos.filter((e) => e.estado === "Planificado");
-const jornadasPlanificadas = jornadas.filter((j) => j.estado === "Planificado");
+const eventosActivos = eventos.filter((e) => e.estado === "Planificado" || e.estado === "En curso");
+const jornadasActivas = jornadas.filter((j) => j.estado === "Planificado" || j.estado === "En curso");
 ---
 
 <Layout title="Panel General de Impacto" subtitle="Resumen en tiempo real de mujeres, niños, eventos y recursos" active="panel">
@@ -34,16 +34,16 @@ const jornadasPlanificadas = jornadas.filter((j) => j.estado === "Planificado");
       <div style="font-size:1.6rem; font-weight:700;">{ninos.length}</div>
     </div>
     <div class="card">
-        <div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Planificadas</div>
-        <div style="font-size:1.6rem; font-weight:700;">{jornadasPlanificadas.length}</div>
+      <div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Planificadas / En Curso</div>
+      <div style="font-size:1.6rem; font-weight:700;">{jornadasActivas.length}</div>
     </div>
     <div class="card">
-      <div style="font-size:0.72rem; color:var(--text-muted);">Eventos Planificados</div>
-      <div style="font-size:1.6rem; font-weight:700;">{eventosPlanificados.length}</div>
+      <div style="font-size:0.72rem; color:var(--text-muted);">Eventos Planificados / En Curso</div>
+      <div style="font-size:1.6rem; font-weight:700;">{eventosActivos.length}</div>
     </div>
     <div class="card">
       <div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div>
-      <div style="font-size:1.6rem; font-weight:700;">{formatQ(resumen.fondosRecaudados)}</div>
+      <div style="font-size:1.6rem; font-weight:700; color:var(--accent);">{formatQ(resumen.fondosRecaudados)}</div>
     </div>
   </div>
 

@@ -7,7 +7,16 @@ import Icon from "../componentes/icon.astro";
 interface Props {
   title: string;
   subtitle?: string;
-  active: "panel" | "mujeres" | "ninos" | "eventos" | "jornadas" | "viveres" | "voluntarios" | "reportes";
+  active:
+    | "panel"
+    | "mujeres"
+    | "ninos"
+    | "coordinadores"
+    | "voluntarios"
+    | "eventos"
+    | "jornadas"
+    | "viveres"
+    | "reportes";
 }
 
 const { title, subtitle, active } = Astro.props;
@@ -17,23 +26,35 @@ const icons = {
   home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9.5 21v-6h5v6"/>',
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.3 2.9-6 6.5-6s6.5 2.7 6.5 6"/><path d="M16.5 8.2a3.2 3.2 0 0 1 0 6.3"/><path d="M17 14c2.8.4 5 2.4 5 5"/>',
   child: '<circle cx="12" cy="6" r="3"/><path d="M6 21c0-4 2.7-7 6-7s6 3 6 7"/><path d="M9 14v3"/><path d="M15 14v3"/>',
+  coordinador: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/>',
   calendar: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17"/><path d="M8 3v4"/><path d="M16 3v4"/>',
+  organizar: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/>',
   box: '<path d="M3.5 8 12 4l8.5 4-8.5 4-8.5-4Z"/><path d="M3.5 8v9L12 21l8.5-4V8"/><path d="M12 12v9"/>',
   heart: '<path d="M12 20.5S3.5 15.2 3.5 9.3C3.5 6.4 5.8 4 8.7 4c1.7 0 3.1.9 3.3 2.2C12.2 4.9 13.6 4 15.3 4c2.9 0 5.2 2.4 5.2 5.3 0 5.9-8.5 11.2-8.5 11.2Z"/>',
   file: '<path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8 13h8"/><path d="M8 17h8"/>',
   jornada: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+  chevron: '<polyline points="6 9 12 15 18 9"/>',
 } as const;
 
-const navItems = [
+const topNavItems = [
   { key: "panel", label: "Panel General", href: "/", icon: icons.home },
   { key: "mujeres", label: "Mujeres", href: "/mujeres", icon: icons.users },
   { key: "ninos", label: "Niños", href: "/niños", icon: icons.child },
+  { key: "coordinadores", label: "Coordinadores", href: "/coordinadores", icon: icons.coordinador },
+  { key: "voluntarios", label: "Voluntarios", href: "/voluntarios", icon: icons.heart },
+] as const;
+
+const organizarSubItems = [
   { key: "eventos", label: "Eventos", href: "/eventos", icon: icons.calendar },
   { key: "jornadas", label: "Jornadas", href: "/jornadas", icon: icons.jornada },
+] as const;
+
+const bottomNavItems = [
   { key: "viveres", label: "Víveres & Donaciones", href: "/viveres", icon: icons.box },
-  { key: "voluntarios", label: "Equipo de Voluntarios", href: "/voluntarios", icon: icons.heart },
   { key: "reportes", label: "Reportes Mensuales", href: "/reportes", icon: icons.file },
 ] as const;
+
+const isOrganizarActive = active === "eventos" || active === "jornadas";
 ---
 
 <html lang="es">
@@ -60,6 +81,8 @@ const navItems = [
         --badge-media-fg: #1e40af;
         --badge-baja-bg: #dcfce7;
         --badge-baja-fg: #166534;
+        --badge-curso-bg: #ccfbf1;
+        --badge-curso-fg: #0f766e;
         --content-zoom: 1;
         --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
@@ -127,6 +150,12 @@ const navItems = [
         text-decoration: none;
         font-size: 0.86rem;
         transition: background-color 0.12s;
+        border: none;
+        background: transparent;
+        width: 100%;
+        cursor: pointer;
+        font-family: inherit;
+        text-align: left;
       }
       .nav-item:hover { background: #111827; }
       .nav-item.active {
@@ -141,6 +170,41 @@ const navItems = [
         border-radius: 999px;
         font-size: 0.68rem;
         padding: 0.05rem 0.45rem;
+      }
+
+      /* Grupo desplegable Organizar algo */
+      .nav-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .nav-group-toggle.open {
+        background: #111827;
+        color: #ffffff;
+      }
+      .nav-chevron {
+        width: 15px;
+        height: 15px;
+        opacity: 0.75;
+        transition: transform 0.18s ease;
+      }
+      .nav-group-toggle.open .nav-chevron {
+        transform: rotate(180deg);
+      }
+      .nav-subitems {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding-left: 1.15rem;
+        margin-left: 0.75rem;
+        border-left: 1px solid #1f2937;
+      }
+      .nav-subitems.collapsed {
+        display: none;
+      }
+      .nav-subitem {
+        padding: 0.48rem 0.65rem;
+        font-size: 0.82rem;
       }
 
       .sidebar-footer {
@@ -204,6 +268,7 @@ const navItems = [
       .badge-alta { background: var(--badge-alta-bg); color: var(--badge-alta-fg); }
       .badge-media { background: var(--badge-media-bg); color: var(--badge-media-fg); }
       .badge-baja { background: var(--badge-baja-bg); color: var(--badge-baja-fg); }
+      .badge-curso { background: var(--badge-curso-bg); color: var(--badge-curso-fg); border: 1px solid #99f6e4; }
 
       @media print {
         body { display: block; height: auto; overflow: visible; }
@@ -231,7 +296,42 @@ const navItems = [
       </div>
 
       <nav>
-        {navItems.map((item) => (
+        {topNavItems.map((item) => (
+          <a class={`nav-item ${active === item.key ? "active" : ""}`} href={item.href}>
+            <span class="label">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={item.icon} />
+              {item.label}
+            </span>
+          </a>
+        ))}
+
+        <div class="nav-group">
+          <button
+            id="btn-organizar-toggle"
+            type="button"
+            class={`nav-item nav-group-toggle ${isOrganizarActive ? "open" : ""}`}
+            aria-expanded={isOrganizarActive ? "true" : "false"}
+          >
+            <span class="label">
+              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={icons.organizar} />
+              Organizar algo
+            </span>
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" set:html={icons.chevron} />
+          </button>
+
+          <div id="subnav-organizar" class={`nav-subitems ${isOrganizarActive ? "" : "collapsed"}`}>
+            {organizarSubItems.map((sub) => (
+              <a class={`nav-item nav-subitem ${active === sub.key ? "active" : ""}`} href={sub.href}>
+                <span class="label">
+                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={sub.icon} />
+                  {sub.label}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        {bottomNavItems.map((item) => (
           <a class={`nav-item ${active === item.key ? "active" : ""}`} href={item.href}>
             <span class="label">
               <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={item.icon} />
@@ -264,6 +364,16 @@ const navItems = [
     </div>
 
     <script>
+      // Toggle para la sección "Organizar algo" en el sidebar
+      const btnOrganizar = document.getElementById("btn-organizar-toggle");
+      const subnavOrganizar = document.getElementById("subnav-organizar");
+
+      btnOrganizar?.addEventListener("click", () => {
+        const isOpen = btnOrganizar.classList.toggle("open");
+        btnOrganizar.setAttribute("aria-expanded", String(isOpen));
+        subnavOrganizar?.classList.toggle("collapsed", !isOpen);
+      });
+
       // Control de zoom desacoplado estilo VS Code:
       // Se intercepta el zoom global del navegador/webview para mantener
       // la barra de título y el sidebar fijos al 100%, escalando únicamente el contenido.

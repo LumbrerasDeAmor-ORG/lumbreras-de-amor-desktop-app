@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -7,6 +8,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const desktopDir = path.resolve(__dirname, "..");
 const rootDir = path.resolve(desktopDir, "../..");
+
+const isWin = process.platform === "win32";
+const pnpmCmd = isWin ? "pnpm.cmd" : "pnpm";
+const bunBinDir = path.join(os.homedir(), ".bun", "bin");
+const pathSep = isWin ? ";" : ":";
 
 // Verificar si el sidecar ya está respondiendo
 function checkSidecarRunning() {
@@ -27,17 +33,17 @@ async function main() {
   let sidecarProcess = null;
 
   if (!isRunning) {
-    console.log("[Dev Runner] Iniciando Sidecar de base de datos...");
-    sidecarProcess = spawn("pnpm", ["--filter", "@lumbreras/sidecar", "dev"], {
+    console.log("[Dev Runner] Iniciando Sidecar de base de datos SQLite...");
+    sidecarProcess = spawn(pnpmCmd, ["--filter", "@lumbreras/sidecar", "dev"], {
       cwd: rootDir,
       stdio: "inherit",
       shell: true,
       env: {
         ...process.env,
-        PATH: `${process.env.HOME}/.bun/bin:${process.env.PATH}`,
+        PATH: `${bunBinDir}${pathSep}${process.env.PATH || process.env.Path || ""}`,
       },
     });
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 24; i++) {
       if (await checkSidecarRunning()) break;
       await new Promise((r) => setTimeout(r, 250));
     }
@@ -46,7 +52,7 @@ async function main() {
   }
 
   console.log("[Dev Runner] Iniciando Astro Frontend...");
-  const astroProcess = spawn("pnpm", ["exec", "astro", "dev"], {
+  const astroProcess = spawn(pnpmCmd, ["exec", "astro", "dev"], {
     cwd: desktopDir,
     stdio: "inherit",
     shell: true,

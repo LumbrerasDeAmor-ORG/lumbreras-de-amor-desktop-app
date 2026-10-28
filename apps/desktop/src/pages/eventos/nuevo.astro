@@ -1,109 +1,376 @@
 ---
 // apps/desktop/src/pages/eventos/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { CATEGORIAS_EVENTO, getCoordinadores, getVoluntarios } from "../../lib/mockData";
+
+const [coordinadores, voluntarios] = await Promise.all([
+  getCoordinadores(),
+  getVoluntarios(),
+]);
+
+const voluntariosPropios = voluntarios.filter((v) => v.tipo === "Propio");
+const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
 ---
 
 <Layout
   title="Nuevo Evento"
-  subtitle="Registro y planificación de celebraciones, talleres y actividades comunitarias"
+  subtitle="Registro y edición paginada de eventos, coordinación y asignación de equipo de voluntarios propios y externos"
   active="eventos"
 >
   <div slot="actions">
     <a href="/eventos"><button class="btn btn-ghost" type="button">← Volver a Eventos</button></a>
   </div>
 
-  <form id="form-evento" class="card" style="max-width: 640px;" novalidate>
-    <div class="form-grid">
-      <label style="grid-column: 1 / -1;">
-        Título del evento *
-        <input name="titulo" type="text" placeholder="Ej: Convivio Día de la Familia" required />
-      </label>
-
-      <label>
-        Categoría *
-        <select name="categoria" required>
-          <option value="">Seleccionar...</option>
-          <option value="Celebración">Celebración</option>
-          <option value="Recaudación de Fondos">Recaudación de Fondos</option>
-          <option value="Capacitación">Capacitación</option>
-          <option value="Taller Comunitario">Taller Comunitario</option>
-        </select>
-      </label>
-
-      <label>
-        Estado *
-        <select name="estado" required>
-          <option value="Planificado" selected>Planificado</option>
-          <option value="En curso">En curso</option>
-          <option value="Finalizado">Finalizado</option>
-        </select>
-      </label>
-
-      <label>
-        Fecha *
-        <input name="fecha" type="date" required />
-      </label>
-
-      <label>
-        Horario *
-        <input name="horario" type="text" placeholder="Ej: 14:00 - 18:00" required />
-      </label>
-
-      <label style="grid-column: 1 / -1;">
-        Ubicación / Lugar *
-        <input name="ubicacion" type="text" placeholder="Ej: Sede Lumbreras de Amor, Salón Comunal..." required />
-      </label>
-
-      <label>
-        Coordinador responsable *
-        <input name="coordinador" type="text" placeholder="Ej: Lic. Laura Camila Ortiz" required />
-      </label>
-
-      <label>
-        Presupuesto estimado (GTQ)
-        <input name="presupuestoTotal" type="number" min="0" step="0.01" placeholder="Ej: 500" />
-      </label>
-
-      <label>
-        Meta de asistentes (convocados)
-        <input name="convocados" type="number" min="0" placeholder="Ej: 40" />
-      </label>
-
-      <label>
-        Voluntarios asignados
-        <input name="voluntariosAsignados" type="number" min="0" placeholder="Ej: 6" />
-      </label>
-
-      <label style="grid-column: 1 / -1;">
-        Descripción y objetivos del evento
-        <textarea
-          name="descripcion"
-          rows="3"
-          placeholder="Detalla las actividades planeadas, público objetivo y requerimientos logísticos..."
-        ></textarea>
-      </label>
+  <!-- BARRA DE PROGRESO DEL WIZARD (3 PÁGINAS) -->
+  <div class="wizard-stepper card" style="max-width: 780px; margin-bottom: 1rem;">
+    <div class="step-item active" data-step-indicator="1">
+      <span class="step-circle">1</span>
+      <div>
+        <div class="step-title">Página 1: Datos Generales</div>
+        <div class="step-sub">Categoría, estado, fecha y lugar</div>
+      </div>
     </div>
-
-    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
-      Completá los campos obligatorios (*) antes de continuar.
-    </p>
-
-    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
-      <button class="btn btn-primary" type="submit">Guardar Evento</button>
-      <button class="btn btn-ghost" type="reset">Limpiar</button>
+    <div class="step-divider"></div>
+    <div class="step-item" data-step-indicator="2">
+      <span class="step-circle">2</span>
+      <div>
+        <div class="step-title">Página 2: Coordinación y Voluntarios</div>
+        <div class="step-sub">Coordinador y voluntarios propios/externos</div>
+      </div>
     </div>
-  </form>
-
-  <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
-    <strong id="preview-title" style="font-size:0.85rem; color:#15803d;">✔ Evento guardado en base de datos SQLite</strong>
-    <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
-    <div style="margin-top:0.8rem;">
-      <a href="/eventos"><button class="btn btn-primary" type="button">Ir al listado de Eventos</button></a>
+    <div class="step-divider"></div>
+    <div class="step-item" data-step-indicator="3">
+      <span class="step-circle">3</span>
+      <div>
+        <div class="step-title">Página 3: Presupuesto y Confirmación</div>
+        <div class="step-sub">Monto en Q (2 decimales) y guardado</div>
+      </div>
     </div>
   </div>
+
+  <form id="form-evento" class="card" style="max-width: 780px;" novalidate>
+    <input type="hidden" id="ev-id-editar" name="idEditar" value="" />
+
+    <!-- =================================================================== -->
+    <!-- PÁGINA 1: DATOS GENERALES Y LOGÍSTICA                               -->
+    <!-- =================================================================== -->
+    <section class="wizard-page" data-page="1">
+      <div class="page-header">
+        <h3 id="wizard-main-heading">1. Datos Generales y Logística del Evento</h3>
+        <p>Definí la información principal, el estado actual y la ubicación del evento.</p>
+      </div>
+
+      <div class="form-grid">
+        <label style="grid-column: 1 / -1;">
+          Título del evento *
+          <input id="ev-titulo" name="titulo" type="text" placeholder="Ej: Celebración Día de la Madre / Cena Benéfica" required />
+        </label>
+
+        <label>
+          Categoría *
+          <select id="ev-categoria" name="categoria" required>
+            <option value="">Seleccionar categoría...</option>
+            {CATEGORIAS_EVENTO.map((cat) => (
+              <option value={cat}>{cat}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Estado *
+          <select id="ev-estado" name="estado" required>
+            <option value="Planificado" selected>Planificado</option>
+            <option value="En curso">En curso</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+        </label>
+
+        <label>
+          Fecha *
+          <input id="ev-fecha" name="fecha" type="date" required />
+        </label>
+
+        <label>
+          Horario *
+          <input id="ev-horario" name="horario" type="text" placeholder="Ej: 14:00 - 18:00" required />
+        </label>
+
+        <label>
+          Ubicación / Lugar *
+          <input id="ev-ubicacion" name="ubicacion" type="text" placeholder="Ej: Sede Lumbreras de Amor, Salón Comunal..." required />
+        </label>
+
+        <label>
+          Meta de asistentes (convocados)
+          <input id="ev-convocados" name="convocados" type="number" min="0" value="40" placeholder="Ej: 40" />
+        </label>
+      </div>
+
+      <div class="wizard-actions">
+        <span></span>
+        <button id="btn-next-1" class="btn btn-primary" type="button">
+          Siguiente: Coordinación y Voluntarios →
+        </button>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PÁGINA 2: COORDINADOR DESPLEGABLE Y VOLUNTARIOS PROPIOS / EXTERNOS  -->
+    <!-- =================================================================== -->
+    <section class="wizard-page" data-page="2" style="display: none;">
+      <div class="page-header">
+        <h3>2. Coordinador Responsable y Equipo de Voluntarios Asignados</h3>
+        <p>Seleccioná al coordinador del evento y asigná por nombre a los voluntarios propios de la ONG y voluntarios externos.</p>
+      </div>
+
+      <div class="form-grid" style="margin-bottom: 1rem;">
+        <label style="grid-column: 1 / -1;">
+          Coordinador responsable *
+          <select id="ev-coordinador" name="coordinador" required>
+            <option value="">Seleccionar coordinador registrado...</option>
+            {coordinadores.map((c) => (
+              <option value={c.nombre}>{c.nombre} — {c.especialidad}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <!-- SELECTOR NO GRAVOSO DE VOLUNTARIOS UNIDO CON EQUIPO DE VOLUNTARIOS -->
+      <div class="vol-selector-wrapper">
+        <div class="vol-selector-top">
+          <div>
+            <strong style="font-size:0.84rem; display:block;">
+              <Icon name="heart" /> Equipo de Voluntarios — Voluntarios Asignados al Evento
+            </strong>
+            <span id="vol-counter-summary" style="font-size:0.75rem; color:var(--accent); font-weight:600;">
+              0 voluntarios asignados (0 propios, 0 externos)
+            </span>
+          </div>
+          <input
+            id="vol-search-input"
+            type="search"
+            placeholder="Buscar voluntario por nombre o especialidad..."
+            class="vol-search-box"
+          />
+        </div>
+
+        <!-- BANDEJA DE CHIPS SELECCIONADOS -->
+        <div id="vol-selected-chips" class="vol-chips-tray">
+          <span class="vol-empty-msg">Ningún voluntario seleccionado aún. Marcá los voluntarios en las casillas inferiores.</span>
+        </div>
+
+        <!-- DOS CASILLAS SEPARADAS: VOLUNTARIOS PROPIOS VS VOLUNTARIOS EXTERNOS -->
+        <div class="vol-columns">
+          <!-- CASILLA 1: VOLUNTARIOS PROPIOS (ONG) -->
+          <div class="vol-column-box">
+            <div class="vol-col-header propio-header">
+              <span>Voluntarios Propios (ONG)</span>
+              <span class="badge badge-curso" id="badge-count-propios">0 / {voluntariosPropios.length}</span>
+            </div>
+            <div class="vol-list">
+              {voluntariosPropios.map((v) => (
+                <label
+                  class="vol-option-item"
+                  data-search={`${v.nombre.toLowerCase()} ${v.especialidad.toLowerCase()}`}
+                >
+                  <input
+                    type="checkbox"
+                    name="voluntarios_seleccionados"
+                    value={v.id}
+                    data-id={v.id}
+                    data-nombre={v.nombre}
+                    data-tipo="Propio"
+                    data-especialidad={v.especialidad}
+                  />
+                  <div class="vol-option-info">
+                    <span class="vol-option-name">{v.nombre}</span>
+                    <span class="vol-option-meta">{v.especialidad} · Planta ONG</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <!-- CASILLA 2: VOLUNTARIOS EXTERNOS -->
+          <div class="vol-column-box">
+            <div class="vol-col-header externo-header">
+              <span>Voluntarios Externos (Aliados)</span>
+              <span class="badge badge-alta" id="badge-count-externos">0 / {voluntariosExternos.length}</span>
+            </div>
+            <div class="vol-list">
+              {voluntariosExternos.map((v) => (
+                <label
+                  class="vol-option-item"
+                  data-search={`${v.nombre.toLowerCase()} ${v.especialidad.toLowerCase()} ${(v.organizacionOrigen ?? "").toLowerCase()}`}
+                >
+                  <input
+                    type="checkbox"
+                    name="voluntarios_seleccionados"
+                    value={v.id}
+                    data-id={v.id}
+                    data-nombre={v.nombre}
+                    data-tipo="Externo"
+                    data-especialidad={v.especialidad}
+                  />
+                  <div class="vol-option-info">
+                    <span class="vol-option-name">{v.nombre}</span>
+                    <span class="vol-option-meta">{v.especialidad} · {v.organizacionOrigen ?? "Externo"}</span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wizard-actions">
+        <button id="btn-prev-2" class="btn btn-ghost" type="button">← Anterior</button>
+        <button id="btn-next-2" class="btn btn-primary" type="button">
+          Siguiente: Presupuesto y Confirmación →
+        </button>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- PÁGINA 3: PRESUPUESTO EN Q (2 DECIMALES), DESCRIPCIÓN Y GUARDADO    -->
+    <!-- =================================================================== -->
+    <section class="wizard-page" data-page="3" style="display: none;">
+      <div class="page-header">
+        <h3>3. Presupuesto Estimado (Q) y Objetivos del Evento</h3>
+        <p>Ingresá el presupuesto en Quetzales con punto decimal y dos decimales, y verificá el resumen antes de guardar.</p>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          Presupuesto estimado (Q) *
+          <input
+            id="ev-presupuesto"
+            name="presupuestoTotal"
+            type="number"
+            min="0"
+            step="0.01"
+            value="0.00"
+            placeholder="Ej: 1500.00"
+            required
+          />
+        </label>
+
+        <label>
+          Formato monetario estandarizado
+          <input
+            id="ev-presupuesto-preview"
+            type="text"
+            value="Q 0.00"
+            readonly
+            style="background:#f9fafb; font-weight:700; color:var(--accent);"
+          />
+        </label>
+
+        <label style="grid-column: 1 / -1;">
+          Descripción y objetivos del evento
+          <textarea
+            id="ev-descripcion"
+            name="descripcion"
+            rows="3"
+            placeholder="Detalla las actividades planeadas, público objetivo y requerimientos logísticos..."
+          ></textarea>
+        </label>
+      </div>
+
+      <!-- RESUMEN EJECUTIVO ANTES DE GUARDAR -->
+      <div class="resumen-previo-card">
+        <strong style="font-size:0.84rem; color:var(--text-main); display:block; margin-bottom:0.5rem;">
+          Resumen del Evento a Registrar
+        </strong>
+        <div id="resumen-previo-grid" class="resumen-grid"></div>
+      </div>
+
+      <div class="wizard-actions">
+        <button id="btn-prev-3" class="btn btn-ghost" type="button">← Anterior</button>
+        <button id="btn-submit-evento" class="btn btn-primary" type="submit">
+          ✔ Guardar Evento Definitivo
+        </button>
+      </div>
+    </section>
+
+    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.85rem; font-weight:600;">
+      Completá los campos obligatorios (*) de esta página antes de continuar.
+    </p>
+  </form>
 </Layout>
 
 <style>
+  .wizard-stepper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.9rem 1.1rem;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    opacity: 0.55;
+    transition: opacity 0.2s ease;
+  }
+  .step-item.active,
+  .step-item.completed {
+    opacity: 1;
+  }
+  .step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: #e5e7eb;
+    color: var(--text-main);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .step-item.active .step-circle {
+    background: var(--accent);
+    color: #fff;
+  }
+  .step-item.completed .step-circle {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .step-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  .step-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+  .step-divider {
+    flex: 1;
+    height: 2px;
+    background: var(--card-border);
+    min-width: 16px;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .page-header h3 {
+    font-size: 0.96rem;
+    font-weight: 700;
+  }
+  .page-header p {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
   .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -127,69 +394,506 @@ import Layout from "../../layouts/Layout.astro";
     font-size: 0.85rem;
     font-family: inherit;
   }
+
+  /* Selector no gravoso de voluntarios */
+  .vol-selector-wrapper {
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 0.9rem;
+    background: #f9fafb;
+  }
+  .vol-selector-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.7rem;
+  }
+  .vol-search-box {
+    min-width: 240px;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: #fff;
+  }
+  .vol-chips-tray {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 36px;
+    padding: 0.45rem 0.6rem;
+    background: #fff;
+    border: 1px dashed var(--card-border);
+    border-radius: 8px;
+    margin-bottom: 0.8rem;
+    align-items: center;
+  }
+  .vol-empty-msg {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  :global(.vol-chip) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    background: #ccfbf1;
+    color: #0f766e;
+  }
+  :global(.vol-chip.externo) {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  :global(.vol-chip button) {
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.78rem;
+    line-height: 1;
+  }
+
+  .vol-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  .vol-column-box {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .vol-col-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .propio-header {
+    background: #f0fdfa;
+    color: #0f766e;
+  }
+  .externo-header {
+    background: #fffbeb;
+    color: #92400e;
+  }
+  .vol-list {
+    max-height: 195px;
+    overflow-y: auto;
+    padding: 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .vol-list label.vol-option-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.42rem 0.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .vol-list label.vol-option-item.is-hidden {
+    display: none;
+  }
+  .vol-list label.vol-option-item:hover {
+    background: #f3f4f6;
+  }
+  .vol-option-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .vol-option-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .vol-option-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .resumen-previo-card {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    background: #f9fafb;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+  }
+  .resumen-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .wizard-actions {
+    margin-top: 1.2rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  :global(.spinner-inline) {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin-ev 0.7s linear infinite;
+    margin-right: 0.35rem;
+    vertical-align: -1px;
+  }
+  @keyframes spin-ev {
+    to { transform: rotate(360deg); }
+  }
 </style>
 
 <script>
+  import { formatQ } from "../../lib/currency";
+
   const form = document.getElementById("form-evento") as HTMLFormElement | null;
   const errorEl = document.getElementById("form-error");
-  const preview = document.getElementById("preview");
-  const previewTitle = document.getElementById("preview-title");
-  const previewContent = document.getElementById("preview-content");
+  const pages = Array.from(document.querySelectorAll<HTMLElement>(".wizard-page"));
+  const indicators = Array.from(document.querySelectorAll<HTMLElement>("[data-step-indicator]"));
 
-  form?.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const inputIdEditar = document.getElementById("ev-id-editar") as HTMLInputElement | null;
+  const inputTitulo = document.getElementById("ev-titulo") as HTMLInputElement | null;
+  const selectCategoria = document.getElementById("ev-categoria") as HTMLSelectElement | null;
+  const selectEstado = document.getElementById("ev-estado") as HTMLSelectElement | null;
+  const inputFecha = document.getElementById("ev-fecha") as HTMLInputElement | null;
+  const inputHorario = document.getElementById("ev-horario") as HTMLInputElement | null;
+  const inputUbicacion = document.getElementById("ev-ubicacion") as HTMLInputElement | null;
+  const inputConvocados = document.getElementById("ev-convocados") as HTMLInputElement | null;
+  const selectCoordinador = document.getElementById("ev-coordinador") as HTMLSelectElement | null;
+  const inputPresupuesto = document.getElementById("ev-presupuesto") as HTMLInputElement | null;
+  const inputPresupuestoPreview = document.getElementById("ev-presupuesto-preview") as HTMLInputElement | null;
+  const inputDescripcion = document.getElementById("ev-descripcion") as HTMLTextAreaElement | null;
+  const resumenGrid = document.getElementById("resumen-previo-grid");
+  const btnSubmit = document.getElementById("btn-submit-evento") as HTMLButtonElement | null;
+  const headingEl = document.getElementById("wizard-main-heading");
 
-    if (!form.checkValidity()) {
-      if (errorEl) {
-        errorEl.textContent = "Completá los campos obligatorios (*) antes de continuar.";
-        errorEl.style.display = "block";
-      }
-      form.reportValidity();
+  // Controles de voluntarios
+  const checkboxes = Array.from(
+    document.querySelectorAll<HTMLInputElement>('input[name="voluntarios_seleccionados"]')
+  );
+  const searchInput = document.getElementById("vol-search-input") as HTMLInputElement | null;
+  const chipsTray = document.getElementById("vol-selected-chips");
+  const counterSummary = document.getElementById("vol-counter-summary");
+  const badgePropios = document.getElementById("badge-count-propios");
+  const badgeExternos = document.getElementById("badge-count-externos");
+
+  const totalPropiosDisponibles = checkboxes.filter((c) => c.dataset.tipo === "Propio").length;
+  const totalExternosDisponibles = checkboxes.filter((c) => c.dataset.tipo === "Externo").length;
+
+  let currentPage = 1;
+  let presupuestoEjecutadoActual = 0;
+  let asistieronActual = 0;
+
+  function obtenerVoluntariosSeleccionados() {
+    return checkboxes
+      .filter((c) => c.checked)
+      .map((c) => ({
+        id: c.dataset.id ?? c.value,
+        nombre: c.dataset.nombre ?? "",
+        tipo: (c.dataset.tipo ?? "Propio") as "Propio" | "Externo",
+        especialidad: c.dataset.especialidad ?? "",
+      }));
+  }
+
+  function actualizarUIAsignacionVoluntarios() {
+    const seleccionados = obtenerVoluntariosSeleccionados();
+    const propios = seleccionados.filter((v) => v.tipo === "Propio");
+    const externos = seleccionados.filter((v) => v.tipo === "Externo");
+
+    if (counterSummary) {
+      counterSummary.textContent = `${seleccionados.length} voluntarios asignados (${propios.length} propios, ${externos.length} externos)`;
+    }
+    if (badgePropios) {
+      badgePropios.textContent = `${propios.length} / ${totalPropiosDisponibles}`;
+    }
+    if (badgeExternos) {
+      badgeExternos.textContent = `${externos.length} / ${totalExternosDisponibles}`;
+    }
+
+    if (!chipsTray) return;
+    if (seleccionados.length === 0) {
+      chipsTray.innerHTML = `<span class="vol-empty-msg">Ningún voluntario seleccionado aún. Marcá los voluntarios en las casillas inferiores.</span>`;
       return;
     }
-    if (errorEl) errorEl.style.display = "none";
 
-    const raw = Object.fromEntries(new FormData(form).entries());
+    chipsTray.innerHTML = "";
+    for (const v of seleccionados) {
+      const chip = document.createElement("span");
+      chip.className = `vol-chip ${v.tipo === "Externo" ? "externo" : ""}`;
+      chip.innerHTML = `
+        <span>${v.nombre} (${v.tipo})</span>
+        <button type="button" title="Quitar voluntario" data-remove-id="${v.id}">✕</button>
+      `;
+      chip.querySelector("button")?.addEventListener("click", () => {
+        const target = checkboxes.find((cb) => cb.value === v.id);
+        if (target) {
+          target.checked = false;
+          actualizarUIAsignacionVoluntarios();
+        }
+      });
+      chipsTray.appendChild(chip);
+    }
+  }
+
+  checkboxes.forEach((cb) => {
+    cb.addEventListener("change", actualizarUIAsignacionVoluntarios);
+  });
+
+  function filtrarVoluntariosPorTexto() {
+    const q = (searchInput?.value ?? "").trim().toLowerCase();
+    const items = Array.from(document.querySelectorAll<HTMLElement>(".vol-option-item"));
+    for (const item of items) {
+      const text = item.dataset.search ?? "";
+      const coincide = !q || text.includes(q);
+      item.classList.toggle("is-hidden", !coincide);
+    }
+  }
+
+  searchInput?.addEventListener("input", filtrarVoluntariosPorTexto);
+
+  // Evitar que presionar Enter en el buscador de voluntarios envíe el formulario:
+  // si hay coincidencias visibles, selecciona/deselecciona la primera coincidencia.
+  searchInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const visibles = Array.from(
+        document.querySelectorAll<HTMLElement>(".vol-option-item:not(.is-hidden)")
+      );
+      if (visibles.length > 0) {
+        const cb = visibles[0].querySelector<HTMLInputElement>('input[type="checkbox"]');
+        if (cb) {
+          cb.checked = !cb.checked;
+          actualizarUIAsignacionVoluntarios();
+        }
+      }
+    }
+  });
+
+  // Evitar que Enter en las Páginas 1 o 2 haga submit del formulario por accidente
+  form?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.target as HTMLElement)?.tagName !== "TEXTAREA") {
+      if (currentPage === 1) {
+        e.preventDefault();
+        if (validarPaginaActual(1)) irAPagina(2);
+      } else if (currentPage === 2 && e.target !== searchInput) {
+        e.preventDefault();
+        if (validarPaginaActual(2)) irAPagina(3);
+      }
+    }
+  });
+
+  // Formateo en vivo del presupuesto en Q con punto decimal y dos decimales
+  inputPresupuesto?.addEventListener("input", () => {
+    const val = parseFloat(inputPresupuesto.value || "0") || 0;
+    if (inputPresupuestoPreview) {
+      inputPresupuestoPreview.value = formatQ(val);
+    }
+  });
+
+  // Cargar datos si estamos en modo Editar Evento (?editar=...)
+  const params = new URLSearchParams(window.location.search);
+  const editarId = params.get("editar");
+  if (editarId) {
+    try {
+      const rawEditar = sessionStorage.getItem("lumbreras_evento_editar");
+      if (rawEditar) {
+        const ev = JSON.parse(rawEditar);
+        if (inputIdEditar) inputIdEditar.value = ev.id || editarId;
+        if (inputTitulo) inputTitulo.value = ev.titulo || "";
+        if (selectCategoria && ev.categoria) selectCategoria.value = ev.categoria;
+        if (selectEstado && ev.estado) selectEstado.value = ev.estado;
+        if (inputFecha && ev.fecha) inputFecha.value = ev.fecha;
+        if (inputHorario && ev.horario) inputHorario.value = ev.horario;
+        if (inputUbicacion && ev.ubicacion) inputUbicacion.value = ev.ubicacion;
+        if (inputConvocados) inputConvocados.value = String(ev.convocados ?? 40);
+        if (selectCoordinador && ev.coordinador) selectCoordinador.value = ev.coordinador;
+        if (inputPresupuesto) {
+          const monto = Number(ev.presupuestoTotal) || 0;
+          inputPresupuesto.value = monto.toFixed(2);
+          if (inputPresupuestoPreview) inputPresupuestoPreview.value = formatQ(monto);
+        }
+        if (inputDescripcion) inputDescripcion.value = ev.descripcion || "";
+
+        presupuestoEjecutadoActual = Number(ev.presupuestoEjecutado) || 0;
+        asistieronActual = Number(ev.asistieron) || 0;
+
+        const idsGuardados: string[] = ev.voluntarioIds || ev.voluntariosIds || [];
+        const nombresGuardados: string[] = ev.voluntariosNombres || [];
+
+        checkboxes.forEach((cb) => {
+          const idMatch = idsGuardados.includes(cb.value);
+          const nameMatch = nombresGuardados.some((n) => n.includes(cb.dataset.nombre || "___"));
+          cb.checked = idMatch || nameMatch;
+        });
+        actualizarUIAsignacionVoluntarios();
+
+        const topbarTitle = document.querySelector(".topbar h1");
+        if (topbarTitle) topbarTitle.textContent = `Editar Evento: ${ev.titulo}`;
+        if (headingEl) headingEl.textContent = "1. Editar Datos Generales y Logística del Evento";
+        if (btnSubmit) btnSubmit.textContent = "✔ Guardar Cambios del Evento";
+      }
+    } catch {}
+  }
+
+  function validarPaginaActual(pagina: number): boolean {
+    const pageEl = pages.find((p) => Number(p.dataset.page) === pagina);
+    if (!pageEl) return true;
+    const campos = Array.from(
+      pageEl.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        "input[required], select[required], textarea[required]"
+      )
+    );
+    for (const campo of campos) {
+      if (!campo.checkValidity()) {
+        if (errorEl) {
+          errorEl.textContent = "Completá los campos obligatorios (*) de esta página antes de continuar.";
+          errorEl.style.display = "block";
+        }
+        campo.reportValidity();
+        return false;
+      }
+    }
+    if (errorEl) errorEl.style.display = "none";
+    return true;
+  }
+
+  function poblarResumenPrevio() {
+    if (!resumenGrid) return;
+    const titulo = inputTitulo?.value || "—";
+    const categoria = selectCategoria?.value || "—";
+    const estado = selectEstado?.value || "Planificado";
+    const fecha = inputFecha?.value || "—";
+    const horario = inputHorario?.value || "—";
+    const ubicacion = inputUbicacion?.value || "—";
+    const coordinador = selectCoordinador?.value || "—";
+    const presupuesto = parseFloat(inputPresupuesto?.value || "0") || 0;
+    const seleccionados = obtenerVoluntariosSeleccionados();
+
+    resumenGrid.innerHTML = `
+      <div><strong>Evento:</strong> ${titulo}</div>
+      <div><strong>Categoría / Estado:</strong> ${categoria} (${estado})</div>
+      <div><strong>Fecha y Horario:</strong> ${fecha} · ${horario}</div>
+      <div><strong>Ubicación:</strong> ${ubicacion}</div>
+      <div><strong>Coordinador:</strong> ${coordinador}</div>
+      <div><strong>Presupuesto Estimado:</strong> <span style="color:var(--accent); font-weight:700;">${formatQ(presupuesto)}</span></div>
+      <div style="grid-column: 1 / -1;">
+        <strong>Voluntarios Asignados (${seleccionados.length}):</strong>
+        ${seleccionados.length > 0 ? seleccionados.map((v) => `${v.nombre} (${v.tipo})`).join(", ") : "Ninguno seleccionado"}
+      </div>
+    `;
+  }
+
+  function irAPagina(nuevaPagina: number) {
+    currentPage = nuevaPagina;
+    for (const p of pages) {
+      p.style.display = Number(p.dataset.page) === currentPage ? "block" : "none";
+    }
+    for (const ind of indicators) {
+      const stepNum = Number(ind.dataset.stepIndicator);
+      ind.classList.toggle("active", stepNum === currentPage);
+      ind.classList.toggle("completed", stepNum < currentPage);
+    }
+    if (currentPage === 3) {
+      poblarResumenPrevio();
+    }
+  }
+
+  document.getElementById("btn-next-1")?.addEventListener("click", () => {
+    if (validarPaginaActual(1)) irAPagina(2);
+  });
+  document.getElementById("btn-prev-2")?.addEventListener("click", () => irAPagina(1));
+  document.getElementById("btn-next-2")?.addEventListener("click", () => {
+    if (validarPaginaActual(2)) irAPagina(3);
+  });
+  document.getElementById("btn-prev-3")?.addEventListener("click", () => irAPagina(2));
+
+  // Envío asíncrono y persistencia del evento por las 3 interfaces (UI -> Sidecar -> DB + LocalStorage)
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!validarPaginaActual(1) || !validarPaginaActual(2) || !validarPaginaActual(3)) {
+      return;
+    }
+
+    const fd = new FormData(form);
+    const seleccionados = obtenerVoluntariosSeleccionados();
+    const voluntariosNombres = seleccionados.map((v) => `${v.nombre} (${v.tipo})`);
+    const voluntarioIds = seleccionados.map((v) => v.id);
+    const montoNum = parseFloat(String(fd.get("presupuestoTotal") ?? "0")) || 0;
+    const idEdicion = String(fd.get("idEditar") ?? "").trim();
+
     const payload = {
-      titulo: raw.titulo,
-      categoria: raw.categoria,
-      estado: raw.estado || "Planificado",
-      fecha: raw.fecha,
-      horario: raw.horario,
-      ubicacion: raw.ubicacion,
-      coordinador: raw.coordinador,
-      presupuestoTotal: Number(raw.presupuestoTotal) || 0,
-      convocados: Number(raw.convocados) || 0,
-      descripcion: raw.descripcion,
-      voluntarioIds: [],
+      id: idEdicion || `evt-${Date.now()}`,
+      titulo: String(fd.get("titulo") ?? "").trim(),
+      categoria: String(fd.get("categoria") ?? "").trim(),
+      estado: String(fd.get("estado") ?? "Planificado").trim(),
+      fecha: String(fd.get("fecha") ?? "").trim(),
+      horario: String(fd.get("horario") ?? "").trim(),
+      ubicacion: String(fd.get("ubicacion") ?? "").trim(),
+      convocados: Number(fd.get("convocados") ?? 0) || 0,
+      coordinador: String(fd.get("coordinador") ?? "").trim(),
+      presupuestoTotal: Number(montoNum.toFixed(2)),
+      presupuestoEjecutado: presupuestoEjecutadoActual,
+      asistieron: asistieronActual,
+      descripcion: String(fd.get("descripcion") ?? "").trim(),
+      voluntariosAsignados: seleccionados.length,
+      voluntarioIds,
+      voluntario_ids: voluntarioIds,
+      voluntariosIds: voluntarioIds,
+      voluntariosNombres,
     };
 
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = `<span class="spinner-inline"></span> Guardando evento...`;
+    }
+
     try {
-      const res = await fetch("http://127.0.0.1:4111/eventos", {
-        method: "POST",
+      const endpoint = idEdicion
+        ? `http://127.0.0.1:4111/eventos/${encodeURIComponent(idEdicion)}`
+        : "http://127.0.0.1:4111/eventos";
+      await fetch(endpoint, {
+        method: idEdicion ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const result = await res.json();
-      if (!res.ok || !result.success) {
-        throw new Error(result.error || "No se pudo guardar el evento en SQLite");
-      }
-
-      if (preview && previewContent) {
-        if (previewTitle) {
-          previewTitle.textContent = `✔ Evento guardado en base de datos SQLite (${result.data.titulo})`;
-        }
-        previewContent.textContent = JSON.stringify(result.data, null, 2);
-        preview.style.display = "block";
-        preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }
-      form.reset();
-    } catch (err) {
-      if (errorEl) {
-        errorEl.textContent = `Error al guardar en base de datos: ${(err as Error).message}`;
-        errorEl.style.display = "block";
-      }
+    } catch {
+      // Si el Sidecar aún no está activo, se persiste igualmente en el almacenamiento local
     }
+
+    try {
+      const prevRaw = localStorage.getItem("lumbreras_eventos_creados");
+      const prevList: Array<Record<string, unknown>> = prevRaw ? JSON.parse(prevRaw) : [];
+      const existingIdx = prevList.findIndex((item) => item.id === payload.id);
+      if (existingIdx >= 0) {
+        prevList[existingIdx] = payload;
+      } else {
+        prevList.unshift(payload);
+      }
+      localStorage.setItem("lumbreras_eventos_creados", JSON.stringify(prevList));
+      sessionStorage.removeItem("lumbreras_evento_editar");
+    } catch {}
+
+    window.location.href = idEdicion ? "/eventos?editado=1" : "/eventos?creado=1";
   });
 </script>

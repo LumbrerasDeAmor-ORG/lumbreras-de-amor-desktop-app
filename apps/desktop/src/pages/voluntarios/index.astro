@@ -5,32 +5,131 @@ import Icon from "../../componentes/icon.astro";
 import { getVoluntarios } from "../../lib/mockData";
 
 const voluntarios = await getVoluntarios();
+const propios = voluntarios.filter((v) => v.tipo === "Propio");
+const externos = voluntarios.filter((v) => v.tipo === "Externo");
 const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
 ---
 
-<Layout title="Directorio de Voluntarios" subtitle="Equipo de apoyo, especialidades y registro de horas solidarias" active="voluntarios">
+<Layout
+  title="Equipo de Voluntarios"
+  subtitle="Directorio clasificado en Voluntarios Propios de la ONG y Voluntarios Externos aliados"
+  active="voluntarios"
+>
   <div slot="actions">
-    <button class="btn btn-primary" type="button">+ Nuevo Voluntario</button>
+    <a href="/eventos/nuevo"><button class="btn btn-ghost" type="button">Asignar a Evento</button></a>
+    <button id="btn-toggle-nuevo-vol" class="btn btn-primary" type="button">+ Nuevo Voluntario</button>
   </div>
 
+  <!-- RESUMEN KPI: PROPIOS VS EXTERNOS -->
   <div class="grid" style="margin-bottom: 1.2rem;">
     <div class="card">
-      <div style="font-size:0.75rem; color:var(--text-muted);">Equipo Voluntario</div>
-      <div style="font-size:1.6rem; font-weight:700;">{voluntarios.length} Miembros</div>
+      <div style="font-size:0.75rem; color:var(--text-muted);">Total Equipo Voluntario</div>
+      <div style="font-size:1.55rem; font-weight:700;">{voluntarios.length} Miembros</div>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--accent);">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Voluntarios Propios (ONG)</div>
+      <div style="font-size:1.55rem; font-weight:700; color:var(--accent);">{propios.length} Propios</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">Planta interna Lumbreras de Amor</div>
+    </div>
+    <div class="card" style="border-left: 4px solid #1e40af;">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Voluntarios Externos</div>
+      <div style="font-size:1.55rem; font-weight:700; color:#1e40af;">{externos.length} Externos</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">Universidades, iglesias y empresas aliadas</div>
     </div>
     <div class="card">
       <div style="font-size:0.75rem; color:var(--text-muted);">Horas Solidarias</div>
-      <div style="font-size:1.6rem; font-weight:700;">{totalHoras} Horas</div>
+      <div style="font-size:1.55rem; font-weight:700;">{totalHoras} Horas</div>
     </div>
   </div>
 
-  <div class="grid">
-    {voluntarios.map((v) => (
-      <div class="card">
-        <div style="font-weight:700; font-size:0.9rem;">{v.nombre}</div>
-        <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">{v.especialidad}</span>
+  <!-- FORMULARIO DESPLEGABLE PARA REGISTRAR VOLUNTARIO (PROPIO / EXTERNO) -->
+  <form id="form-nuevo-voluntario" class="card" style="display:none; margin-bottom:1.2rem; max-width: 720px;" novalidate>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+      <strong style="font-size:0.92rem;">Registrar Integrante en el Equipo de Voluntarios</strong>
+      <span class="badge badge-curso">Vinculado con Eventos y Jornadas</span>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.8rem;">
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Nombre completo *
+        <input name="nombre" type="text" placeholder="Ej: Lic. Gabriela Morales" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Clasificación del voluntario *
+        <select name="tipo" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;">
+          <option value="Propio">Voluntario Propio (ONG Lumbreras de Amor)</option>
+          <option value="Externo">Voluntario Externo (Aliado / Universidad / Empresa)</option>
+        </select>
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Especialidad / Rol *
+        <input name="especialidad" type="text" placeholder="Ej: Psicología / Apoyo Logístico" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Organización o procedencia
+        <input name="organizacionOrigen" type="text" placeholder="Ej: Planta ONG o Universidad Aliada" style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Correo electrónico
+        <input name="email" type="email" placeholder="correo@ejemplo.org" style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Teléfono
+        <input name="telefono" type="tel" placeholder="+502 5555 0000" style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+    </div>
+    <div style="margin-top:0.9rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Agregar al Directorio</button>
+      <button id="btn-cancelar-vol" class="btn btn-ghost" type="button">Cancelar</button>
+    </div>
+  </form>
 
-        <div style="margin-top:0.7rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+  <!-- CASILLAS / PESTAÑAS DE FILTRO: TODOS vs PROPIOS vs EXTERNOS -->
+  <div class="vol-filter-bar">
+    <div class="vol-tabs">
+      <button type="button" class="vol-tab active" data-filter="todos">
+        Todos ({voluntarios.length})
+      </button>
+      <button type="button" class="vol-tab" data-filter="Propio">
+        Voluntarios Propios ONG ({propios.length})
+      </button>
+      <button type="button" class="vol-tab" data-filter="Externo">
+        Voluntarios Externos ({externos.length})
+      </button>
+    </div>
+
+    <input
+      id="buscar-voluntario"
+      type="search"
+      placeholder="Buscar voluntario por nombre o especialidad..."
+      class="vol-search"
+    />
+  </div>
+
+  <div id="grid-voluntarios" class="grid">
+    {voluntarios.map((v) => (
+      <div
+        class="card voluntario-card"
+        data-tipo={v.tipo}
+        data-nombre={v.nombre.toLowerCase()}
+        data-especialidad={v.especialidad.toLowerCase()}
+      >
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
+          <div>
+            <div style="font-weight:700; font-size:0.92rem;">{v.nombre}</div>
+            <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">{v.especialidad}</span>
+          </div>
+          <span class={`badge ${v.tipo === "Propio" ? "badge-curso" : "badge-alta"}`}>
+            {v.tipo === "Propio" ? "Propio (ONG)" : "Externo"}
+          </span>
+        </div>
+
+        {v.organizacionOrigen && (
+          <div style="margin-top:0.55rem; font-size:0.74rem; color:var(--text-muted); font-weight:600;">
+            Procedencia: <span style="color:var(--text-main);">{v.organizacionOrigen}</span>
+          </div>
+        )}
+
+        <div style="margin-top:0.65rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
           <span><Icon name="mail" /> {v.email}</span>
           <span><Icon name="phone" /> {v.telefono}</span>
           <span><Icon name="clock" /> Disponibilidad: {v.disponibilidad}</span>
@@ -42,10 +141,149 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
           ))}
         </div>
 
-        <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted);">
-          Horas Acumuladas: <strong style="color: var(--text-main);">{v.horasAcumuladas} hrs</strong>
+        <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted); display:flex; justify-content:space-between;">
+          <span>Horas Acumuladas: <strong style="color: var(--text-main);">{v.horasAcumuladas} hrs</strong></span>
+          {v.esCoordinador && <span style="color:var(--accent); font-weight:600;">★ Coordinador</span>}
         </div>
       </div>
     ))}
   </div>
 </Layout>
+
+<style>
+  .vol-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .vol-tabs {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .vol-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .vol-tab:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-main);
+  }
+  .vol-tab.active {
+    background: var(--card-bg);
+    color: var(--accent);
+    border-color: var(--card-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+  .vol-search {
+    min-width: 240px;
+    padding: 0.48rem 0.75rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    background: var(--card-bg);
+  }
+</style>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".vol-tab"));
+  const searchInput = document.getElementById("buscar-voluntario") as HTMLInputElement | null;
+  const grid = document.getElementById("grid-voluntarios");
+  const btnToggleForm = document.getElementById("btn-toggle-nuevo-vol");
+  const btnCancelForm = document.getElementById("btn-cancelar-vol");
+  const formNuevo = document.getElementById("form-nuevo-voluntario") as HTMLFormElement | null;
+
+  let filtroTipo = "todos";
+
+  function aplicarFiltros() {
+    const texto = (searchInput?.value ?? "").trim().toLowerCase();
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(".voluntario-card"));
+    for (const card of cards) {
+      const tipo = card.dataset.tipo ?? "";
+      const nombre = card.dataset.nombre ?? "";
+      const esp = card.dataset.especialidad ?? "";
+      const coincideTipo = filtroTipo === "todos" || tipo === filtroTipo;
+      const coincideTexto = !texto || nombre.includes(texto) || esp.includes(texto);
+      card.style.display = coincideTipo && coincideTexto ? "" : "none";
+    }
+  }
+
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      filtroTipo = tab.dataset.filter ?? "todos";
+      aplicarFiltros();
+    });
+  }
+
+  searchInput?.addEventListener("input", aplicarFiltros);
+
+  btnToggleForm?.addEventListener("click", () => {
+    if (!formNuevo) return;
+    formNuevo.style.display = formNuevo.style.display === "none" ? "block" : "none";
+  });
+
+  btnCancelForm?.addEventListener("click", () => {
+    if (formNuevo) formNuevo.style.display = "none";
+  });
+
+  formNuevo?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!formNuevo.checkValidity()) {
+      formNuevo.reportValidity();
+      return;
+    }
+    const data = Object.fromEntries(new FormData(formNuevo).entries());
+    const nombre = String(data.nombre ?? "").trim();
+    const tipo = String(data.tipo ?? "Propio");
+    const especialidad = String(data.especialidad ?? "Voluntariado General").trim();
+    const org = String(data.organizacionOrigen || (tipo === "Propio" ? "Lumbreras de Amor (Planta ONG)" : "Entidad Aliada"));
+    const email = String(data.email || "voluntario@lumbrerasdeamor.org");
+    const telefono = String(data.telefono || "+502 0000 0000");
+
+    const card = document.createElement("div");
+    card.className = "card voluntario-card";
+    card.dataset.tipo = tipo;
+    card.dataset.nombre = nombre.toLowerCase();
+    card.dataset.especialidad = especialidad.toLowerCase();
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
+        <div>
+          <div style="font-weight:700; font-size:0.92rem;">${nombre}</div>
+          <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">${especialidad}</span>
+        </div>
+        <span class="badge ${tipo === "Propio" ? "badge-curso" : "badge-alta"}">
+          ${tipo === "Propio" ? "Propio (ONG)" : "Externo"}
+        </span>
+      </div>
+      <div style="margin-top:0.55rem; font-size:0.74rem; color:var(--text-muted); font-weight:600;">
+        Procedencia: <span style="color:var(--text-main);">${org}</span>
+      </div>
+      <div style="margin-top:0.65rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+        <span>${email}</span>
+        <span>${telefono}</span>
+        <span>Disponibilidad: Por coordinar</span>
+      </div>
+      <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted);">
+        Horas Acumuladas: <strong style="color: var(--text-main);">0 hrs</strong>
+      </div>
+    `;
+    grid?.prepend(card);
+    formNuevo.reset();
+    formNuevo.style.display = "none";
+    aplicarFiltros();
+  });
+</script>

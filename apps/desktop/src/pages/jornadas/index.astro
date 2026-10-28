@@ -2,50 +2,115 @@
 // apps/desktop/src/pages/jornadas/index.astro
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
-import { getJornadas } from "../../lib/mockData";
+import { getJornadas, CATEGORIAS_JORNADA } from "../../lib/mockData";
 import { formatQ } from "../../lib/currency";
 
 const jornadas = await getJornadas();
+
+const estadoBadgeClass: Record<string, string> = {
+  "Planificado": "badge-media",
+  "En curso": "badge-curso",
+  "Finalizado": "badge-baja",
+};
 ---
 
-<Layout title="Jornadas Comunitarias" subtitle="Jornadas de salud, comedores comunitarios y entregas de kits en terreno" active="jornadas">
+<Layout
+  title="Jornadas Comunitarias"
+  subtitle="Jornadas multidisciplinarias de salud, dental, entrega de víveres, juguetes, vestimenta y alimentos servidos"
+  active="jornadas"
+>
   <div slot="actions">
     <a href="/jornadas/nuevo"><button class="btn btn-primary" type="button">+ Crear Jornada</button></a>
   </div>
 
+  <!-- FILTROS POR CATEGORÍA Y ESTADO -->
+  <div class="card" style="margin-bottom: 1.1rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+    <select id="filtro-cat-jornada" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+      <option value="">Todas las categorías</option>
+      {CATEGORIAS_JORNADA.map((cat) => (
+        <option value={cat}>{cat}</option>
+      ))}
+    </select>
+
+    <select id="filtro-estado-jornada" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+      <option value="">Todos los estados</option>
+      <option value="Planificado">Planificado</option>
+      <option value="En curso">En curso</option>
+      <option value="Finalizado">Finalizado</option>
+    </select>
+
+    <span id="contador-jornadas" style="font-size:0.8rem; color:var(--text-muted);">
+      Mostrando {jornadas.length} jornadas registradas
+    </span>
+  </div>
+
   <div class="grid">
-    {jornadas.map((jornada) => (
-      <div class="card">
-        <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
-          <span class={`badge ${jornada.estado === "Finalizado" ? "badge-baja" : "badge-media"}`}>{jornada.estado}</span>
-          <span class="badge badge-media">{jornada.categoria}</span>
-          <span class="badge badge-baja">{jornada.servicios.length} servicios</span>
-        </div>
-        <div style="font-weight:700; font-size:0.95rem;">{jornada.titulo}</div>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{jornada.descripcion}</p>
-
-        <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
-          <span><Icon name="calendar" /> {jornada.fecha} · {jornada.horario}</span>
-          <span><Icon name="pin" /> {jornada.ubicacion}</span>
-          <span><Icon name="user" /> Coord: {jornada.coordinador}</span>
-          <span><Icon name="quetzal" /> Presupuesto: {formatQ(jornada.presupuestoEjecutado)} / {formatQ(jornada.presupuestoTotal)}</span>
-        </div>
-
-        <div style="margin-top:0.8rem;">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
-            <span>Asistencia Confirmada</span>
-            <span>{jornada.asistieron} de {jornada.convocados} ({Math.round((jornada.asistieron / jornada.convocados) * 100)}%)</span>
+    {jornadas.map((jornada) => {
+      const pct = jornada.convocados > 0 ? Math.round((jornada.asistieron / jornada.convocados) * 100) : 0;
+      return (
+        <div
+          class="card jornada-card"
+          data-categoria={jornada.categoria}
+          data-estado={jornada.estado}
+        >
+          <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+            <span class={`badge ${estadoBadgeClass[jornada.estado] ?? "badge-media"}`}>{jornada.estado}</span>
+            <span class="badge badge-media">{jornada.categoria}</span>
+            <span class="badge badge-baja">{jornada.servicios.length} servicios</span>
           </div>
-          <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
-            <div style={`background:var(--accent); height:6px; border-radius:999px; width:${Math.round((jornada.asistieron / jornada.convocados) * 100)}%;`}></div>
+          <div style="font-weight:700; font-size:0.95rem;">{jornada.titulo}</div>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{jornada.descripcion}</p>
+
+          <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+            <span><Icon name="calendar" /> {jornada.fecha} · {jornada.horario}</span>
+            <span><Icon name="pin" /> {jornada.ubicacion}</span>
+            <span><Icon name="user" /> Coord: {jornada.coordinador}</span>
+            <span><Icon name="quetzal" /> Presupuesto: {formatQ(jornada.presupuestoEjecutado)} / {formatQ(jornada.presupuestoTotal)}</span>
+          </div>
+
+          <div style="margin-top:0.8rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+              <span>Asistencia Confirmada</span>
+              <span>{jornada.asistieron} de {jornada.convocados} ({pct}%)</span>
+            </div>
+            <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
+              <div style={`background:var(--accent); height:6px; border-radius:999px; width:${pct}%;`}></div>
+            </div>
+          </div>
+
+          <div style="margin-top:0.8rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+            <span style="font-size:0.75rem; color:var(--text-muted);">{jornada.voluntariosAsignados} voluntarios asignados</span>
+            <a href={`/jornadas/${jornada.id}`}><button class="btn btn-primary" type="button">Ver Jornada</button></a>
           </div>
         </div>
-
-        <div style="margin-top:0.8rem; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.75rem; color:var(--text-muted);">{jornada.voluntariosAsignados} voluntarios asignados</span>
-          <a href={`/jornadas/${jornada.id}`}><button class="btn btn-primary" type="button">Ver Jornada</button></a>
-        </div>
-      </div>
-    ))}
+      );
+    })}
   </div>
 </Layout>
+
+<script>
+  const selCat = document.getElementById("filtro-cat-jornada") as HTMLSelectElement | null;
+  const selEst = document.getElementById("filtro-estado-jornada") as HTMLSelectElement | null;
+  const contador = document.getElementById("contador-jornadas");
+  const cards = Array.from(document.querySelectorAll<HTMLElement>(".jornada-card"));
+
+  function filtrarJornadas() {
+    const cat = selCat?.value ?? "";
+    const est = selEst?.value ?? "";
+    let visibles = 0;
+
+    for (const c of cards) {
+      const okCat = !cat || c.dataset.categoria === cat;
+      const okEst = !est || c.dataset.estado === est;
+      const mostrar = okCat && okEst;
+      c.style.display = mostrar ? "" : "none";
+      if (mostrar) visibles++;
+    }
+    if (contador) {
+      contador.textContent = `Mostrando ${visibles} de ${cards.length} jornadas registradas`;
+    }
+  }
+
+  selCat?.addEventListener("change", filtrarJornadas);
+  selEst?.addEventListener("change", filtrarJornadas);
+</script>

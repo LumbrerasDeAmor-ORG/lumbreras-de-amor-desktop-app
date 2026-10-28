@@ -1,7 +1,7 @@
+// apps/desktop/src/lib/currency.ts
 /**
- * Helper universal para formateo de montos en Quetzales (GTQ).
- * Garantiza formato con 'Q', comas para miles y dos decimales.
- * Ej: 1500 -> "Q 1,500.00"
+ * Helper universal para estandarizar todos los montos monetarios en Quetzales (Q)
+ * con comas para miles y dos posiciones decimales (ej: Q 1,250.00).
  */
 export function formatQ(amount: number | null | undefined): string {
   const val = typeof amount === "number" && !isNaN(amount) ? amount : 0;

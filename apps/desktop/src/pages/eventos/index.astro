@@ -2,49 +2,386 @@
 // apps/desktop/src/pages/eventos/index.astro
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
-import { getEventos } from "../../lib/mockData";
+import { getEventos, CATEGORIAS_EVENTO } from "../../lib/mockData";
 import { formatQ } from "../../lib/currency";
 
 const eventos = await getEventos();
+
+const estadoBadgeClass: Record<string, string> = {
+  "Planificado": "badge-media",
+  "En curso": "badge-curso",
+  "Finalizado": "badge-baja",
+};
 ---
 
-<Layout title="Eventos" subtitle="Celebraciones, recaudaciones de fondos y capacitaciones de la organización" active="eventos">
+<Layout
+  title="Eventos"
+  subtitle="Celebraciones, recaudaciones de fondos, capacitaciones y talleres comunitarios de la organización"
+  active="eventos"
+>
   <div slot="actions">
+    <a href="/voluntarios"><button class="btn btn-ghost" type="button">Equipo de Voluntarios</button></a>
     <a href="/eventos/nuevo"><button class="btn btn-primary" type="button">+ Crear Evento</button></a>
   </div>
 
-  <div class="grid">
-    {eventos.map((evento) => (
-      <div class="card">
-        <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem;">
-          <span class={`badge ${evento.estado === "Finalizado" ? "badge-baja" : "badge-media"}`}>{evento.estado}</span>
-          <span class="badge badge-media">{evento.categoria}</span>
-        </div>
-        <div style="font-weight:700; font-size:0.95rem;">{evento.titulo}</div>
-        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{evento.descripcion}</p>
+  <div
+    id="banner-evento-guardado"
+    class="card"
+    style="display:none; margin-bottom:1rem; background:#dcfce7; border-color:#86efac; color:#166534; font-size:0.84rem; font-weight:600;"
+  >
+    ✔ El evento fue registrado y vinculado con el equipo de voluntarios exitosamente.
+  </div>
 
-        <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
-          <span><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
-          <span><Icon name="pin" /> {evento.ubicacion}</span>
-          <span><Icon name="user" /> Coord: {evento.coordinador}</span>
-          <span><Icon name="quetzal" /> Presupuesto: {formatQ(evento.presupuestoEjecutado)} / {formatQ(evento.presupuestoTotal)}</span>
-        </div>
+  <!-- FILTROS DE EVENTOS (SIN INTEGRACIÓN FAMILIAR, CON ESTADO EN CURSO) -->
+  <div class="card" style="margin-bottom: 1.1rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+    <select id="filtro-cat-evento" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+      <option value="">Todas las categorías</option>
+      {CATEGORIAS_EVENTO.map((cat) => (
+        <option value={cat}>{cat}</option>
+      ))}
+    </select>
 
-        <div style="margin-top:0.8rem;">
-          <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
-            <span>Asistencia Confirmada</span>
-            <span>{evento.asistieron} de {evento.convocados} ({Math.round((evento.asistieron / evento.convocados) * 100)}%)</span>
+    <select id="filtro-estado-evento" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+      <option value="">Todos los estados</option>
+      <option value="Planificado">Planificado</option>
+      <option value="En curso">En curso</option>
+      <option value="Finalizado">Finalizado</option>
+    </select>
+
+    <span id="contador-eventos" style="font-size:0.8rem; color:var(--text-muted);">
+      Mostrando {eventos.length} eventos registrados
+    </span>
+  </div>
+
+  <div id="grid-eventos" class="grid">
+    {eventos.map((evento) => {
+      const pct = evento.convocados > 0 ? Math.round((evento.asistieron / evento.convocados) * 100) : 0;
+      const listaNombres = evento.voluntariosNombres ?? [];
+      return (
+        <div
+          class="card evento-card"
+          data-id={evento.id}
+          data-categoria={evento.categoria}
+          data-estado={evento.estado}
+          data-evento={JSON.stringify(evento)}
+        >
+          <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+            <span class={`badge badge-estado ${estadoBadgeClass[evento.estado] ?? "badge-media"}`}>{evento.estado}</span>
+            <span class="badge badge-categoria badge-media">{evento.categoria}</span>
           </div>
-          <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
-            <div style={`background:var(--accent); height:6px; border-radius:999px; width:${Math.round((evento.asistieron / evento.convocados) * 100)}%;`}></div>
+          <div class="ev-titulo" style="font-weight:700; font-size:0.95rem;">{evento.titulo}</div>
+          <p class="ev-desc" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">{evento.descripcion}</p>
+
+          <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+            <span class="ev-fecha-hora"><Icon name="calendar" /> {evento.fecha} · {evento.horario}</span>
+            <span class="ev-ubicacion"><Icon name="pin" /> {evento.ubicacion}</span>
+            <span class="ev-coordinador"><Icon name="user" /> Coordinador: <strong>{evento.coordinador}</strong></span>
+            <span class="ev-presupuesto">
+              <Icon name="quetzal" /> Presupuesto: {formatQ(evento.presupuestoEjecutado)} / {formatQ(evento.presupuestoTotal)}
+            </span>
+          </div>
+
+          <div style="margin-top:0.8rem;">
+            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+              <span>Asistencia Confirmada</span>
+              <span class="ev-asistencia-label">{evento.asistieron} de {evento.convocados} ({pct}%)</span>
+            </div>
+            <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
+              <div class="ev-asistencia-bar" style={`background:var(--accent); height:6px; border-radius:999px; width:${pct}%;`}></div>
+            </div>
+          </div>
+
+          <!-- DESPLEGABLE DE VOLUNTARIOS ASIGNADOS POR NOMBRE (VINCULADO CON EQUIPO DE VOLUNTARIOS) -->
+          <div class="vol-dropdown-box">
+            <label class="vol-dropdown-label">
+              <span><Icon name="heart" /> Equipo de Voluntarios Asignados:</span>
+              <select class="vol-select-nombres" aria-label="Lista de voluntarios asignados al evento">
+                <option value="">
+                  Ver nombres ({listaNombres.length > 0 ? listaNombres.length : evento.voluntariosAsignados} registrados)...
+                </option>
+                {listaNombres.map((nombre) => (
+                  <option value={nombre}>{nombre}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div style="margin-top:0.85rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+            <button class="btn btn-ghost btn-editar-evento" type="button" data-edit-id={evento.id}>
+              ✎ Editar Evento
+            </button>
+            <button class="btn btn-primary btn-asistencia-evento" type="button" data-asist-id={evento.id}>
+              Tomar / Modificar Asistencia
+            </button>
           </div>
         </div>
-
-        <div style="margin-top:0.8rem; display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:0.75rem; color:var(--text-muted);">{evento.voluntariosAsignados} voluntarios asignados</span>
-          <button class="btn btn-primary" type="button">Tomar / Modificar Asistencia</button>
-        </div>
-      </div>
-    ))}
+      );
+    })}
   </div>
 </Layout>
+
+<style>
+  .vol-dropdown-box {
+    margin-top: 0.85rem;
+    padding: 0.55rem 0.65rem;
+    background: #f9fafb;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+  }
+  .vol-dropdown-label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .vol-select-nombres {
+    width: 100%;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    background: #fff;
+    color: var(--text-main);
+    font-family: inherit;
+  }
+</style>
+
+<script>
+  import { formatQ } from "../../lib/currency";
+
+  interface EventoGuardado {
+    id: string;
+    titulo: string;
+    categoria: string;
+    estado: string;
+    descripcion: string;
+    fecha: string;
+    horario: string;
+    ubicacion: string;
+    coordinador: string;
+    presupuestoEjecutado: number;
+    presupuestoTotal: number;
+    convocados: number;
+    asistieron: number;
+    voluntariosAsignados?: number;
+    voluntarioIds?: string[];
+    voluntariosIds?: string[];
+    voluntariosNombres?: string[];
+  }
+
+  const grid = document.getElementById("grid-eventos");
+  const banner = document.getElementById("banner-evento-guardado");
+  const selCat = document.getElementById("filtro-cat-evento") as HTMLSelectElement | null;
+  const selEst = document.getElementById("filtro-estado-evento") as HTMLSelectElement | null;
+  const contador = document.getElementById("contador-eventos");
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("creado") === "1" && banner) {
+    banner.textContent = "✔ El evento fue registrado y vinculado con el equipo de voluntarios exitosamente.";
+    banner.style.display = "block";
+  } else if (params.get("editado") === "1" && banner) {
+    banner.textContent = "✔ Los cambios del evento fueron guardados exitosamente.";
+    banner.style.display = "block";
+  }
+
+  function obtenerClaseEstado(estado: string): string {
+    if (estado === "Finalizado") return "badge-baja";
+    if (estado === "En curso") return "badge-curso";
+    return "badge-media";
+  }
+
+  function actualizarDOMCard(card: HTMLElement, ev: EventoGuardado) {
+    const nombres = Array.isArray(ev.voluntariosNombres) ? ev.voluntariosNombres : [];
+    const pct = ev.convocados > 0 ? Math.round(((ev.asistieron || 0) / ev.convocados) * 100) : 0;
+
+    card.dataset.categoria = ev.categoria;
+    card.dataset.estado = ev.estado;
+    card.dataset.evento = JSON.stringify(ev);
+
+    const badgeEst = card.querySelector(".badge-estado");
+    if (badgeEst) {
+      badgeEst.className = `badge badge-estado ${obtenerClaseEstado(ev.estado)}`;
+      badgeEst.textContent = ev.estado;
+    }
+    const badgeCat = card.querySelector(".badge-categoria");
+    if (badgeCat) badgeCat.textContent = ev.categoria;
+
+    const tituloEl = card.querySelector(".ev-titulo");
+    if (tituloEl) tituloEl.textContent = ev.titulo;
+
+    const descEl = card.querySelector(".ev-desc");
+    if (descEl) descEl.textContent = ev.descripcion || "Sin descripción adicional.";
+
+    const fhEl = card.querySelector(".ev-fecha-hora");
+    if (fhEl) fhEl.textContent = `📅 ${ev.fecha} · ${ev.horario}`;
+
+    const ubiEl = card.querySelector(".ev-ubicacion");
+    if (ubiEl) ubiEl.textContent = `📍 ${ev.ubicacion}`;
+
+    const coordEl = card.querySelector(".ev-coordinador");
+    if (coordEl) coordEl.innerHTML = `👤 Coordinador: <strong>${ev.coordinador}</strong>`;
+
+    const presEl = card.querySelector(".ev-presupuesto");
+    if (presEl) {
+      presEl.textContent = `Presupuesto: ${formatQ(Number(ev.presupuestoEjecutado) || 0)} / ${formatQ(Number(ev.presupuestoTotal) || 0)}`;
+    }
+
+    const asistLbl = card.querySelector(".ev-asistencia-label");
+    if (asistLbl) {
+      asistLbl.textContent = `${ev.asistieron || 0} de ${ev.convocados || 0} (${pct}%)`;
+    }
+    const asistBar = card.querySelector<HTMLElement>(".ev-asistencia-bar");
+    if (asistBar) {
+      asistBar.style.width = `${pct}%`;
+    }
+
+    const selectVol = card.querySelector<HTMLSelectElement>(".vol-select-nombres");
+    if (selectVol) {
+      selectVol.innerHTML = `
+        <option value="">Ver nombres (${nombres.length} registrados)...</option>
+        ${nombres.map((n) => `<option value="${n}">${n}</option>`).join("")}
+      `;
+    }
+  }
+
+  function crearCardEvento(ev: EventoGuardado): HTMLElement {
+    const nombres = Array.isArray(ev.voluntariosNombres) ? ev.voluntariosNombres : [];
+    const pct = ev.convocados > 0 ? Math.round(((ev.asistieron || 0) / ev.convocados) * 100) : 0;
+    const badgeCls = obtenerClaseEstado(ev.estado);
+
+    const card = document.createElement("div");
+    card.className = "card evento-card";
+    card.dataset.id = ev.id;
+    card.dataset.categoria = ev.categoria;
+    card.dataset.estado = ev.estado;
+    card.dataset.evento = JSON.stringify(ev);
+
+    const opcionesHtml = nombres.map((n) => `<option value="${n}">${n}</option>`).join("");
+
+    card.innerHTML = `
+      <div style="display:flex; gap:0.4rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+        <span class="badge badge-estado ${badgeCls}">${ev.estado}</span>
+        <span class="badge badge-categoria badge-media">${ev.categoria}</span>
+      </div>
+      <div class="ev-titulo" style="font-weight:700; font-size:0.95rem;">${ev.titulo}</div>
+      <p class="ev-desc" style="font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">${ev.descripcion || "Sin descripción adicional."}</p>
+      <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+        <span class="ev-fecha-hora">📅 ${ev.fecha} · ${ev.horario}</span>
+        <span class="ev-ubicacion">📍 ${ev.ubicacion}</span>
+        <span class="ev-coordinador">👤 Coordinador: <strong>${ev.coordinador}</strong></span>
+        <span class="ev-presupuesto">Presupuesto: ${formatQ(Number(ev.presupuestoEjecutado) || 0)} / ${formatQ(Number(ev.presupuestoTotal) || 0)}</span>
+      </div>
+      <div style="margin-top:0.8rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+          <span>Asistencia Confirmada</span>
+          <span class="ev-asistencia-label">${ev.asistieron || 0} de ${ev.convocados || 0} (${pct}%)</span>
+        </div>
+        <div style="background:#e5e7eb; border-radius:999px; height:6px; margin-top:0.3rem;">
+          <div class="ev-asistencia-bar" style="background:var(--accent); height:6px; border-radius:999px; width:${pct}%;"></div>
+        </div>
+      </div>
+      <div class="vol-dropdown-box" style="margin-top:0.85rem; padding:0.55rem 0.65rem; background:#f9fafb; border:1px solid var(--card-border); border-radius:8px;">
+        <label style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.76rem; font-weight:600;">
+          <span>Equipo de Voluntarios Asignados:</span>
+          <select class="vol-select-nombres" style="width:100%; padding:0.4rem 0.55rem; border:1px solid var(--card-border); border-radius:6px; font-size:0.78rem; background:#fff;">
+            <option value="">Ver nombres (${nombres.length} registrados)...</option>
+            ${opcionesHtml}
+          </select>
+        </label>
+      </div>
+      <div style="margin-top:0.85rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+        <button class="btn btn-ghost btn-editar-evento" type="button" data-edit-id="${ev.id}">
+          ✎ Editar Evento
+        </button>
+        <button class="btn btn-primary btn-asistencia-evento" type="button" data-asist-id="${ev.id}">
+          Tomar / Modificar Asistencia
+        </button>
+      </div>
+    `;
+    return card;
+  }
+
+  // Cargar eventos creados o editados en localStorage
+  try {
+    const raw = localStorage.getItem("lumbreras_eventos_creados");
+    if (raw && grid) {
+      const guardados = JSON.parse(raw) as EventoGuardado[];
+      for (const ev of guardados) {
+        const existente = grid.querySelector<HTMLElement>(`.evento-card[data-id="${ev.id}"]`);
+        if (existente) {
+          actualizarDOMCard(existente, ev);
+        } else {
+          grid.prepend(crearCardEvento(ev));
+        }
+      }
+    }
+  } catch {}
+
+  // Delegación de clics para "Editar Evento" y "Tomar / Modificar Asistencia"
+  grid?.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+    const btnEdit = target.closest<HTMLButtonElement>(".btn-editar-evento");
+    if (btnEdit) {
+      const card = btnEdit.closest<HTMLElement>(".evento-card");
+      if (card?.dataset.evento) {
+        try {
+          sessionStorage.setItem("lumbreras_evento_editar", card.dataset.evento);
+        } catch {}
+        const id = card.dataset.id || "";
+        window.location.href = `/eventos/nuevo?editar=${encodeURIComponent(id)}`;
+      }
+      return;
+    }
+
+    const btnAsist = target.closest<HTMLButtonElement>(".btn-asistencia-evento");
+    if (btnAsist) {
+      const card = btnAsist.closest<HTMLElement>(".evento-card");
+      if (!card?.dataset.evento) return;
+      const ev = JSON.parse(card.dataset.evento) as EventoGuardado;
+      const nuevaAsistenciaStr = window.prompt(
+        `Ingresá la cantidad de asistentes confirmados para "${ev.titulo}" (Convocados: ${ev.convocados}):`,
+        String(ev.asistieron ?? 0)
+      );
+      if (nuevaAsistenciaStr === null) return;
+      const nuevaAsistencia = Math.max(0, parseInt(nuevaAsistenciaStr, 10) || 0);
+      ev.asistieron = nuevaAsistencia;
+      actualizarDOMCard(card, ev);
+
+      try {
+        const raw = localStorage.getItem("lumbreras_eventos_creados");
+        const list: EventoGuardado[] = raw ? JSON.parse(raw) : [];
+        const idx = list.findIndex((item) => item.id === ev.id);
+        if (idx >= 0) {
+          list[idx] = ev;
+        } else {
+          list.unshift(ev);
+        }
+        localStorage.setItem("lumbreras_eventos_creados", JSON.stringify(list));
+      } catch {}
+    }
+  });
+
+  function aplicarFiltros() {
+    const cat = selCat?.value ?? "";
+    const est = selEst?.value ?? "";
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(".evento-card"));
+    let visibles = 0;
+
+    for (const c of cards) {
+      const okCat = !cat || c.dataset.categoria === cat;
+      const okEst = !est || c.dataset.estado === est;
+      const mostrar = okCat && okEst;
+      c.style.display = mostrar ? "" : "none";
+      if (mostrar) visibles++;
+    }
+    if (contador) {
+      contador.textContent = `Mostrando ${visibles} de ${cards.length} eventos registrados`;
+    }
+  }
+
+  aplicarFiltros();
+  selCat?.addEventListener("change", aplicarFiltros);
+  selEst?.addEventListener("change", aplicarFiltros);
+</script>

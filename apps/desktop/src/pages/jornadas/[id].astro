@@ -13,7 +13,16 @@ export async function getStaticPaths() {
 
 const { id } = Astro.params;
 const jornada = await getJornadaById(id as string);
-const porcentaje = jornada ? Math.round((jornada.asistieron / jornada.convocados) * 100) : 0;
+const porcentaje =
+  jornada && jornada.convocados > 0
+    ? Math.round((jornada.asistieron / jornada.convocados) * 100)
+    : 0;
+
+const estadoBadgeClass: Record<string, string> = {
+  "Planificado": "badge-media",
+  "En curso": "badge-curso",
+  "Finalizado": "badge-baja",
+};
 ---
 
 <Layout
@@ -31,7 +40,7 @@ const porcentaje = jornada ? Math.round((jornada.asistieron / jornada.convocados
   {jornada && (
     <div class="card" style="max-width: 720px;">
       <div style="display:flex; gap:0.4rem; margin-bottom:0.6rem;">
-        <span class={`badge ${jornada.estado === "Finalizado" ? "badge-baja" : "badge-media"}`}>{jornada.estado}</span>
+        <span class={`badge ${estadoBadgeClass[jornada.estado] ?? "badge-media"}`}>{jornada.estado}</span>
         <span class="badge badge-media">{jornada.categoria}</span>
       </div>
       <p style="font-size:0.85rem; color:var(--text-muted);">{jornada.descripcion}</p>
@@ -44,7 +53,16 @@ const porcentaje = jornada ? Math.round((jornada.asistieron / jornada.convocados
         <div><strong><Icon name="pin" />Ubicación</strong><br />{jornada.ubicacion}</div>
         <div><strong><Icon name="user" />Coordinador</strong><br />{jornada.coordinador}</div>
         <div><strong><Icon name="quetzal" />Presupuesto</strong><br />{formatQ(jornada.presupuestoEjecutado)} / {formatQ(jornada.presupuestoTotal)}</div>
-        <div><strong><Icon name="heart" />Voluntarios asignados</strong><br />{jornada.voluntariosAsignados}</div>
+        <div>
+          <strong><Icon name="heart" />Equipo de Voluntarios Asignados ({jornada.voluntariosAsignados})</strong><br />
+          {jornada.voluntariosNombres && jornada.voluntariosNombres.length > 0 ? (
+            <span style="font-size:0.78rem; color:var(--text-muted);">
+              {jornada.voluntariosNombres.join(" · ")}
+            </span>
+          ) : (
+            <span>{jornada.voluntariosAsignados} voluntarios</span>
+          )}
+        </div>
       </div>
 
       <div style="margin-top:1rem;">

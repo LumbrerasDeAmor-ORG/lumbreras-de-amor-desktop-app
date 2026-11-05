@@ -378,6 +378,8 @@ export type TipoVoluntario = "Propio" | "Externo";
 
 export interface Voluntario {
   id: string;
+  nombres?: string;
+  apellidos?: string;
   nombre: string;
   especialidad: string;
   tipo: TipoVoluntario;
@@ -514,14 +516,42 @@ export async function getVoluntarios(): Promise<Voluntario[]> {
   return VOLUNTARIOS;
 }
 
-export async function getCoordinadores(): Promise<Voluntario[]> {
+export async function getCoordinadores(query?: string): Promise<Voluntario[]> {
+  try {
+    const qParam = query && query.trim() ? `?q=${encodeURIComponent(query.trim())}` : "";
+    const res = await fetch(`${SIDECAR_BASE_URL}/coordinadores${qParam}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Voluntario[] };
+      if (payload.success && Array.isArray(payload.data) && payload.data.length > 0) {
+        return payload.data;
+      }
+    }
+  } catch {
+    // Fallback a lista local
+  }
+
   const voluntarios = await getVoluntarios();
-  return voluntarios.filter(
+  let coords = voluntarios.filter(
     (v) =>
       v.esCoordinador ||
       v.especialidad.toLowerCase().includes("coordinador") ||
       v.tipo === "Propio"
   );
+
+  if (query && query.trim()) {
+    const q = query.trim().toLowerCase();
+    coords = coords.filter(
+      (c) =>
+        c.nombre.toLowerCase().includes(q) ||
+        (c.nombres && c.nombres.toLowerCase().includes(q)) ||
+        (c.apellidos && c.apellidos.toLowerCase().includes(q)) ||
+        c.especialidad.toLowerCase().includes(q)
+    );
+  }
+
+  return coords;
 }
 
 // EVENTOS & ASISTENCIA
@@ -868,7 +898,16 @@ export async function getJornadaById(id: string): Promise<Jornada | undefined> {
   return JORNADAS.find((j) => j.id === id);
 }
 
-// VÍVERES & DONACIONES
+// VÍVERES Y DONACIONES EN ESPECIE
+
+export const CATEGORIAS_DONATIVO_ESPECIE = [
+  "Víveres no perecederos",
+  "Vitaminas",
+  "Juguetes",
+  "Medicamentos",
+  "Material Educativo Y Didáctico",
+  "Ropa Y Calzado",
+] as const;
 
 export interface ItemViveres {
   id: string;
@@ -888,7 +927,7 @@ const VIVERES: ItemViveres[] = [
     id: "viv-001",
     nombre: "Leche entera en polvo fortificada (Bolsa 900g)",
     descripcion: "Lotes de leche en polvo entera fortificada con hierro y vitaminas A/D para niños en edad preescolar.",
-    categoria: "Nutrición & Suplementos",
+    categoria: "Vitaminas",
     fuente: "Donación Corporativa Lácteos del Valle",
     cantidadActual: 38,
     unidad: "bolsas",
@@ -911,8 +950,8 @@ const VIVERES: ItemViveres[] = [
   {
     id: "viv-003",
     nombre: "Suplemento nutricional fortificado multivitamínico (Lata 400g)",
-    descripcion: "Fórmula nutricional en polvo para niños con bajo peso detectados en jornada multidisciplinaria de salud.",
-    categoria: "Nutrición & Suplementos",
+    descripcion: "Fórmula nutricional en polvo con complejo multivitamínico para niños con bajo peso detectados en jornadas.",
+    categoria: "Vitaminas",
     fuente: "Dra. Carolina Méndez (Donación particular)",
     cantidadActual: 4,
     unidad: "latas",
@@ -923,20 +962,44 @@ const VIVERES: ItemViveres[] = [
   {
     id: "viv-004",
     nombre: "Kits de Juguetes Educativos y Material Didáctico",
-    descripcion: "Rompecabezas, cajas de colores y juegos de construcción para jornadas de entrega de juguetes.",
-    categoria: "Material Educativo & Didáctico",
+    descripcion: "Rompecabezas, juegos de construcción, pelotas y muñecos para jornadas comunitarias de entrega de juguetes.",
+    categoria: "Juguetes",
     fuente: "Voluntarios de Educación",
-    cantidadActual: 14,
+    cantidadActual: 24,
     unidad: "cajas",
     minimo: 25,
-    ubicacionBodega: "Estante B - Material Didáctico",
+    ubicacionBodega: "Estante B - Juguetes",
     estado: "Bajo Stock",
   },
   {
     id: "viv-005",
+    nombre: "Botiquín y Medicamentos Pediátricos Esenciales",
+    descripcion: "Lotes de analgésicos, antialérgicos, suero oral y gasas estériles para jornadas médicas y de salud.",
+    categoria: "Medicamentos",
+    fuente: "Distribuidora Farmacéutica La Merced S.A.",
+    cantidadActual: 45,
+    unidad: "frascos",
+    minimo: 20,
+    ubicacionBodega: "Bodega A - Botiquín Médico",
+    estado: "Óptimo",
+  },
+  {
+    id: "viv-006",
+    nombre: "Cuadernos, Lápices y Material Escolar",
+    descripcion: "Cuadernos cosidos, cajas de crayones y paquetes de hojas bond para programas infantiles.",
+    categoria: "Material Educativo Y Didáctico",
+    fuente: "Fundación Bolívar Construye",
+    cantidadActual: 30,
+    unidad: "paquetes",
+    minimo: 15,
+    ubicacionBodega: "Estante B - Material Didáctico",
+    estado: "Óptimo",
+  },
+  {
+    id: "viv-007",
     nombre: "Calzado y Vestimenta Comunitaria Surtida",
     descripcion: "Prendas de vestir nuevas y en buen estado clasificadas por talla infantil y de mujer para jornadas de vestimenta.",
-    categoria: "Ropa y Calzado",
+    categoria: "Ropa Y Calzado",
     fuente: "Campaña Paso Firme",
     cantidadActual: 8,
     unidad: "pares",
@@ -950,37 +1013,263 @@ export async function getViveres(): Promise<ItemViveres[]> {
   return VIVERES;
 }
 
-// DONACIONES ECONÓMICAS (para transparencia en Víveres y Reportes)
+// MÓDULO DE DONANTES (Persona Individual y Persona Jurídica)
+
+export type TipoDonanteEntidad = "Persona Individual" | "Persona Jurídica";
+export type ClasificacionDonante = "Económico" | "Especie" | "Mixto";
+
+export interface Donante {
+  id: string;
+  idDonante?: number;
+  tipo: TipoDonanteEntidad;
+  tipoPersona: TipoDonanteEntidad;
+  clasificacion: ClasificacionDonante;
+  nombre: string;
+  razonSocial: string;
+  nit: string;
+  telefono: string;
+  email: string;
+  direccion: string;
+  personaContacto?: string;
+  individual?: {
+    nombres: string;
+    apellidos: string;
+    dpi?: string;
+    nit?: string;
+    profesion?: string;
+  } | null;
+  juridica?: {
+    razonSocial: string;
+    nombreComercial?: string;
+    nit: string;
+    representanteLegal?: string;
+    sectorActividad?: string;
+  } | null;
+  donacionesMonetariasCount?: number;
+  donacionesEspecieCount?: number;
+}
+
+const DONANTES: Donante[] = [
+  {
+    id: "1",
+    idDonante: 1,
+    tipo: "Persona Jurídica",
+    tipoPersona: "Persona Jurídica",
+    clasificacion: "Económico",
+    nombre: "Fundación Bolívar Construye",
+    razonSocial: "Fundación Bolívar Construye",
+    nit: "90012345-1",
+    telefono: "+502 2331 4455",
+    email: "contacto@bolivarconstruye.org",
+    direccion: "Av. Reforma 12-45 Zona 10, Ciudad de Guatemala",
+    personaContacto: "Ing. Roberto Bolívar",
+    juridica: {
+      razonSocial: "Fundación Bolívar Construye",
+      nombreComercial: "Bolívar Construye",
+      nit: "90012345-1",
+      representanteLegal: "Ing. Roberto Bolívar",
+      sectorActividad: "Construcción y RSE",
+    },
+  },
+  {
+    id: "2",
+    idDonante: 2,
+    tipo: "Persona Individual",
+    tipoPersona: "Persona Individual",
+    clasificacion: "Económico",
+    nombre: "Dra. Mariana Restrepo",
+    razonSocial: "Dra. Mariana Restrepo",
+    nit: "45892301-K",
+    telefono: "+502 5544 3322",
+    email: "m.restrepo@gmail.com",
+    direccion: "Colonia Las Luces, Km 13.5 Carretera a El Salvador",
+    personaContacto: "Dra. Mariana Restrepo",
+    individual: {
+      nombres: "Mariana",
+      apellidos: "Restrepo",
+      dpi: "1988234560101",
+      nit: "45892301-K",
+      profesion: "Médico Pediatra",
+    },
+  },
+  {
+    id: "3",
+    idDonante: 3,
+    tipo: "Persona Jurídica",
+    tipoPersona: "Persona Jurídica",
+    clasificacion: "Económico",
+    nombre: "Tecnología e Innovación S.A.S.",
+    razonSocial: "Tecnología e Innovación S.A.S.",
+    nit: "80098765-4",
+    telefono: "+502 2455 8899",
+    email: "rse@tecinnovacion.com",
+    direccion: "4a Calle 7-20 Zona 9, Edificio Plaza Mayor",
+    personaContacto: "Licda. Sofía Morales",
+    juridica: {
+      razonSocial: "Tecnología e Innovación S.A.S.",
+      nombreComercial: "TechGT Soluciones",
+      nit: "80098765-4",
+      representanteLegal: "Licda. Sofía Morales",
+      sectorActividad: "Tecnología y Telecomunicaciones",
+    },
+  },
+  {
+    id: "4",
+    idDonante: 4,
+    tipo: "Persona Jurídica",
+    tipoPersona: "Persona Jurídica",
+    clasificacion: "Especie",
+    nombre: "Distribuidora Farmacéutica La Merced S.A.",
+    razonSocial: "Distribuidora Farmacéutica La Merced S.A.",
+    nit: "6543210-9",
+    telefono: "+502 2200 1100",
+    email: "donaciones@lamerced.com.gt",
+    direccion: "Calzada Roosevelt 22-50 Zona 11",
+    personaContacto: "Claudia Monroy",
+    juridica: {
+      razonSocial: "Distribuidora Farmacéutica La Merced S.A.",
+      nombreComercial: "Farmacias La Merced",
+      nit: "6543210-9",
+      representanteLegal: "Dr. Fernando Castillo",
+      sectorActividad: "Salud y Medicamentos",
+    },
+  },
+  {
+    id: "5",
+    idDonante: 5,
+    tipo: "Persona Individual",
+    tipoPersona: "Persona Individual",
+    clasificacion: "Especie",
+    nombre: "Carlos Enrique Mendoza Silva",
+    razonSocial: "Carlos Enrique Mendoza Silva",
+    nit: "7823411-9",
+    telefono: "+502 5900 4433",
+    email: "carlos.mendoza@correo.com",
+    direccion: "Zona 14, La Cañada",
+    personaContacto: "Carlos Enrique Mendoza Silva",
+    individual: {
+      nombres: "Carlos Enrique",
+      apellidos: "Mendoza Silva",
+      dpi: "2345678900101",
+      nit: "7823411-9",
+      profesion: "Empresario Particular",
+    },
+  },
+];
+
+export async function getDonantes(filtro?: {
+  tipoPersona?: string;
+  clasificacion?: string;
+  nit?: string;
+  q?: string;
+}): Promise<Donante[]> {
+  try {
+    const params = new URLSearchParams();
+    if (filtro?.tipoPersona) params.set("tipo_persona", filtro.tipoPersona);
+    if (filtro?.clasificacion) params.set("clasificacion", filtro.clasificacion);
+    if (filtro?.nit) params.set("nit", filtro.nit);
+    if (filtro?.q) params.set("q", filtro.q);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${SIDECAR_BASE_URL}/donantes${queryStr}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Donante[] };
+      if (payload.success && Array.isArray(payload.data) && payload.data.length > 0) {
+        return payload.data;
+      }
+    }
+  } catch (err) {
+    console.warn("[mockData] No se pudo conectar al Sidecar (/donantes):", (err as Error).message);
+  }
+
+  let list = [...DONANTES];
+  if (filtro?.tipoPersona) {
+    list = list.filter((d) => d.tipoPersona === filtro.tipoPersona || d.tipo === filtro.tipoPersona);
+  }
+  if (filtro?.clasificacion) {
+    list = list.filter((d) => d.clasificacion === filtro.clasificacion);
+  }
+  if (filtro?.nit) {
+    list = list.filter((d) => d.nit.toLowerCase().includes(filtro.nit!.toLowerCase()));
+  }
+  if (filtro?.q) {
+    const q = filtro.q.toLowerCase();
+    list = list.filter(
+      (d) =>
+        d.nombre.toLowerCase().includes(q) ||
+        d.nit.toLowerCase().includes(q) ||
+        d.telefono.toLowerCase().includes(q) ||
+        d.email.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+export async function getDonantePorId(id: string | number): Promise<Donante | undefined> {
+  const numId = Number(id);
+  try {
+    const res = await fetch(`${SIDECAR_BASE_URL}/donantes/${numId}`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (res.ok) {
+      const payload = (await res.json()) as { success: boolean; data: Donante };
+      if (payload.success && payload.data) {
+        return payload.data;
+      }
+    }
+  } catch {
+    // Fallback
+  }
+  const todos = await getDonantes();
+  return todos.find((d) => String(d.id) === String(id) || d.idDonante === numId);
+}
+
+// DONACIONES ECONÓMICAS (vinculadas formalmente con Donante)
 export interface Donacion {
   recibo: string;
+  idDonante?: number | null;
   donante: string;
-  tipo: "Empresa" | "Persona Natural";
+  tipo: "Persona Jurídica" | "Persona Individual" | string;
+  tipoPersona?: "Persona Jurídica" | "Persona Individual" | string;
+  nit?: string;
   destino: string;
   descripcion: string;
   monto: number;
+  fecha?: string;
 }
 
 const DONACIONES: Donacion[] = [
   {
     recibo: "REC-2026-089",
+    idDonante: 1,
     donante: "Fundación Bolívar Construye",
-    tipo: "Empresa",
+    tipo: "Persona Jurídica",
+    tipoPersona: "Persona Jurídica",
+    nit: "90012345-1",
     destino: "Entrega de Víveres y Alimentos Servidos",
     descripcion: "Aporte económico semestral para compra de granos básicos (arroz, frijol, aceite) e insumos de cocina comunitaria.",
     monto: 3500.0,
   },
   {
     recibo: "REC-2026-090",
+    idDonante: 2,
     donante: "Dra. Mariana Restrepo",
-    tipo: "Persona Natural",
+    tipo: "Persona Individual",
+    tipoPersona: "Persona Individual",
+    nit: "45892301-K",
     destino: "Multidisciplinaria Salud y Dental",
     descripcion: "Donativo en efectivo para adquisición de kits de flúor, cepillos dentales, analgésicos y multivitamínicos pediátricos.",
     monto: 1300.5,
   },
   {
     recibo: "REC-2026-091",
-    donante: "Tecnología e Innovación S.A.",
-    tipo: "Empresa",
+    idDonante: 3,
+    donante: "Tecnología e Innovación S.A.S.",
+    tipo: "Persona Jurídica",
+    tipoPersona: "Persona Jurídica",
+    nit: "80098765-4",
     destino: "Capacitación y Talleres Comunitarios",
     descripcion: "Patrocinio financiero para materiales de formación en oficios, alquiler de mobiliario y refacciones de talleres.",
     monto: 1800.0,

@@ -1,4 +1,10 @@
-import { createDatabaseClient, type PrismaClient } from "./index.js";
+import {
+  createDatabaseClient,
+  type PrismaClient,
+  crearDonanteIndividual,
+  crearDonanteJuridico,
+  crearVoluntario,
+} from "./index.js";
 
 export const MUJERES_SEED = [
   {
@@ -220,6 +226,8 @@ export const VOLUNTARIOS_SEED = [
   // 4 voluntarios propios (con al menos 2 coordinadores)
   {
     tipo_voluntario: "Propio",
+    nombres: "Laura Camila",
+    apellidos: "Ortiz",
     nombre_completo: "Lic. Laura Camila Ortiz",
     email: "laura.ortiz@lumbrerasdeamor.org",
     telefono: "+502 3154 3210",
@@ -231,6 +239,8 @@ export const VOLUNTARIOS_SEED = [
   },
   {
     tipo_voluntario: "Propio",
+    nombres: "Mariana",
+    apellidos: "Duque Zuluaga",
     nombre_completo: "Mariana Duque Zuluaga",
     email: "mariana.duque@lumbrerasdeamor.org",
     telefono: "+502 3167 8901",
@@ -242,6 +252,8 @@ export const VOLUNTARIOS_SEED = [
   },
   {
     tipo_voluntario: "Propio",
+    nombres: "Andrés Felipe",
+    apellidos: "Ruiz",
     nombre_completo: "Prof. Andrés Felipe Ruiz",
     email: "andres.ruiz@lumbrerasdeamor.org",
     telefono: "+502 3004 4567",
@@ -253,6 +265,8 @@ export const VOLUNTARIOS_SEED = [
   },
   {
     tipo_voluntario: "Propio",
+    nombres: "Carlos Alberto",
+    apellidos: "Navarro",
     nombre_completo: "Carlos Alberto Navarro",
     email: "carlos.navarro@lumbrerasdeamor.org",
     telefono: "+502 3136 0988",
@@ -265,6 +279,8 @@ export const VOLUNTARIOS_SEED = [
   // 3 voluntarios externos (universidades, empresas, iglesias)
   {
     tipo_voluntario: "Externo",
+    nombres: "Carolina",
+    apellidos: "Méndez",
     nombre_completo: "Dra. Carolina Méndez",
     email: "carolina.mendez@universidad.edu.gt",
     telefono: "+502 3115 0090",
@@ -276,6 +292,8 @@ export const VOLUNTARIOS_SEED = [
   },
   {
     tipo_voluntario: "Externo",
+    nombres: "Martha Cecilia",
+    apellidos: "Rojas",
     nombre_completo: "Chef Martha Cecilia Rojas",
     email: "martha.rojas@iglesiacentral.org",
     telefono: "+502 3182 0044",
@@ -287,6 +305,8 @@ export const VOLUNTARIOS_SEED = [
   },
   {
     tipo_voluntario: "Externo",
+    nombres: "Mateo",
+    apellidos: "Gómez",
     nombre_completo: "Ing. Mateo Gómez",
     email: "mateo.gomez@techgt.com",
     telefono: "+502 3201 9988",
@@ -300,22 +320,67 @@ export const VOLUNTARIOS_SEED = [
 
 export const DONANTES_SEED = [
   {
-    nombre_o_razon_social: "Fundación Bolívar Construye",
-    tipo_donante: "Empresa",
-    nit_o_identificacion: "90012345-1",
+    tipo_persona: "Persona Jurídica",
+    razon_social: "Fundación Bolívar Construye",
+    nombre_comercial: "Bolívar Construye",
+    nit: "90012345-1",
+    representante_legal: "Ing. Roberto Bolívar",
+    persona_contacto: "Ing. Roberto Bolívar",
     email: "contacto@bolivarconstruye.org",
+    telefono: "+502 2331 4455",
+    direccion_fiscal: "Av. Reforma 12-45 Zona 10, Ciudad de Guatemala",
+    sector_actividad: "Construcción y RSE",
+    clasificacion_aporte: "Económico",
   },
   {
-    nombre_o_razon_social: "Dra. Mariana Restrepo",
-    tipo_donante: "Persona Natural",
-    nit_o_identificacion: "45892301-K",
+    tipo_persona: "Persona Individual",
+    nombres: "Mariana",
+    apellidos: "Restrepo",
+    dpi: "1988234560101",
+    nit: "45892301-K",
     email: "m.restrepo@gmail.com",
+    telefono: "+502 5544 3322",
+    direccion: "Colonia Las Luces, Km 13.5 Carretera a El Salvador",
+    profesion_ocupacion: "Médico Pediatra",
+    clasificacion_aporte: "Económico",
   },
   {
-    nombre_o_razon_social: "Tecnología e Innovación S.A.S.",
-    tipo_donante: "Empresa",
-    nit_o_identificacion: "80098765-4",
+    tipo_persona: "Persona Jurídica",
+    razon_social: "Tecnología e Innovación S.A.S.",
+    nombre_comercial: "TechGT Soluciones",
+    nit: "80098765-4",
+    representante_legal: "Licda. Sofía Morales",
+    persona_contacto: "Licda. Sofía Morales",
     email: "rse@tecinnovacion.com",
+    telefono: "+502 2455 8899",
+    direccion_fiscal: "4a Calle 7-20 Zona 9, Edificio Plaza Mayor",
+    sector_actividad: "Tecnología y Telecomunicaciones",
+    clasificacion_aporte: "Económico",
+  },
+  {
+    tipo_persona: "Persona Jurídica",
+    razon_social: "Distribuidora Farmacéutica La Merced S.A.",
+    nombre_comercial: "Farmacias La Merced",
+    nit: "6543210-9",
+    representante_legal: "Dr. Fernando Castillo",
+    persona_contacto: "Claudia Monroy",
+    email: "donaciones@lamerced.com.gt",
+    telefono: "+502 2200 1100",
+    direccion_fiscal: "Calzada Roosevelt 22-50 Zona 11",
+    sector_actividad: "Salud y Medicamentos",
+    clasificacion_aporte: "Especie",
+  },
+  {
+    tipo_persona: "Persona Individual",
+    nombres: "Carlos Enrique",
+    apellidos: "Mendoza Silva",
+    dpi: "2345678900101",
+    nit: "7823411-9",
+    email: "carlos.mendoza@correo.com",
+    telefono: "+502 5900 4433",
+    direccion: "Zona 14, La Cañada",
+    profesion_ocupacion: "Empresario Particular",
+    clasificacion_aporte: "Especie",
   },
 ];
 
@@ -587,7 +652,7 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
   const voluntarioPorNombre = new Map<string, number>();
   if (existingVoluntarios === 0) {
     for (const v of VOLUNTARIOS_SEED) {
-      const created = await db.voluntario.create({ data: v });
+      const created = await crearVoluntario(db, v);
       voluntarioPorNombre.set(created.nombre_completo, created.id_voluntario);
     }
   } else {
@@ -602,7 +667,33 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
   if (existingDonaciones === 0) {
     const donantePorNombre = new Map<string, number>();
     for (const d of DONANTES_SEED) {
-      const created = await db.donante.create({ data: d });
+      let created;
+      if (d.tipo_persona === "Persona Jurídica") {
+        created = await crearDonanteJuridico(db, {
+          razon_social: d.razon_social!,
+          nombre_comercial: d.nombre_comercial,
+          nit: d.nit!,
+          representante_legal: d.representante_legal,
+          persona_contacto: d.persona_contacto,
+          email: d.email,
+          telefono: d.telefono,
+          direccion_fiscal: d.direccion_fiscal,
+          sector_actividad: d.sector_actividad,
+          clasificacion_aporte: d.clasificacion_aporte,
+        });
+      } else {
+        created = await crearDonanteIndividual(db, {
+          nombres: d.nombres!,
+          apellidos: d.apellidos!,
+          dpi: d.dpi,
+          nit: d.nit,
+          email: d.email,
+          telefono: d.telefono,
+          direccion: d.direccion,
+          profesion_ocupacion: d.profesion_ocupacion,
+          clasificacion_aporte: d.clasificacion_aporte,
+        });
+      }
       donantePorNombre.set(created.nombre_o_razon_social, created.id_donante);
     }
 
@@ -618,6 +709,24 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
           descripcion: don.descripcion,
           metodo_pago: "Transferencia / Depósito",
           id_donante: idDonante,
+        },
+      });
+    }
+  } else {
+    // Sincronizar donantes existentes a Sprint 4 si tienen campos pendientes
+    const existentes = await db.donante.findMany();
+    for (const d of existentes) {
+      const esJuridica =
+        /empresa|jur[ií]dica/i.test(d.tipo_donante) ||
+        /fundación|s\.a\.|construye|tecnología/i.test(d.nombre_o_razon_social);
+      const nit = d.nit || d.nit_o_identificacion || (esJuridica ? "90012345-1" : "45892301-K");
+      const tipo_persona = esJuridica ? "Persona Jurídica" : "Persona Individual";
+      await db.donante.update({
+        where: { id_donante: d.id_donante },
+        data: {
+          nit,
+          tipo_persona,
+          tipo_donante: tipo_persona,
         },
       });
     }

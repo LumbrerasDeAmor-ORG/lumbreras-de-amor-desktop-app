@@ -202,9 +202,38 @@ export async function actualizarEvento(
   });
 }
 
+export const CATEGORIAS_DONATIVO_ESPECIE = [
+  "Víveres no perecederos",
+  "Vitaminas",
+  "Juguetes",
+  "Medicamentos",
+  "Material Educativo Y Didáctico",
+  "Ropa Y Calzado",
+] as const;
+
+export function validarCategoriaEspecie(categoria: string): boolean {
+  if (!categoria || categoria.includes("&")) return false;
+  return (CATEGORIAS_DONATIVO_ESPECIE as readonly string[]).includes(categoria);
+}
+
+export interface CrearVoluntarioInput {
+  nombres?: string;
+  apellidos?: string;
+  nombre_completo?: string;
+  tipo_voluntario?: "Propio" | "Externo" | string;
+  email?: string | null;
+  telefono?: string | null;
+  rol_especialidad?: string | null;
+  disponibilidad?: string | null;
+  horas_acumuladas?: number | null;
+  contacto_emergencia?: string | null;
+  fecha_ingreso?: string | null;
+  estado?: string | null;
+}
+
 export async function obtenerVoluntarios(
   db: PrismaClient,
-  filters?: { tipo?: string; rol?: string }
+  filters?: { tipo?: string; rol?: string; q?: string }
 ) {
   const where: Prisma.VoluntarioWhereInput = {};
 
@@ -225,22 +254,298 @@ export async function obtenerVoluntarios(
     };
   }
 
+  if (filters?.q && filters.q.trim()) {
+    const q = filters.q.trim();
+    where.OR = [
+      { nombres: { contains: q } },
+      { apellidos: { contains: q } },
+      { nombre_completo: { contains: q } },
+      { rol_especialidad: { contains: q } },
+      { email: { contains: q } },
+    ];
+  }
+
   return await db.voluntario.findMany({
     where,
     orderBy: { id_voluntario: "asc" },
   });
 }
 
+export async function buscarCoordinadores(db: PrismaClient, query?: string) {
+  const where: Prisma.VoluntarioWhereInput = {
+    rol_especialidad: {
+      contains: "coordinador",
+    },
+  };
+
+  if (query && query.trim()) {
+    const q = query.trim();
+    where.OR = [
+      { nombres: { contains: q } },
+      { apellidos: { contains: q } },
+      { nombre_completo: { contains: q } },
+      { rol_especialidad: { contains: q } },
+      { email: { contains: q } },
+    ];
+  }
+
+  return await db.voluntario.findMany({
+    where,
+    orderBy: { nombre_completo: "asc" },
+  });
+}
+
 export async function crearVoluntario(
   db: PrismaClient,
-  data: Prisma.VoluntarioCreateInput
+  data: CrearVoluntarioInput
 ) {
-  return await db.voluntario.create({ data });
+  let nombres = (data.nombres || "").trim();
+  let apellidos = (data.apellidos || "").trim();
+  let nombre_completo = (data.nombre_completo || "").trim();
+
+  if (!nombre_completo && (nombres || apellidos)) {
+    nombre_completo = [nombres, apellidos].filter(Boolean).join(" ");
+  } else if (nombre_completo && (!nombres || !apellidos)) {
+    const parts = nombre_completo.split(" ");
+    if (parts.length > 1) {
+      nombres = parts.slice(0, Math.ceil(parts.length / 2)).join(" ");
+      apellidos = parts.slice(Math.ceil(parts.length / 2)).join(" ");
+    } else {
+      nombres = nombre_completo;
+      apellidos = "";
+    }
+  }
+
+  return await db.voluntario.create({
+    data: {
+      nombres,
+      apellidos,
+      nombre_completo: nombre_completo || "Sin Nombre",
+      tipo_voluntario: data.tipo_voluntario || "Propio",
+      email: data.email || null,
+      telefono: data.telefono || null,
+      rol_especialidad: data.rol_especialidad || null,
+      disponibilidad: data.disponibilidad || null,
+      horas_acumuladas: data.horas_acumuladas ?? 0,
+      contacto_emergencia: data.contacto_emergencia || null,
+      fecha_ingreso: data.fecha_ingreso || new Date().toISOString().slice(0, 10),
+      estado: data.estado || "Activo",
+    },
+  });
 }
 
 export async function obtenerVoluntarioPorId(db: PrismaClient, id: number) {
   return await db.voluntario.findUnique({
     where: { id_voluntario: id },
+  });
+}
+
+export interface CrearDonanteIndividualInput {
+  nombres: string;
+  apellidos: string;
+  dpi?: string | null;
+  nit?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  direccion?: string | null;
+  profesion_ocupacion?: string | null;
+  clasificacion_aporte?: "Económico" | "Especie" | "Mixto" | string;
+}
+
+export interface CrearDonanteJuridicoInput {
+  razon_social: string;
+  nombre_comercial?: string | null;
+  nit: string;
+  representante_legal?: string | null;
+  persona_contacto?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  direccion_fiscal?: string | null;
+  sector_actividad?: string | null;
+  clasificacion_aporte?: "Económico" | "Especie" | "Mixto" | string;
+}
+
+export async function crearDonanteIndividual(
+  db: PrismaClient,
+  data: CrearDonanteIndividualInput
+) {
+  if (!data.nombres || !data.apellidos) {
+    throw new Error("Nombres y apellidos son obligatorios para Donante Persona Individual");
+  }
+
+  const nombre_completo = `${data.nombres.trim()} ${data.apellidos.trim()}`;
+  const nit = data.nit ? data.nit.trim() : null;
+
+  return await db.$transaction(async (tx) => {
+    const individual = await tx.donanteIndividual.create({
+      data: {
+        nombres: data.nombres.trim(),
+        apellidos: data.apellidos.trim(),
+        dpi: data.dpi ? data.dpi.trim() : null,
+        nit,
+        telefono: data.telefono ? data.telefono.trim() : null,
+        email: data.email ? data.email.trim() : null,
+        direccion: data.direccion ? data.direccion.trim() : null,
+        profesion_ocupacion: data.profesion_ocupacion || null,
+        clasificacion_aporte: data.clasificacion_aporte || "Económico",
+      },
+    });
+
+    return await tx.donante.create({
+      data: {
+        nombre_o_razon_social: nombre_completo,
+        tipo_donante: "Persona Individual",
+        tipo_persona: "Persona Individual",
+        clasificacion: data.clasificacion_aporte || "Económico",
+        nit,
+        nit_o_identificacion: nit || (data.dpi ? data.dpi.trim() : null),
+        telefono: data.telefono ? data.telefono.trim() : null,
+        email: data.email ? data.email.trim() : null,
+        direccion: data.direccion ? data.direccion.trim() : null,
+        persona_contacto: nombre_completo,
+        id_individual: individual.id_donante_individual,
+      },
+      include: {
+        persona_individual: true,
+        persona_juridica: true,
+      },
+    });
+  });
+}
+
+export async function crearDonanteJuridico(
+  db: PrismaClient,
+  data: CrearDonanteJuridicoInput
+) {
+  if (!data.razon_social || !data.nit) {
+    throw new Error("Razón social y NIT son obligatorios para Donante Persona Jurídica");
+  }
+
+  const nit = data.nit.trim();
+
+  return await db.$transaction(async (tx) => {
+    const juridico = await tx.donanteJuridico.create({
+      data: {
+        razon_social: data.razon_social.trim(),
+        nombre_comercial: data.nombre_comercial ? data.nombre_comercial.trim() : null,
+        nit,
+        representante_legal: data.representante_legal ? data.representante_legal.trim() : null,
+        persona_contacto: data.persona_contacto ? data.persona_contacto.trim() : null,
+        telefono: data.telefono ? data.telefono.trim() : null,
+        email: data.email ? data.email.trim() : null,
+        direccion_fiscal: data.direccion_fiscal ? data.direccion_fiscal.trim() : null,
+        sector_actividad: data.sector_actividad || null,
+        clasificacion_aporte: data.clasificacion_aporte || "Económico",
+      },
+    });
+
+    return await tx.donante.create({
+      data: {
+        nombre_o_razon_social: data.razon_social.trim(),
+        tipo_donante: "Persona Jurídica",
+        tipo_persona: "Persona Jurídica",
+        clasificacion: data.clasificacion_aporte || "Económico",
+        nit,
+        nit_o_identificacion: nit,
+        telefono: data.telefono ? data.telefono.trim() : null,
+        email: data.email ? data.email.trim() : null,
+        direccion: data.direccion_fiscal ? data.direccion_fiscal.trim() : null,
+        persona_contacto: data.representante_legal || data.persona_contacto || null,
+        id_juridico: juridico.id_donante_juridico,
+      },
+      include: {
+        persona_individual: true,
+        persona_juridica: true,
+      },
+    });
+  });
+}
+
+export async function obtenerDonantes(
+  db: PrismaClient,
+  filters?: { tipo_persona?: string; clasificacion?: string; nit?: string; q?: string }
+) {
+  const where: Prisma.DonanteWhereInput = {};
+
+  if (filters?.tipo_persona) {
+    const val = filters.tipo_persona.trim();
+    const esJuridica = /jur[ií]dica|empresa/i.test(val);
+    const esIndividual = /individual|natural/i.test(val);
+
+    if (esJuridica) {
+      where.OR = [
+        { tipo_persona: { contains: "Jurídica" } },
+        { tipo_persona: { contains: "Juridica" } },
+        { tipo_donante: { contains: "Empresa" } },
+      ];
+    } else if (esIndividual) {
+      where.OR = [
+        { tipo_persona: { contains: "Individual" } },
+        { tipo_donante: { contains: "Natural" } },
+      ];
+    } else {
+      where.tipo_persona = { contains: val };
+    }
+  }
+
+  if (filters?.clasificacion) {
+    where.clasificacion = {
+      contains: filters.clasificacion.trim(),
+    };
+  }
+
+  if (filters?.nit) {
+    const nitVal = filters.nit.trim();
+    const nitCond: Prisma.DonanteWhereInput[] = [
+      { nit: { contains: nitVal } },
+      { nit_o_identificacion: { contains: nitVal } },
+    ];
+    if (where.OR) {
+      where.AND = [{ OR: nitCond }];
+    } else {
+      where.OR = nitCond;
+    }
+  }
+
+  if (filters?.q && filters.q.trim()) {
+    const q = filters.q.trim();
+    const qCond: Prisma.DonanteWhereInput[] = [
+      { nombre_o_razon_social: { contains: q } },
+      { nit: { contains: q } },
+      { nit_o_identificacion: { contains: q } },
+      { email: { contains: q } },
+      { telefono: { contains: q } },
+    ];
+    if (where.AND) {
+      (where.AND as Prisma.DonanteWhereInput[]).push({ OR: qCond });
+    } else if (where.OR) {
+      where.AND = [{ OR: qCond }];
+    } else {
+      where.OR = qCond;
+    }
+  }
+
+  return await db.donante.findMany({
+    where,
+    include: {
+      persona_individual: true,
+      persona_juridica: true,
+      donaciones_monetarias: true,
+      donaciones_especie: true,
+    },
+    orderBy: { id_donante: "desc" },
+  });
+}
+
+export async function obtenerDonantePorId(db: PrismaClient, id: number) {
+  return await db.donante.findUnique({
+    where: { id_donante: id },
+    include: {
+      persona_individual: true,
+      persona_juridica: true,
+      donaciones_monetarias: true,
+      donaciones_especie: true,
+    },
   });
 }
 

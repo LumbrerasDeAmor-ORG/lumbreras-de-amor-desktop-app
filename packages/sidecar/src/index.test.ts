@@ -285,4 +285,221 @@ describe("Sidecar Endpoints Integration Tests", () => {
       }
     });
   });
+
+  describe("Sprint 4: Endpoints de Coordinadores (/coordinadores)", () => {
+    let nuevoCoordId: number | null = null;
+
+    it("debe listar todos los coordinadores disponibles", async () => {
+      const req = new Request("http://localhost:4111/coordinadores");
+      const res = await handleRequest(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(Array.isArray(json.data)).toBe(true);
+      expect(json.data.length).toBeGreaterThanOrEqual(2);
+      for (const c of json.data) {
+        expect(c.esCoordinador).toBe(true);
+      }
+    });
+
+    it("debe buscar coordinadores mediante query predictivo ?q=...", async () => {
+      const req = new Request("http://localhost:4111/coordinadores?q=Laura");
+      const res = await handleRequest(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.length).toBeGreaterThanOrEqual(1);
+      expect(json.data[0].nombre).toContain("Laura");
+    });
+
+    it("debe crear un nuevo coordinador mediante POST /coordinadores (201 Created)", async () => {
+      const payload = {
+        nombres: "Valeria",
+        apellidos: "Gómez Pineda",
+        especialidad: "Coordinadora de Salud y Medicamentos",
+        telefono: "+502 4433 2211",
+        email: "valeria.gomez@lumbrerasdeamor.org",
+      };
+
+      const req = new Request("http://localhost:4111/coordinadores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const res = await handleRequest(req);
+      expect(res.status).toBe(201);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.nombres).toBe("Valeria");
+      expect(json.data.apellidos).toBe("Gómez Pineda");
+      expect(json.data.esCoordinador).toBe(true);
+
+      nuevoCoordId = Number(json.data.id);
+    });
+
+    afterAll(async () => {
+      if (nuevoCoordId) {
+        await db.voluntario.delete({ where: { id_voluntario: nuevoCoordId } }).catch(() => {});
+      }
+    });
+  });
+
+  describe("Sprint 4: Endpoints de Donantes (/donantes) y Vinculación con Donaciones", () => {
+    let individualId: number | null = null;
+    let juridicoId: number | null = null;
+    let donacionConDonanteId: number | null = null;
+
+    it("debe crear un Donante Persona Individual mediante POST /donantes", async () => {
+      const payload = {
+        tipo_persona: "Persona Individual",
+        nombres: "Samuel",
+        apellidos: "Navas Cordero",
+        dpi: "3344556670101",
+        nit: "5566778-9",
+        telefono: "+502 5500 1122",
+        email: "samuel.navas@correo.gt",
+        clasificacion_aporte: "Económico",
+      };
+
+      const req = new Request("http://localhost:4111/donantes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const res = await handleRequest(req);
+      expect(res.status).toBe(201);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.tipoPersona).toBe("Persona Individual");
+      expect(json.data.nit).toBe("5566778-9");
+      expect(json.data.nombre).toBe("Samuel Navas Cordero");
+
+      individualId = Number(json.data.id);
+    });
+
+    it("debe crear un Donante Persona Jurídica mediante POST /donantes", async () => {
+      const payload = {
+        tipo_persona: "Persona Jurídica",
+        razon_social: "Inversiones del Altiplano S.A.",
+        nombre_comercial: "Altiplano Inversiones",
+        nit: "7788990-1",
+        representante_legal: "Inga. Beatríz Solórzano",
+        telefono: "+502 2333 9900",
+        clasificacion_aporte: "Especie",
+      };
+
+      const req = new Request("http://localhost:4111/donantes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const res = await handleRequest(req);
+      expect(res.status).toBe(201);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.tipoPersona).toBe("Persona Jurídica");
+      expect(json.data.nit).toBe("7788990-1");
+      expect(json.data.razonSocial).toBe("Inversiones del Altiplano S.A.");
+
+      juridicoId = Number(json.data.id);
+    });
+
+    it("debe listar donantes y filtrar por tipo y NIT", async () => {
+      const req = new Request("http://localhost:4111/donantes?nit=5566778-9");
+      const res = await handleRequest(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.length).toBe(1);
+      expect(json.data[0].nit).toBe("5566778-9");
+      expect(json.data[0].tipoPersona).toBe("Persona Individual");
+    });
+
+    it("debe vincular exitosamente una donación económica a un donante registrado", async () => {
+      expect(individualId).toBeDefined();
+
+      const req = new Request("http://localhost:4111/donaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          monto: 2000,
+          moneda: "GTQ",
+          id_donante: individualId,
+          descripcion: "Donación mensual con donante formalmente enlazado",
+          destino: "Fondo General",
+        }),
+      });
+
+      const res = await handleRequest(req);
+      expect(res.status).toBe(201);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data.idDonante).toBe(individualId);
+      expect(json.data.donante).toBe("Samuel Navas Cordero");
+      expect(json.data.nit).toBe("5566778-9");
+
+      donacionConDonanteId = Number(json.data.id);
+    });
+
+    it("debe rechazar una donación si el id_donante no existe en la BD", async () => {
+      const req = new Request("http://localhost:4111/donaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          monto: 500,
+          id_donante: 9999999, // no existe
+          descripcion: "Donación con ID erróneo",
+        }),
+      });
+
+      const res = await handleRequest(req);
+      expect(res.status).toBe(400);
+
+      const json = await res.json();
+      expect(json.success).toBe(false);
+      expect(json.error).toMatch(/no existe/i);
+    });
+
+    afterAll(async () => {
+      if (donacionConDonanteId) {
+        await db.donacionMonetaria.delete({ where: { id_donacion: donacionConDonanteId } }).catch(() => {});
+      }
+      if (individualId) {
+        await db.donante.delete({ where: { id_donante: individualId } }).catch(() => {});
+      }
+      if (juridicoId) {
+        await db.donante.delete({ where: { id_donante: juridicoId } }).catch(() => {});
+      }
+    });
+  });
+
+  describe("Sprint 4: Categorías Autorizadas de Donativo en Especie (/categorias-especie)", () => {
+    it("debe retornar la lista oficial de categorías con 'Y' y sin ampersands", async () => {
+      const req = new Request("http://localhost:4111/categorias-especie");
+      const res = await handleRequest(req);
+      expect(res.status).toBe(200);
+
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.data).toContain("Vitaminas");
+      expect(json.data).toContain("Juguetes");
+      expect(json.data).toContain("Medicamentos");
+      expect(json.data).toContain("Material Educativo Y Didáctico");
+      expect(json.data).toContain("Ropa Y Calzado");
+
+      for (const cat of json.data) {
+        expect(cat).not.toContain("&");
+      }
+    });
+  });
 });

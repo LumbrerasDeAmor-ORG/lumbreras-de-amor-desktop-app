@@ -169,6 +169,8 @@ model Asiste {
 model Voluntario {
   id_voluntario       Int       @id @default(autoincrement())
   tipo_voluntario     String    @default("Propio") // "Propio" | "Externo"
+  nombres             String    @default("")
+  apellidos           String    @default("")
   nombre_completo     String
   email               String?
   telefono            String?
@@ -177,7 +179,7 @@ model Voluntario {
   horas_acumuladas    Float?
   contacto_emergencia String?
   fecha_ingreso       String?
-  estado              String?
+  estado              String?   @default("Activo")
   created_at          DateTime? @default(now())
   updated_at          DateTime? @updatedAt
 
@@ -203,7 +205,10 @@ model Apoya {
 model Donante {
   id_donante            Int       @id @default(autoincrement())
   nombre_o_razon_social String
-  tipo_donante          String
+  tipo_donante          String    @default("Persona Individual") // Mantenido por compatibilidad
+  tipo_persona          String    @default("Persona Individual") // "Persona Individual" | "Persona Jurídica"
+  clasificacion         String    @default("Económico") // "Económico" | "Especie" | "Mixto"
+  nit                   String?
   nit_o_identificacion  String?
   telefono              String?
   email                 String?
@@ -212,11 +217,58 @@ model Donante {
   created_at            DateTime? @default(now())
   updated_at            DateTime? @updatedAt
 
+  id_individual      Int?               @unique
+  id_juridico        Int?               @unique
+  persona_individual DonanteIndividual? @relation(fields: [id_individual], references: [id_donante_individual], onDelete: SetNull)
+  persona_juridica   DonanteJuridico?   @relation(fields: [id_juridico], references: [id_donante_juridico], onDelete: SetNull)
+
   donaciones_monetarias  DonacionMonetaria[]
   donaciones_especie     DonacionEspecie[]
   movimientos_inventario MovimientoInventario[]
 
+  @@index([nit])
   @@map("donante")
+}
+
+model DonanteIndividual {
+  id_donante_individual Int       @id @default(autoincrement())
+  nombres               String
+  apellidos             String
+  dpi                   String?
+  nit                   String?
+  telefono              String?
+  email                 String?
+  direccion             String?
+  profesion_ocupacion   String?
+  clasificacion_aporte  String    @default("Económico") // "Económico" | "Especie" | "Mixto"
+  created_at            DateTime? @default(now())
+  updated_at            DateTime? @updatedAt
+
+  donante Donante?
+
+  @@index([nit])
+  @@map("donante_individual")
+}
+
+model DonanteJuridico {
+  id_donante_juridico  Int       @id @default(autoincrement())
+  razon_social         String
+  nombre_comercial     String?
+  nit                  String
+  representante_legal  String?
+  persona_contacto     String?
+  telefono             String?
+  email                String?
+  direccion_fiscal     String?
+  sector_actividad     String?
+  clasificacion_aporte String    @default("Económico") // "Económico" | "Especie" | "Mixto"
+  created_at           DateTime? @default(now())
+  updated_at           DateTime? @updatedAt
+
+  donante Donante?
+
+  @@index([nit])
+  @@map("donante_juridico")
 }
 
 // Donativos tipo 1: Donativos económicos

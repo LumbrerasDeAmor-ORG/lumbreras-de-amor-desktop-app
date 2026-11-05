@@ -8,6 +8,13 @@ import {
   obtenerEventoPorId,
   crearVoluntario,
   obtenerVoluntarios,
+  buscarCoordinadores,
+  crearDonanteIndividual,
+  crearDonanteJuridico,
+  obtenerDonantes,
+  obtenerDonantePorId,
+  validarCategoriaEspecie,
+  CATEGORIAS_DONATIVO_ESPECIE,
   crearDonacionMonetaria,
   obtenerDonacionesMonetarias,
   crearJornadaConServicios,
@@ -226,6 +233,125 @@ describe("Database Repositories & Transactions (Prisma libSQL)", () => {
       await db.jornada.delete({
         where: { id_jornada: jornada!.id_jornada },
       });
+    });
+  });
+
+  describe("Sprint 4: Voluntarios con Nombres y Apellidos Separados", () => {
+    it("debe registrar voluntario con nombres y apellidos explícitos", async () => {
+      const vol = await crearVoluntario(db, {
+        nombres: "Esteban Daniel",
+        apellidos: "García Marroquín",
+        tipo_voluntario: "Propio",
+        rol_especialidad: "Coordinador de Alimentos",
+        email: "esteban.garcia@test.org",
+      });
+
+      expect(vol).toBeDefined();
+      expect(vol.nombres).toBe("Esteban Daniel");
+      expect(vol.apellidos).toBe("García Marroquín");
+      expect(vol.nombre_completo).toBe("Esteban Daniel García Marroquín");
+
+      // Limpieza
+      await db.voluntario.delete({ where: { id_voluntario: vol.id_voluntario } });
+    });
+
+    it("debe permitir buscar coordinadores por query predictivo", async () => {
+      const coords = await buscarCoordinadores(db, "Laura");
+      expect(coords.length).toBeGreaterThanOrEqual(1);
+      expect(coords[0]!.nombre_completo).toContain("Laura");
+    });
+  });
+
+  describe("Sprint 4: Donantes como 2 Entidades Diferenciadas (Individual y Jurídica)", () => {
+    it("debe crear un Donante Persona Individual con NIT y relacionarlo en Donante", async () => {
+      const donante = await crearDonanteIndividual(db, {
+        nombres: "Alejandro",
+        apellidos: "Paz Morales",
+        dpi: "2233445560101",
+        nit: "1234567-8",
+        email: "alejandro.paz@test.gt",
+        clasificacion_aporte: "Económico",
+      });
+
+      expect(donante).toBeDefined();
+      expect(donante.tipo_persona).toBe("Persona Individual");
+      expect(donante.nit).toBe("1234567-8");
+      expect(donante.nombre_o_razon_social).toBe("Alejandro Paz Morales");
+      expect(donante.persona_individual).toBeDefined();
+      expect(donante.persona_individual?.nombres).toBe("Alejandro");
+      expect(donante.persona_individual?.apellidos).toBe("Paz Morales");
+
+      // Limpieza en cascada
+      await db.donante.delete({ where: { id_donante: donante.id_donante } });
+      if (donante.id_individual) {
+        await db.donanteIndividual.delete({
+          where: { id_donante_individual: donante.id_individual },
+        });
+      }
+    });
+
+    it("debe crear un Donante Persona Jurídica con NIT y representante", async () => {
+      const donante = await crearDonanteJuridico(db, {
+        razon_social: "Comercializadora San José S.A.",
+        nombre_comercial: "San José Insumos",
+        nit: "9988776-5",
+        representante_legal: "Ing. Manuel Santos",
+        sector_actividad: "Comercio de Alimentos",
+        clasificacion_aporte: "Especie",
+      });
+
+      expect(donante).toBeDefined();
+      expect(donante.tipo_persona).toBe("Persona Jurídica");
+      expect(donante.nit).toBe("9988776-5");
+      expect(donante.nombre_o_razon_social).toBe("Comercializadora San José S.A.");
+      expect(donante.persona_juridica).toBeDefined();
+      expect(donante.persona_juridica?.razon_social).toBe("Comercializadora San José S.A.");
+      expect(donante.persona_juridica?.nit).toBe("9988776-5");
+
+      // Limpieza en cascada
+      await db.donante.delete({ where: { id_donante: donante.id_donante } });
+      if (donante.id_juridico) {
+        await db.donanteJuridico.delete({
+          where: { id_donante_juridico: donante.id_juridico },
+        });
+      }
+    });
+
+    it("debe filtrar donantes por tipo de persona y por NIT", async () => {
+      const individuales = await obtenerDonantes(db, {
+        tipo_persona: "Persona Individual",
+      });
+      expect(individuales.length).toBeGreaterThanOrEqual(1);
+      individuales.forEach((d) => {
+        expect(d.tipo_persona).toBe("Persona Individual");
+      });
+
+      const juridicos = await obtenerDonantes(db, {
+        tipo_persona: "Persona Jurídica",
+      });
+      expect(juridicos.length).toBeGreaterThanOrEqual(1);
+      juridicos.forEach((d) => {
+        expect(d.tipo_persona).toBe("Persona Jurídica");
+      });
+
+      const porNit = await obtenerDonantes(db, { nit: "90012345-1" });
+      expect(porNit.length).toBe(1);
+      expect(porNit[0]!.nombre_o_razon_social).toContain("Bolívar");
+    });
+  });
+
+  describe("Sprint 4: Catálogo de Donaciones en Especie sin Ampersand", () => {
+    it("debe validar categorías autorizadas con 'Y' y sin '&'", () => {
+      expect(validarCategoriaEspecie("Vitaminas")).toBe(true);
+      expect(validarCategoriaEspecie("Juguetes")).toBe(true);
+      expect(validarCategoriaEspecie("Medicamentos")).toBe(true);
+      expect(validarCategoriaEspecie("Material Educativo Y Didáctico")).toBe(true);
+      expect(validarCategoriaEspecie("Ropa Y Calzado")).toBe(true);
+
+      // Debe rechazar categorías antiguas con &
+      expect(validarCategoriaEspecie("Nutrición & Suplementos")).toBe(false);
+      expect(validarCategoriaEspecie("Material Educativo & Didáctico")).toBe(false);
+      expect(validarCategoriaEspecie("Categoría Inexistente")).toBe(false);
     });
   });
 });

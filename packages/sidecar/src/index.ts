@@ -20,7 +20,14 @@ const {
   obtenerEventoPorId,
   crearVoluntario,
   obtenerVoluntarios,
+  buscarCoordinadores,
   obtenerVoluntarioPorId,
+  crearDonanteIndividual,
+  crearDonanteJuridico,
+  obtenerDonantes,
+  obtenerDonantePorId,
+  CATEGORIAS_DONATIVO_ESPECIE,
+  validarCategoriaEspecie,
   crearDonacionMonetaria,
   obtenerDonacionesMonetarias,
   crearJornadaConServicios,
@@ -112,7 +119,9 @@ function mapBeneficiarioToNino(b: any) {
 function mapVoluntario(v: any) {
   return {
     id: String(v.id_voluntario),
-    nombre: v.nombre_completo,
+    nombres: v.nombres || "",
+    apellidos: v.apellidos || "",
+    nombre: v.nombre_completo || [v.nombres, v.apellidos].filter(Boolean).join(" "),
     tipo: (v.tipo_voluntario as "Propio" | "Externo") || "Propio",
     especialidad: v.rol_especialidad || "General",
     esCoordinador: (v.rol_especialidad || "").toLowerCase().includes("coordinador"),
@@ -122,6 +131,45 @@ function mapVoluntario(v: any) {
     habilidades: v.rol_especialidad ? [v.rol_especialidad] : [],
     horasAcumuladas: v.horas_acumuladas ?? 0,
     estado: v.estado || "Activo",
+  };
+}
+
+function mapDonante(d: any) {
+  const tipo = d.tipo_persona || d.tipo_donante || "Persona Individual";
+  const nit = d.nit || d.nit_o_identificacion || "";
+  return {
+    id: String(d.id_donante),
+    idDonante: d.id_donante,
+    tipo,
+    tipoPersona: tipo,
+    clasificacion: d.clasificacion || "Económico",
+    nombre: d.nombre_o_razon_social,
+    razonSocial: d.nombre_o_razon_social,
+    nit,
+    telefono: d.telefono || "",
+    email: d.email || "",
+    direccion: d.direccion || "",
+    personaContacto: d.persona_contacto || "",
+    individual: d.persona_individual
+      ? {
+          nombres: d.persona_individual.nombres,
+          apellidos: d.persona_individual.apellidos,
+          dpi: d.persona_individual.dpi || "",
+          nit: d.persona_individual.nit || nit,
+          profesion: d.persona_individual.profesion_ocupacion || "",
+        }
+      : null,
+    juridica: d.persona_juridica
+      ? {
+          razonSocial: d.persona_juridica.razon_social,
+          nombreComercial: d.persona_juridica.nombre_comercial || "",
+          nit: d.persona_juridica.nit || nit,
+          representanteLegal: d.persona_juridica.representante_legal || "",
+          sectorActividad: d.persona_juridica.sector_actividad || "",
+        }
+      : null,
+    donacionesMonetariasCount: (d.donaciones_monetarias || []).length,
+    donacionesEspecieCount: (d.donaciones_especie || []).length,
   };
 }
 
@@ -202,15 +250,21 @@ function mapJornada(j: any) {
 }
 
 function mapDonacion(d: any) {
+  const tipo = d.donante?.tipo_persona || d.donante?.tipo_donante || "Persona Individual";
+  const nit = d.donante?.nit || d.donante?.nit_o_identificacion || "";
   return {
     id: String(d.id_donacion),
+    idDonacion: d.id_donacion,
     recibo: d.numero_recibo,
     monto: d.monto,
     moneda: d.moneda || "GTQ",
     descripcion: d.descripcion || "",
     destino: d.programa_destino || "General",
+    idDonante: d.id_donante ?? null,
     donante: d.donante?.nombre_o_razon_social || "Donante Anónimo",
-    tipo: d.donante?.tipo_donante || "Persona Natural",
+    tipo,
+    tipoPersona: tipo,
+    nit,
     fecha: d.fecha || "",
   };
 }
@@ -429,7 +483,8 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
       try {
         const tipo = url.searchParams.get("tipo") || undefined;
         const rol = url.searchParams.get("rol") || undefined;
-        const rows = await obtenerVoluntarios(db, { tipo, rol });
+        const q = url.searchParams.get("q") || undefined;
+        const rows = await obtenerVoluntarios(db, { tipo, rol, q });
         return jsonResponse({
           success: true,
           data: rows.map(mapVoluntario),
@@ -457,7 +512,11 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
       try {
         const body = (await req.json()) as Record<string, any>;
         const created = await crearVoluntario(db, {
-          nombre_completo: String(body.nombre_completo || body.nombre || "").trim(),
+          nombres: body.nombres ? String(body.nombres).trim() : undefined,
+          apellidos: body.apellidos ? String(body.apellidos).trim() : undefined,
+          nombre_completo: body.nombre_completo || body.nombre
+            ? String(body.nombre_completo || body.nombre).trim()
+            : undefined,
           tipo_voluntario: body.tipo_voluntario || body.tipo || "Propio",
           email: body.email ? String(body.email).trim() : null,
           telefono: body.telefono ? String(body.telefono).trim() : null,
@@ -468,6 +527,56 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
           fecha_ingreso: body.fecha_ingreso || new Date().toISOString().slice(0, 10),
           estado: body.estado || "Activo",
         });
+        return jsonResponse({ success: true, data: mapVoluntario(created) }, 201);
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: COORDINADORES (Búsqueda Reactiva y Gestión)
+    // =========================================================================
+    if (url.pathname === "/coordinadores" && req.method === "GET") {
+      try {
+        const q = url.searchParams.get("q") || undefined;
+        const rows = await buscarCoordinadores(db, q);
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapVoluntario),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/coordinadores" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        const nombres = String(body.nombres || "").trim();
+        const apellidos = String(body.apellidos || "").trim();
+        const especialidad = String(body.especialidad || body.rol_especialidad || "Coordinador General").trim();
+
+        if (!nombres && !body.nombre) {
+          return jsonResponse({ success: false, error: "El nombre del coordinador es obligatorio" }, 400);
+        }
+
+        const created = await crearVoluntario(db, {
+          nombres,
+          apellidos,
+          nombre_completo: body.nombre_completo || body.nombre || `${nombres} ${apellidos}`.trim(),
+          tipo_voluntario: body.tipo_voluntario || body.tipo || "Propio",
+          email: body.email ? String(body.email).trim() : null,
+          telefono: body.telefono ? String(body.telefono).trim() : null,
+          rol_especialidad: especialidad.toLowerCase().includes("coordinador")
+            ? especialidad
+            : `Coordinador de ${especialidad}`,
+          disponibilidad: body.disponibilidad || "Flexible",
+          horas_acumuladas: Number(body.horas_acumuladas || body.horasAcumuladas) || 0,
+          contacto_emergencia: body.contacto_emergencia || null,
+          fecha_ingreso: body.fecha_ingreso || new Date().toISOString().slice(0, 10),
+          estado: "Activo",
+        });
+
         return jsonResponse({ success: true, data: mapVoluntario(created) }, 201);
       } catch (error) {
         return jsonResponse({ success: false, error: (error as Error).message }, 500);
@@ -702,6 +811,20 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
           );
         }
 
+        if (body.id_donante) {
+          const idDonanteNum = Number(body.id_donante);
+          const existeDonante = await obtenerDonantePorId(db, idDonanteNum);
+          if (!existeDonante) {
+            return jsonResponse(
+              {
+                success: false,
+                error: `El donante con ID ${idDonanteNum} no existe en la base de datos`,
+              },
+              400
+            );
+          }
+        }
+
         const created = await crearDonacionMonetaria(db, {
           numero_recibo: body.numero_recibo || body.recibo || undefined,
           monto,
@@ -718,6 +841,146 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
       } catch (error) {
         return jsonResponse({ success: false, error: (error as Error).message }, 400);
       }
+    }
+
+    // =========================================================================
+    // MÓDULO: DONANTES (Entidades Persona Individual y Persona Jurídica)
+    // =========================================================================
+    if (url.pathname === "/donantes" && req.method === "GET") {
+      try {
+        const tipo_persona =
+          url.searchParams.get("tipo_persona") ||
+          url.searchParams.get("tipo") ||
+          undefined;
+        const clasificacion = url.searchParams.get("clasificacion") || undefined;
+        const nit = url.searchParams.get("nit") || undefined;
+        const q = url.searchParams.get("q") || undefined;
+
+        const rows = await obtenerDonantes(db, {
+          tipo_persona,
+          clasificacion,
+          nit,
+          q,
+        });
+        return jsonResponse({
+          success: true,
+          data: rows.map(mapDonante),
+        });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname.startsWith("/donantes/") && req.method === "GET") {
+      try {
+        const rawId = decodeURIComponent(url.pathname.replace("/donantes/", ""));
+        const numericId = Number(rawId);
+        const row = await obtenerDonantePorId(db, numericId);
+        if (!row) {
+          return jsonResponse({ success: false, error: "Donante no encontrado" }, 404);
+        }
+        return jsonResponse({ success: true, data: mapDonante(row) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    if (url.pathname === "/donantes" && req.method === "POST") {
+      try {
+        const body = (await req.json()) as Record<string, any>;
+        const tipoPersona = String(
+          body.tipo_persona || body.tipoPersona || body.tipo || ""
+        ).trim();
+        const esJuridica = /jur[ií]dica|empresa/i.test(tipoPersona);
+
+        if (esJuridica) {
+          const razon_social = String(
+            body.razon_social || body.razonSocial || body.nombre || ""
+          ).trim();
+          const nit = String(body.nit || "").trim();
+          if (!razon_social || !nit) {
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  "Razón social y NIT son obligatorios para registrar una Persona Jurídica",
+              },
+              400
+            );
+          }
+
+          const created = await crearDonanteJuridico(db, {
+            razon_social,
+            nombre_comercial:
+              body.nombre_comercial || body.nombreComercial
+                ? String(body.nombre_comercial || body.nombreComercial).trim()
+                : null,
+            nit,
+            representante_legal:
+              body.representante_legal || body.representanteLegal
+                ? String(body.representante_legal || body.representanteLegal).trim()
+                : null,
+            persona_contacto:
+              body.persona_contacto || body.personaContacto
+                ? String(body.persona_contacto || body.personaContacto).trim()
+                : null,
+            telefono: body.telefono ? String(body.telefono).trim() : null,
+            email: body.email ? String(body.email).trim() : null,
+            direccion_fiscal:
+              body.direccion_fiscal || body.direccion
+                ? String(body.direccion_fiscal || body.direccion).trim()
+                : null,
+            sector_actividad:
+              body.sector_actividad || body.sectorActividad || null,
+            clasificacion_aporte:
+              body.clasificacion_aporte || body.clasificacion || "Económico",
+          });
+
+          return jsonResponse({ success: true, data: mapDonante(created) }, 201);
+        } else {
+          // Persona Individual
+          const nombres = String(body.nombres || "").trim();
+          const apellidos = String(body.apellidos || "").trim();
+          if (!nombres || !apellidos) {
+            return jsonResponse(
+              {
+                success: false,
+                error:
+                  "Nombres y apellidos son obligatorios para registrar una Persona Individual",
+              },
+              400
+            );
+          }
+
+          const created = await crearDonanteIndividual(db, {
+            nombres,
+            apellidos,
+            dpi: body.dpi ? String(body.dpi).trim() : null,
+            nit: body.nit ? String(body.nit).trim() : null,
+            telefono: body.telefono ? String(body.telefono).trim() : null,
+            email: body.email ? String(body.email).trim() : null,
+            direccion: body.direccion ? String(body.direccion).trim() : null,
+            profesion_ocupacion:
+              body.profesion_ocupacion || body.profesion || null,
+            clasificacion_aporte:
+              body.clasificacion_aporte || body.clasificacion || "Económico",
+          });
+
+          return jsonResponse({ success: true, data: mapDonante(created) }, 201);
+        }
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 400);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: CATEGORÍAS AUTORIZADAS DE DONATIVO EN ESPECIE ("Y" y sin "&")
+    // =========================================================================
+    if (url.pathname === "/categorias-especie" && req.method === "GET") {
+      return jsonResponse({
+        success: true,
+        data: CATEGORIAS_DONATIVO_ESPECIE,
+      });
     }
 
     if (url.pathname === "/query" && req.method === "POST") {
@@ -752,4 +1015,12 @@ if (typeof Bun !== "undefined" && typeof (Bun as any).serve === "function") {
   console.log(`[Sidecar] Servidor iniciado en http://localhost:${serverInstance.port}`);
 }
 
-export { db, serverInstance, mapVoluntario, mapEvento, mapJornada, mapDonacion };
+export {
+  db,
+  serverInstance,
+  mapVoluntario,
+  mapEvento,
+  mapJornada,
+  mapDonacion,
+  mapDonante,
+};

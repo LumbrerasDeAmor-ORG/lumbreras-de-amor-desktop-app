@@ -1,0 +1,200 @@
+---
+// apps/desktop/src/pages/voluntarios/nuevo.astro
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Nuevo Integrante Voluntario"
+  subtitle="Registro formal de voluntario con división en nombres y apellidos, clasificación y rol operativo"
+  active="voluntarios"
+>
+  <div slot="actions">
+    <a href="/voluntarios"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+  </div>
+
+  <form id="form-voluntario" class="card" style="max-width: 640px;" novalidate>
+    <div class="form-grid">
+      <label>
+        Nombres *
+        <input name="nombres" type="text" placeholder="Ej: Gabriela María" required />
+      </label>
+      <label>
+        Apellidos *
+        <input name="apellidos" type="text" placeholder="Ej: Morales Soto" required />
+      </label>
+      <label>
+        DPI
+        <input
+          id="dpi-voluntario"
+          name="dpi"
+          type="text"
+          inputmode="numeric"
+          maxlength="13"
+          pattern="[0-9]{13}"
+          title="El DPI debe tener 13 dígitos"
+          placeholder="13 dígitos, sin espacios"
+        />
+      </label>
+      <label>
+        Tipo (Propio / Externo) *
+        <select name="tipo" required>
+          <option value="Propio">Propio (ONG Lumbreras de Amor)</option>
+          <option value="Externo">Externo (Aliado / Universidad / Empresa)</option>
+        </select>
+      </label>
+      <label>
+        Teléfono *
+        <input name="telefono" type="tel" placeholder="+502 5555 0000" required />
+      </label>
+      <label>
+        Correo electrónico
+        <input name="email" type="email" placeholder="voluntario@lumbrerasdeamor.org" />
+      </label>
+      <label>
+        Rol / Especialidad *
+        <input name="especialidad" type="text" placeholder="Ej: Psicología / Apoyo Logístico" required />
+      </label>
+      <label>
+        Disponibilidad *
+        <select name="disponibilidad" required>
+          <option value="">Seleccionar...</option>
+          <option value="Fines de semana">Fines de semana</option>
+          <option value="Tardes">Tardes</option>
+          <option value="Sábados">Sábados</option>
+          <option value="Domingos y Jornadas">Domingos y Jornadas</option>
+          <option value="Tiempo completo">Tiempo completo</option>
+          <option value="Flexible">Flexible</option>
+        </select>
+      </label>
+      <label>
+        Organización o procedencia
+        <input name="organizacionOrigen" type="text" placeholder="Ej: Planta ONG o Universidad Aliada" />
+      </label>
+      <label>
+        Contacto de Emergencia
+        <input name="contacto_emergencia" type="text" placeholder="Ej: Carlos Morales (+502 4444 1122)" />
+      </label>
+    </div>
+
+    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+      Completá los campos obligatorios (*) antes de continuar.
+    </p>
+
+    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Voluntario</button>
+      <button class="btn btn-ghost" type="reset">Limpiar</button>
+    </div>
+  </form>
+
+  <div id="preview" class="card" style="display:none; max-width: 640px; margin-top: 1.2rem;">
+    <strong id="preview-title" style="font-size:0.85rem; color:#166534;">✔ Voluntario registrado en la base de datos SQLite local</strong>
+    <pre id="preview-content" style="margin-top:0.7rem; font-size:0.78rem; background:#f4f6f8; padding:0.8rem; border-radius:8px; white-space:pre-wrap;"></pre>
+    <div style="margin-top:0.8rem;">
+      <a href="/voluntarios"><button class="btn btn-primary" type="button">Ir al listado de Voluntarios</button></a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.9rem;
+  }
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .form-grid input,
+  .form-grid select {
+    font-weight: 400;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+  }
+</style>
+
+<script>
+  const form = document.getElementById("form-voluntario") as HTMLFormElement | null;
+  const errorEl = document.getElementById("form-error");
+  const preview = document.getElementById("preview");
+  const previewTitle = document.getElementById("preview-title");
+  const previewContent = document.getElementById("preview-content");
+  const dpiInput = document.getElementById("dpi-voluntario") as HTMLInputElement | null;
+
+  dpiInput?.addEventListener("input", () => {
+    dpiInput.value = dpiInput.value.replace(/\D/g, "");
+  });
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      if (errorEl) {
+        errorEl.textContent = "Completá los campos obligatorios (*) antes de continuar.";
+        errorEl.style.display = "block";
+      }
+      form.reportValidity();
+      return;
+    }
+    if (errorEl) errorEl.style.display = "none";
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    const nombres = String(data.nombres ?? "").trim();
+    const apellidos = String(data.apellidos ?? "").trim();
+    const payload = {
+      nombres,
+      apellidos,
+      nombre_completo: `${nombres} ${apellidos}`.trim(),
+      dpi: String(data.dpi ?? "").trim(),
+      tipo: String(data.tipo ?? "Propio"),
+      tipo_voluntario: String(data.tipo ?? "Propio"),
+      telefono: String(data.telefono ?? "").trim(),
+      email: String(data.email ?? "").trim(),
+      especialidad: String(data.especialidad ?? "").trim(),
+      rol_especialidad: String(data.especialidad ?? "").trim(),
+      disponibilidad: String(data.disponibilidad ?? "Flexible").trim(),
+      organizacionOrigen: String(data.organizacionOrigen ?? "").trim(),
+      contacto_emergencia: String(data.contacto_emergencia ?? "").trim(),
+      horas_acumuladas: 0,
+    };
+
+    let savedRecord: Record<string, unknown> = payload;
+
+    try {
+      const res = await fetch("http://127.0.0.1:4111/voluntarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (res.ok && result.success) {
+        savedRecord = result.data;
+      }
+    } catch {
+      // Fallback local si el Sidecar está offline
+    }
+
+    try {
+      const rawPrev = localStorage.getItem("lumbreras_voluntarios_creados");
+      const list = rawPrev ? JSON.parse(rawPrev) : [];
+      list.unshift(payload);
+      localStorage.setItem("lumbreras_voluntarios_creados", JSON.stringify(list));
+    } catch {}
+
+    if (preview && previewContent) {
+      if (previewTitle) {
+        previewTitle.textContent = `✔ Voluntario guardado (${nombres} ${apellidos})`;
+      }
+      previewContent.textContent = JSON.stringify(savedRecord, null, 2);
+      preview.style.display = "block";
+      preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    form.reset();
+  });
+</script>

@@ -4,11 +4,22 @@ import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getCoordinadores, getEventos, getJornadas } from "../../lib/mockData";
 
-const [coordinadores, eventos, jornadas] = await Promise.all([
+const [rawCoordinadores, eventos, jornadas] = await Promise.all([
   getCoordinadores(),
   getEventos(),
   getJornadas(),
 ]);
+
+const coordinadores = rawCoordinadores.map((c) => {
+  if (c.nombres && c.apellidos) return c;
+  const partes = (c.nombre || "").trim().split(/\s+/);
+  const mitad = Math.max(1, Math.ceil(partes.length / 2));
+  return {
+    ...c,
+    nombres: c.nombres || partes.slice(0, mitad).join(" "),
+    apellidos: c.apellidos || partes.slice(mitad).join(" "),
+  };
+});
 
 const totalActividadesCoordinadas = eventos.length + jornadas.length;
 ---
@@ -20,7 +31,8 @@ const totalActividadesCoordinadas = eventos.length + jornadas.length;
 >
   <div slot="actions">
     <a href="/eventos/nuevo"><button class="btn btn-ghost" type="button">+ Asignar en Evento</button></a>
-    <a href="/voluntarios"><button class="btn btn-primary" type="button">Ver Equipo de Voluntarios</button></a>
+    <a href="/voluntarios"><button class="btn btn-ghost" type="button">Ver Equipo de Voluntarios</button></a>
+    <a href="/coordinadores/nuevo"><button class="btn btn-primary" type="button">+ Nuevo Coordinador</button></a>
   </div>
 
   <div class="grid" style="margin-bottom: 1.2rem;">
@@ -29,7 +41,7 @@ const totalActividadesCoordinadas = eventos.length + jornadas.length;
       <div style="font-size:1.6rem; font-weight:700; color:var(--accent);">{coordinadores.length} Coordinadores</div>
     </div>
     <div class="card">
-      <div style="font-size:0.75rem; color:var(--text-muted);">Eventos &amp; Jornadas Supervisadas</div>
+      <div style="font-size:0.75rem; color:var(--text-muted);">Eventos Y Jornadas Supervisadas</div>
       <div style="font-size:1.6rem; font-weight:700;">{totalActividadesCoordinadas} Actividades</div>
     </div>
     <div class="card">
@@ -44,7 +56,7 @@ const totalActividadesCoordinadas = eventos.length + jornadas.length;
     <input
       id="buscar-coord"
       type="search"
-      placeholder="Buscar coordinador por nombre, área o especialidad..."
+      placeholder="Buscar coordinador por nombres, apellidos, área o especialidad..."
       style="flex: 1; min-width: 240px; padding: 0.5rem 0.75rem; border: 1px solid var(--card-border); border-radius: 8px; font-size: 0.85rem;"
     />
     <span id="contador-coord" style="font-size:0.8rem; color:var(--text-muted);">
@@ -54,17 +66,18 @@ const totalActividadesCoordinadas = eventos.length + jornadas.length;
 
   <div id="grid-coordinadores" class="grid">
     {coordinadores.map((c) => {
-      const eventosAsignados = eventos.filter((e) => e.coordinador === c.nombre);
-      const jornadasAsignadas = jornadas.filter((j) => j.coordinador === c.nombre);
+      const nombreCompleto = `${c.nombres} ${c.apellidos}`.trim();
+      const eventosAsignados = eventos.filter((e) => e.coordinador === c.nombre || e.coordinador === nombreCompleto);
+      const jornadasAsignadas = jornadas.filter((j) => j.coordinador === c.nombre || j.coordinador === nombreCompleto);
       return (
         <div
           class="card coord-card"
-          data-nombre={c.nombre.toLowerCase()}
+          data-nombre={nombreCompleto.toLowerCase()}
           data-especialidad={c.especialidad.toLowerCase()}
         >
           <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
             <div>
-              <div style="font-weight:700; font-size:0.95rem;">{c.nombre}</div>
+              <div style="font-weight:700; font-size:0.95rem;">{nombreCompleto}</div>
               <span class="badge badge-media" style="margin-top:0.25rem;">{c.especialidad}</span>
             </div>
             <span class="badge badge-curso">Coordinador ONG</span>
@@ -108,9 +121,51 @@ const totalActividadesCoordinadas = eventos.length + jornadas.length;
 <script>
   const inputBuscar = document.getElementById("buscar-coord") as HTMLInputElement | null;
   const contador = document.getElementById("contador-coord");
-  const cards = Array.from(document.querySelectorAll<HTMLElement>(".coord-card"));
+  const grid = document.getElementById("grid-coordinadores");
+
+  try {
+    const rawLocal = localStorage.getItem("lumbreras_coordinadores_creados");
+    const locales: Array<Record<string, any>> = rawLocal ? JSON.parse(rawLocal) : [];
+    const existentes = new Set(
+      Array.from(document.querySelectorAll<HTMLElement>(".coord-card")).map(
+        (c) => c.dataset.nombre ?? ""
+      )
+    );
+    for (const item of locales) {
+      const full = `${item.nombres ?? ""} ${item.apellidos ?? ""}`.trim();
+      if (full && !existentes.has(full.toLowerCase())) {
+        const card = document.createElement("div");
+        card.className = "card coord-card";
+        card.dataset.nombre = full.toLowerCase();
+        card.dataset.especialidad = String(item.especialidad || "Coordinador").toLowerCase();
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+            <div>
+              <div style="font-weight:700; font-size:0.95rem;">${full}</div>
+              <span class="badge badge-media" style="margin-top:0.25rem;">${item.especialidad || "Coordinador General"}</span>
+            </div>
+            <span class="badge badge-curso">Coordinador ONG</span>
+          </div>
+          <div style="margin-top:0.75rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.28rem;">
+            <span>${item.email || "coordinador@lumbrerasdeamor.org"}</span>
+            <span>${item.telefono || "+502 0000 0000"}</span>
+            <span>Disponibilidad: ${item.disponibilidad || "Tiempo completo"}</span>
+          </div>
+          <div style="margin-top:0.75rem; padding-top:0.65rem; border-top:1px solid var(--card-border); font-size:0.76rem;">
+            <strong style="display:block; margin-bottom:0.35rem; color:var(--text-main);">
+              Actividades bajo su coordinación (0):
+            </strong>
+            <span style="color:var(--text-muted);">Disponible para próxima asignación</span>
+          </div>
+        `;
+        grid?.prepend(card);
+        existentes.add(full.toLowerCase());
+      }
+    }
+  } catch {}
 
   inputBuscar?.addEventListener("input", () => {
+    const cards = Array.from(document.querySelectorAll<HTMLElement>(".coord-card"));
     const q = inputBuscar.value.trim().toLowerCase();
     let visibles = 0;
     for (const card of cards) {

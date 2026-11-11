@@ -116,24 +116,57 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     </section>
 
     <!-- =================================================================== -->
-    <!-- PÁGINA 2: COORDINADOR DESPLEGABLE Y VOLUNTARIOS PROPIOS / EXTERNOS  -->
+    <!-- PÁGINA 2: BUSCADOR REACTIVO DE COORDINADOR Y VOLUNTARIOS            -->
     <!-- =================================================================== -->
     <section class="wizard-page" data-page="2" style="display: none;">
       <div class="page-header">
         <h3>2. Coordinador Responsable y Equipo de Voluntarios Asignados</h3>
-        <p>Seleccioná al coordinador del evento y asigná por nombre a los voluntarios propios de la ONG y voluntarios externos.</p>
+        <p>Buscá y seleccioná en tiempo real al coordinador responsable del evento y asigná a los voluntarios propios y externos.</p>
       </div>
 
-      <div class="form-grid" style="margin-bottom: 1rem;">
-        <label style="grid-column: 1 / -1;">
+      <!-- BUSCADOR REACTIVO DE COORDINADORES (F4-01) -->
+      <div
+        id="coord-autocomplete-root"
+        class="coord-autocomplete-wrapper"
+        data-coordinadores={JSON.stringify(coordinadores)}
+      >
+        <label class="coord-field-label" for="coord-search-input">
           Coordinador responsable *
-          <select id="ev-coordinador" name="coordinador" required>
-            <option value="">Seleccionar coordinador registrado...</option>
-            {coordinadores.map((c) => (
-              <option value={c.nombre}>{c.nombre} — {c.especialidad}</option>
-            ))}
-          </select>
         </label>
+        <input type="hidden" id="ev-coordinador" name="coordinador" value="" required />
+
+        <!-- Input de búsqueda reactiva con lista flotante -->
+        <div id="coord-search-container" class="coord-search-container">
+          <div class="coord-input-wrap">
+            <span class="coord-search-icon"><Icon name="search" /></span>
+            <input
+              id="coord-search-input"
+              type="search"
+              autocomplete="off"
+              placeholder="Escribí el nombre, apellido o especialidad del coordinador..."
+              class="coord-search-box"
+            />
+          </div>
+          <div id="coord-dropdown-results" class="coord-dropdown-results" style="display: none;"></div>
+        </div>
+
+        <!-- Tarjeta / Chip visual del coordinador seleccionado -->
+        <div id="coord-selected-card" class="coord-selected-card" style="display: none;">
+          <div class="coord-selected-info">
+            <div class="coord-avatar-badge">★</div>
+            <div>
+              <div class="coord-selected-top">
+                <strong id="coord-selected-name" class="coord-selected-name"></strong>
+                <span id="coord-selected-esp" class="badge badge-media"></span>
+                <span id="coord-selected-estado" class="badge badge-baja">Activo</span>
+              </div>
+              <div id="coord-selected-meta" class="coord-selected-meta"></div>
+            </div>
+          </div>
+          <button type="button" id="btn-clear-coord" class="btn-change-coord" title="Cambiar o remover coordinador">
+            ✕ Cambiar selección
+          </button>
+        </div>
       </div>
 
       <!-- SELECTOR NO GRAVOSO DE VOLUNTARIOS UNIDO CON EQUIPO DE VOLUNTARIOS -->
@@ -395,6 +428,160 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     font-family: inherit;
   }
 
+  /* Buscador reactivo de coordinadores (F4-01) */
+  .coord-autocomplete-wrapper {
+    margin-bottom: 1.05rem;
+  }
+  .coord-field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 0.35rem;
+  }
+  .coord-search-container {
+    position: relative;
+  }
+  .coord-input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .coord-search-icon {
+    position: absolute;
+    left: 0.65rem;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    pointer-events: none;
+  }
+  .coord-search-box {
+    width: 100%;
+    padding: 0.52rem 0.7rem 0.52rem 2.1rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    background: #fff;
+    font-family: inherit;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .coord-search-box:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.14);
+  }
+  .coord-dropdown-results {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: #ffffff;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.12);
+    max-height: 230px;
+    overflow-y: auto;
+    padding: 0.35rem;
+  }
+  :global(.coord-result-item) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.52rem 0.65rem;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.12s ease;
+  }
+  :global(.coord-result-item:hover) {
+    background: #f0fdfa;
+  }
+  :global(.coord-result-main) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+  :global(.coord-result-name) {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+  :global(.coord-result-sub) {
+    font-size: 0.73rem;
+    color: var(--text-muted);
+  }
+  :global(.coord-result-badges) {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+  :global(.coord-empty-results) {
+    padding: 0.65rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .coord-selected-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.68rem 0.85rem;
+    background: #f0fdfa;
+    border: 1px solid #99f6e4;
+    border-radius: 10px;
+  }
+  .coord-selected-info {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .coord-avatar-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .coord-selected-top {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .coord-selected-name {
+    font-size: 0.86rem;
+    color: var(--text-main);
+  }
+  .coord-selected-meta {
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+  .btn-change-coord {
+    border: 1px solid #99f6e4;
+    background: #ffffff;
+    color: #0f766e;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.65rem;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    white-space: nowrap;
+  }
+  .btn-change-coord:hover {
+    background: #ccfbf1;
+  }
+
   /* Selector no gravoso de voluntarios */
   .vol-selector-wrapper {
     border: 1px solid var(--card-border);
@@ -580,13 +767,176 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   const inputHorario = document.getElementById("ev-horario") as HTMLInputElement | null;
   const inputUbicacion = document.getElementById("ev-ubicacion") as HTMLInputElement | null;
   const inputConvocados = document.getElementById("ev-convocados") as HTMLInputElement | null;
-  const selectCoordinador = document.getElementById("ev-coordinador") as HTMLSelectElement | null;
+  const inputCoordinador = document.getElementById("ev-coordinador") as HTMLInputElement | null;
   const inputPresupuesto = document.getElementById("ev-presupuesto") as HTMLInputElement | null;
   const inputPresupuestoPreview = document.getElementById("ev-presupuesto-preview") as HTMLInputElement | null;
   const inputDescripcion = document.getElementById("ev-descripcion") as HTMLTextAreaElement | null;
   const resumenGrid = document.getElementById("resumen-previo-grid");
   const btnSubmit = document.getElementById("btn-submit-evento") as HTMLButtonElement | null;
   const headingEl = document.getElementById("wizard-main-heading");
+
+  // Controles del buscador reactivo de coordinadores (F4-01)
+  interface CoordItem {
+    id: string;
+    nombres?: string;
+    apellidos?: string;
+    nombre: string;
+    especialidad: string;
+    email?: string;
+    telefono?: string;
+    disponibilidad?: string;
+    estado?: string;
+  }
+
+  const coordRoot = document.getElementById("coord-autocomplete-root");
+  const coordSearchContainer = document.getElementById("coord-search-container");
+  const coordSearchInput = document.getElementById("coord-search-input") as HTMLInputElement | null;
+  const coordDropdown = document.getElementById("coord-dropdown-results");
+  const coordSelectedCard = document.getElementById("coord-selected-card");
+  const coordSelectedName = document.getElementById("coord-selected-name");
+  const coordSelectedEsp = document.getElementById("coord-selected-esp");
+  const coordSelectedEstado = document.getElementById("coord-selected-estado");
+  const coordSelectedMeta = document.getElementById("coord-selected-meta");
+  const btnClearCoord = document.getElementById("btn-clear-coord");
+
+  const initialCoordinadores: CoordItem[] = coordRoot?.dataset.coordinadores
+    ? JSON.parse(coordRoot.dataset.coordinadores)
+    : [];
+  let cachedCoordinadores: CoordItem[] = [...initialCoordinadores];
+  let ultimoResultadosCoord: CoordItem[] = [...initialCoordinadores];
+  let debounceCoordTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function obtenerNombreCompletoCoord(c: CoordItem): string {
+    if (c.nombres && c.apellidos) {
+      return `${c.nombres} ${c.apellidos}`.trim();
+    }
+    return c.nombre;
+  }
+
+  function seleccionarCoordinador(coord: CoordItem) {
+    const nombreCompleto = obtenerNombreCompletoCoord(coord);
+    if (inputCoordinador) inputCoordinador.value = nombreCompleto;
+    if (coordSelectedName) coordSelectedName.textContent = nombreCompleto;
+    if (coordSelectedEsp) coordSelectedEsp.textContent = coord.especialidad || "Coordinación";
+    if (coordSelectedEstado) coordSelectedEstado.textContent = coord.estado || "Activo";
+    if (coordSelectedMeta) {
+      const partes = [coord.email, coord.telefono, coord.disponibilidad ? `Disp: ${coord.disponibilidad}` : ""]
+        .filter(Boolean)
+        .join(" · ");
+      coordSelectedMeta.textContent = partes || "Coordinador habilitado de Lumbreras de Amor";
+    }
+    if (coordSearchContainer) coordSearchContainer.style.display = "none";
+    if (coordDropdown) coordDropdown.style.display = "none";
+    if (coordSelectedCard) coordSelectedCard.style.display = "flex";
+    if (errorEl) errorEl.style.display = "none";
+  }
+
+  function limpiarCoordinadorSeleccionado() {
+    if (inputCoordinador) inputCoordinador.value = "";
+    if (coordSelectedCard) coordSelectedCard.style.display = "none";
+    if (coordSearchContainer) coordSearchContainer.style.display = "block";
+    if (coordSearchInput) {
+      coordSearchInput.value = "";
+      coordSearchInput.focus();
+    }
+    renderizarResultadosCoordinadores(cachedCoordinadores);
+  }
+
+  function renderizarResultadosCoordinadores(lista: CoordItem[]) {
+    ultimoResultadosCoord = lista;
+    if (!coordDropdown) return;
+    if (lista.length === 0) {
+      coordDropdown.innerHTML = `<div class="coord-empty-results">No se encontraron coordinadores con ese criterio.</div>`;
+      coordDropdown.style.display = "block";
+      return;
+    }
+
+    coordDropdown.innerHTML = "";
+    for (const c of lista) {
+      const nombreCompleto = obtenerNombreCompletoCoord(c);
+      const item = document.createElement("div");
+      item.className = "coord-result-item";
+      item.innerHTML = `
+        <div class="coord-result-main">
+          <span class="coord-result-name">${nombreCompleto}</span>
+          <span class="coord-result-sub">${c.especialidad}${c.email ? ` · ${c.email}` : ""}</span>
+        </div>
+        <div class="coord-result-badges">
+          <span class="badge badge-media">${c.especialidad}</span>
+          <span class="badge badge-baja">${c.estado || "Activo"}</span>
+        </div>
+      `;
+      item.addEventListener("click", () => seleccionarCoordinador(c));
+      coordDropdown.appendChild(item);
+    }
+    coordDropdown.style.display = "block";
+  }
+
+  async function buscarCoordinadoresReactivo(query: string) {
+    const q = query.trim();
+    // Filtrado local inmediato para respuesta instantánea
+    const qLower = q.toLowerCase();
+    const filtradosLocal = !qLower
+      ? cachedCoordinadores
+      : cachedCoordinadores.filter((c) => {
+          const full = obtenerNombreCompletoCoord(c).toLowerCase();
+          return (
+            full.includes(qLower) ||
+            c.nombre.toLowerCase().includes(qLower) ||
+            (c.especialidad || "").toLowerCase().includes(qLower)
+          );
+        });
+    renderizarResultadosCoordinadores(filtradosLocal);
+
+    // Consulta reactiva al Sidecar (/coordinadores?q=...)
+    try {
+      const url = q
+        ? `http://127.0.0.1:4111/coordinadores?q=${encodeURIComponent(q)}`
+        : "http://127.0.0.1:4111/coordinadores";
+      const res = await fetch(url, { signal: AbortSignal.timeout(1500) });
+      if (res.ok) {
+        const payload = (await res.json()) as { success: boolean; data: CoordItem[] };
+        if (payload.success && Array.isArray(payload.data)) {
+          if (!q && payload.data.length > 0) {
+            cachedCoordinadores = payload.data;
+          }
+          renderizarResultadosCoordinadores(payload.data);
+        }
+      }
+    } catch {
+      // Mantiene resultados locales filtrados si el Sidecar está offline
+    }
+  }
+
+  coordSearchInput?.addEventListener("focus", () => {
+    buscarCoordinadoresReactivo(coordSearchInput.value);
+  });
+
+  coordSearchInput?.addEventListener("input", () => {
+    if (debounceCoordTimer) clearTimeout(debounceCoordTimer);
+    debounceCoordTimer = setTimeout(() => {
+      buscarCoordinadoresReactivo(coordSearchInput.value);
+    }, 180);
+  });
+
+  coordSearchInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (ultimoResultadosCoord.length > 0) {
+        seleccionarCoordinador(ultimoResultadosCoord[0]);
+      }
+    } else if (e.key === "Escape" && coordDropdown) {
+      coordDropdown.style.display = "none";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (coordRoot && !coordRoot.contains(e.target as Node) && coordDropdown) {
+      coordDropdown.style.display = "none";
+    }
+  });
+
+  btnClearCoord?.addEventListener("click", limpiarCoordinadorSeleccionado);
 
   // Controles de voluntarios
   const checkboxes = Array.from(
@@ -696,7 +1046,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
       if (currentPage === 1) {
         e.preventDefault();
         if (validarPaginaActual(1)) irAPagina(2);
-      } else if (currentPage === 2 && e.target !== searchInput) {
+      } else if (currentPage === 2 && e.target !== searchInput && e.target !== coordSearchInput) {
         e.preventDefault();
         if (validarPaginaActual(2)) irAPagina(3);
       }
@@ -727,7 +1077,23 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
         if (inputHorario && ev.horario) inputHorario.value = ev.horario;
         if (inputUbicacion && ev.ubicacion) inputUbicacion.value = ev.ubicacion;
         if (inputConvocados) inputConvocados.value = String(ev.convocados ?? 40);
-        if (selectCoordinador && ev.coordinador) selectCoordinador.value = ev.coordinador;
+        if (ev.coordinador) {
+          const foundCoord = cachedCoordinadores.find(
+            (c) =>
+              c.nombre.toLowerCase() === String(ev.coordinador).toLowerCase() ||
+              obtenerNombreCompletoCoord(c).toLowerCase() === String(ev.coordinador).toLowerCase()
+          );
+          if (foundCoord) {
+            seleccionarCoordinador(foundCoord);
+          } else {
+            seleccionarCoordinador({
+              id: "coord-edit",
+              nombre: String(ev.coordinador),
+              especialidad: "Coordinación Asignada",
+              estado: "Activo",
+            });
+          }
+        }
         if (inputPresupuesto) {
           const monto = Number(ev.presupuestoTotal) || 0;
           inputPresupuesto.value = monto.toFixed(2);
@@ -759,9 +1125,23 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   function validarPaginaActual(pagina: number): boolean {
     const pageEl = pages.find((p) => Number(p.dataset.page) === pagina);
     if (!pageEl) return true;
+
+    if (pagina === 2) {
+      const coordVal = (inputCoordinador?.value ?? "").trim();
+      if (!coordVal) {
+        if (errorEl) {
+          errorEl.textContent =
+            "Seleccioná un coordinador responsable válido en el buscador antes de avanzar a la Página 3.";
+          errorEl.style.display = "block";
+        }
+        coordSearchInput?.focus();
+        return false;
+      }
+    }
+
     const campos = Array.from(
       pageEl.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
-        "input[required], select[required], textarea[required]"
+        "input[required]:not([type='hidden']), select[required], textarea[required]"
       )
     );
     for (const campo of campos) {
@@ -786,7 +1166,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     const fecha = inputFecha?.value || "—";
     const horario = inputHorario?.value || "—";
     const ubicacion = inputUbicacion?.value || "—";
-    const coordinador = selectCoordinador?.value || "—";
+    const coordinador = inputCoordinador?.value || "—";
     const presupuesto = parseFloat(inputPresupuesto?.value || "0") || 0;
     const seleccionados = obtenerVoluntariosSeleccionados();
 

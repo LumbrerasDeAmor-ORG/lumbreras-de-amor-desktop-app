@@ -4,7 +4,17 @@ import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
 import { getVoluntarios } from "../../lib/mockData";
 
-const voluntarios = await getVoluntarios();
+const rawVoluntarios = await getVoluntarios();
+const voluntarios = rawVoluntarios.map((v) => {
+  if (v.nombres && v.apellidos) return v;
+  const partes = (v.nombre || "").trim().split(/\s+/);
+  const mitad = Math.max(1, Math.ceil(partes.length / 2));
+  return {
+    ...v,
+    nombres: v.nombres || partes.slice(0, mitad).join(" "),
+    apellidos: v.apellidos || partes.slice(mitad).join(" "),
+  };
+});
 const propios = voluntarios.filter((v) => v.tipo === "Propio");
 const externos = voluntarios.filter((v) => v.tipo === "Externo");
 const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
@@ -17,7 +27,8 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
 >
   <div slot="actions">
     <a href="/eventos/nuevo"><button class="btn btn-ghost" type="button">Asignar a Evento</button></a>
-    <button id="btn-toggle-nuevo-vol" class="btn btn-primary" type="button">+ Nuevo Voluntario</button>
+    <button id="btn-toggle-nuevo-vol" class="btn btn-ghost" type="button">Registro Rápido</button>
+    <a href="/voluntarios/nuevo"><button class="btn btn-primary" type="button">+ Nuevo Voluntario</button></a>
   </div>
 
   <!-- RESUMEN KPI: PROPIOS VS EXTERNOS -->
@@ -42,7 +53,7 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
     </div>
   </div>
 
-  <!-- FORMULARIO DESPLEGABLE PARA REGISTRAR VOLUNTARIO (PROPIO / EXTERNO) -->
+  <!-- FORMULARIO DESPLEGABLE CON DIVISIÓN OBLIGATORIA EN NOMBRES Y APELLIDOS (F4-02) -->
   <form id="form-nuevo-voluntario" class="card" style="display:none; margin-bottom:1.2rem; max-width: 720px;" novalidate>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
       <strong style="font-size:0.92rem;">Registrar Integrante en el Equipo de Voluntarios</strong>
@@ -50,8 +61,12 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
     </div>
     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.8rem;">
       <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
-        Nombre completo *
-        <input name="nombre" type="text" placeholder="Ej: Lic. Gabriela Morales" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+        Nombres *
+        <input name="nombres" type="text" placeholder="Ej: Gabriela María" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Apellidos *
+        <input name="apellidos" type="text" placeholder="Ej: Morales Soto" required style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
       </label>
       <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
         Clasificación del voluntario *
@@ -75,6 +90,10 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
       <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
         Teléfono
         <input name="telefono" type="tel" placeholder="+502 5555 0000" style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
+      </label>
+      <label style="display:flex; flex-direction:column; gap:0.25rem; font-size:0.8rem; font-weight:600;">
+        Disponibilidad
+        <input name="disponibilidad" type="text" placeholder="Ej: Fines de semana / Tardes" style="padding:0.48rem 0.6rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.84rem;" />
       </label>
     </div>
     <div style="margin-top:0.9rem; display:flex; gap:0.6rem;">
@@ -100,7 +119,7 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
     <input
       id="buscar-voluntario"
       type="search"
-      placeholder="Buscar voluntario por nombre o especialidad..."
+      placeholder="Buscar voluntario por nombres, apellidos o especialidad..."
       class="vol-search"
     />
   </div>
@@ -110,12 +129,12 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
       <div
         class="card voluntario-card"
         data-tipo={v.tipo}
-        data-nombre={v.nombre.toLowerCase()}
+        data-nombre={`${v.nombres} ${v.apellidos}`.toLowerCase()}
         data-especialidad={v.especialidad.toLowerCase()}
       >
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
           <div>
-            <div style="font-weight:700; font-size:0.92rem;">{v.nombre}</div>
+            <div style="font-weight:700; font-size:0.92rem;">{`${v.nombres} ${v.apellidos}`}</div>
             <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">{v.especialidad}</span>
           </div>
           <span class={`badge ${v.tipo === "Propio" ? "badge-curso" : "badge-alta"}`}>
@@ -240,47 +259,125 @@ const totalHoras = voluntarios.reduce((sum, v) => sum + v.horasAcumuladas, 0);
     if (formNuevo) formNuevo.style.display = "none";
   });
 
-  formNuevo?.addEventListener("submit", (e) => {
+  function crearTarjetaVoluntario(v: {
+    nombres: string;
+    apellidos: string;
+    tipo: string;
+    especialidad: string;
+    organizacionOrigen: string;
+    email: string;
+    telefono: string;
+    disponibilidad: string;
+    horasAcumuladas?: number;
+  }) {
+    const nombreCompleto = `${v.nombres} ${v.apellidos}`.trim();
+    const card = document.createElement("div");
+    card.className = "card voluntario-card";
+    card.dataset.tipo = v.tipo;
+    card.dataset.nombre = nombreCompleto.toLowerCase();
+    card.dataset.especialidad = v.especialidad.toLowerCase();
+    card.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
+        <div>
+          <div style="font-weight:700; font-size:0.92rem;">${nombreCompleto}</div>
+          <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">${v.especialidad}</span>
+        </div>
+        <span class="badge ${v.tipo === "Propio" ? "badge-curso" : "badge-alta"}">
+          ${v.tipo === "Propio" ? "Propio (ONG)" : "Externo"}
+        </span>
+      </div>
+      <div style="margin-top:0.55rem; font-size:0.74rem; color:var(--text-muted); font-weight:600;">
+        Procedencia: <span style="color:var(--text-main);">${v.organizacionOrigen}</span>
+      </div>
+      <div style="margin-top:0.65rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
+        <span>${v.email}</span>
+        <span>${v.telefono}</span>
+        <span>Disponibilidad: ${v.disponibilidad}</span>
+      </div>
+      <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted);">
+        Horas Acumuladas: <strong style="color: var(--text-main);">${v.horasAcumuladas ?? 0} hrs</strong>
+      </div>
+    `;
+    return card;
+  }
+
+  // Cargar voluntarios guardados localmente si el Sidecar estaba offline
+  try {
+    const rawLocal = localStorage.getItem("lumbreras_voluntarios_creados");
+    const locales: Array<Record<string, any>> = rawLocal ? JSON.parse(rawLocal) : [];
+    const existentes = new Set(
+      Array.from(document.querySelectorAll<HTMLElement>(".voluntario-card")).map(
+        (c) => c.dataset.nombre ?? ""
+      )
+    );
+    for (const item of locales) {
+      const full = `${item.nombres ?? ""} ${item.apellidos ?? ""}`.trim().toLowerCase();
+      if (full && !existentes.has(full)) {
+        grid?.prepend(
+          crearTarjetaVoluntario({
+            nombres: item.nombres || "",
+            apellidos: item.apellidos || "",
+            tipo: item.tipo || "Propio",
+            especialidad: item.especialidad || "Voluntariado General",
+            organizacionOrigen:
+              item.organizacionOrigen ||
+              (item.tipo === "Propio" ? "Lumbreras de Amor (Planta ONG)" : "Entidad Aliada"),
+            email: item.email || "voluntario@lumbrerasdeamor.org",
+            telefono: item.telefono || "+502 0000 0000",
+            disponibilidad: item.disponibilidad || "Flexible",
+            horasAcumuladas: Number(item.horasAcumuladas) || 0,
+          })
+        );
+        existentes.add(full);
+      }
+    }
+  } catch {}
+
+  formNuevo?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!formNuevo.checkValidity()) {
       formNuevo.reportValidity();
       return;
     }
     const data = Object.fromEntries(new FormData(formNuevo).entries());
-    const nombre = String(data.nombre ?? "").trim();
+    const nombres = String(data.nombres ?? "").trim();
+    const apellidos = String(data.apellidos ?? "").trim();
     const tipo = String(data.tipo ?? "Propio");
     const especialidad = String(data.especialidad ?? "Voluntariado General").trim();
-    const org = String(data.organizacionOrigen || (tipo === "Propio" ? "Lumbreras de Amor (Planta ONG)" : "Entidad Aliada"));
+    const org = String(
+      data.organizacionOrigen || (tipo === "Propio" ? "Lumbreras de Amor (Planta ONG)" : "Entidad Aliada")
+    );
     const email = String(data.email || "voluntario@lumbrerasdeamor.org");
     const telefono = String(data.telefono || "+502 0000 0000");
+    const disponibilidad = String(data.disponibilidad || "Por coordinar");
 
-    const card = document.createElement("div");
-    card.className = "card voluntario-card";
-    card.dataset.tipo = tipo;
-    card.dataset.nombre = nombre.toLowerCase();
-    card.dataset.especialidad = especialidad.toLowerCase();
-    card.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.4rem;">
-        <div>
-          <div style="font-weight:700; font-size:0.92rem;">${nombre}</div>
-          <span class="badge badge-media" style="margin-top:0.3rem; display:inline-block;">${especialidad}</span>
-        </div>
-        <span class="badge ${tipo === "Propio" ? "badge-curso" : "badge-alta"}">
-          ${tipo === "Propio" ? "Propio (ONG)" : "Externo"}
-        </span>
-      </div>
-      <div style="margin-top:0.55rem; font-size:0.74rem; color:var(--text-muted); font-weight:600;">
-        Procedencia: <span style="color:var(--text-main);">${org}</span>
-      </div>
-      <div style="margin-top:0.65rem; font-size:0.78rem; display:flex; flex-direction:column; gap:0.25rem;">
-        <span>${email}</span>
-        <span>${telefono}</span>
-        <span>Disponibilidad: Por coordinar</span>
-      </div>
-      <div style="margin-top:0.8rem; font-size:0.75rem; color:var(--text-muted);">
-        Horas Acumuladas: <strong style="color: var(--text-main);">0 hrs</strong>
-      </div>
-    `;
+    try {
+      await fetch("http://127.0.0.1:4111/voluntarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombres,
+          apellidos,
+          nombre_completo: `${nombres} ${apellidos}`.trim(),
+          tipo,
+          especialidad,
+          email,
+          telefono,
+          disponibilidad,
+        }),
+      });
+    } catch {}
+
+    const card = crearTarjetaVoluntario({
+      nombres,
+      apellidos,
+      tipo,
+      especialidad,
+      organizacionOrigen: org,
+      email,
+      telefono,
+      disponibilidad,
+    });
     grid?.prepend(card);
     formNuevo.reset();
     formNuevo.style.display = "none";

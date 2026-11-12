@@ -33,20 +33,20 @@ const actividades = [
     style="max-width: 900px;"
     data-reporte={JSON.stringify({ resumen, actividades, donaciones })}
   >
-    <h2 style="font-size:1.1rem;">Informe Mensual de Impacto &amp; Gestión Social</h2>
+    <h2 style="font-size:1.1rem;">Informe Mensual de Impacto Y Gestión Social</h2>
     <p style="font-size:0.8rem; color:var(--text-muted);">Período: {resumen.periodo}</p>
 
     <div class="grid" style="margin-top:1rem;">
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Beneficiarios Atendidos</div><div style="font-size:1.4rem; font-weight:700;">{resumen.beneficiariosAtendidos}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Jornadas Realizadas</div><div style="font-size:1.4rem; font-weight:700;">{resumen.jornadasRealizadas}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Eventos Realizados</div><div style="font-size:1.4rem; font-weight:700;">{resumen.eventosRealizados}</div></div>
-      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700; color:var(--accent);">{formatQ(resumen.fondosRecaudados)}</div></div>
+      <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Fondos Recaudados</div><div style="font-size:1.4rem; font-weight:700; color:var(--accent); font-variant-numeric: tabular-nums;">{formatQ(resumen.fondosRecaudados)}</div></div>
       <div class="card"><div style="font-size:0.72rem; color:var(--text-muted);">Horas Voluntariado</div><div style="font-size:1.4rem; font-weight:700;">{resumen.horasVoluntariado}h</div></div>
     </div>
 
     <h3 style="font-size:0.9rem; margin-top:1.4rem;">Desglose de Jornadas y Eventos</h3>
     <table class="tabla-reporte">
-      <thead><tr><th>Actividad</th><th>Tipo</th><th>Categoría</th><th>Estado</th><th>Asistencia</th><th>Presupuesto</th></tr></thead>
+      <thead><tr><th>Actividad</th><th>Tipo</th><th>Categoría</th><th>Estado</th><th>Asistencia</th><th class="col-monto">Presupuesto</th></tr></thead>
       <tbody>
         {actividades.map((e) => (
           <tr>
@@ -55,15 +55,15 @@ const actividades = [
             <td>{e.categoria}</td>
             <td>{e.estado}</td>
             <td>{e.asistieron} / {e.convocados}</td>
-            <td>{formatQ(e.presupuestoEjecutado)}</td>
+            <td class="col-monto">{formatQ(e.presupuestoEjecutado)}</td>
           </tr>
         ))}
       </tbody>
     </table>
 
-    <h3 style="font-size:0.9rem; margin-top:1.4rem;">Transparencia de Aportes &amp; Donaciones Recibidas</h3>
+    <h3 style="font-size:0.9rem; margin-top:1.4rem;">Transparencia de Aportes Y Donaciones Recibidas</h3>
     <table class="tabla-reporte">
-      <thead><tr><th>Recibo</th><th>Donante</th><th>Tipo</th><th>Destino</th><th>Descripción del Donativo</th><th>Monto</th></tr></thead>
+      <thead><tr><th>Recibo</th><th>Donante</th><th>Tipo</th><th>Destino</th><th>Descripción del Donativo</th><th class="col-monto">Monto</th></tr></thead>
       <tbody>
         {donaciones.map((d) => (
           <tr>
@@ -72,7 +72,7 @@ const actividades = [
             <td>{d.tipo}</td>
             <td>{d.destino}</td>
             <td style="color:var(--text-muted); font-size:0.76rem;">{d.descripcion}</td>
-            <td style="white-space:nowrap; font-weight:600; color:var(--accent);">{formatQ(d.monto)}</td>
+            <td class="col-monto" style="font-weight:600; color:var(--accent);">{formatQ(d.monto)}</td>
           </tr>
         ))}
       </tbody>
@@ -84,6 +84,14 @@ const actividades = [
   .tabla-reporte { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.6rem; }
   .tabla-reporte th { text-align: left; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--card-border); }
   .tabla-reporte td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--card-border); }
+  .tabla-reporte th.col-monto,
+  .tabla-reporte td.col-monto,
+  .col-monto {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-family: monospace, ui-monospace, sans-serif;
+    white-space: nowrap;
+  }
 
   /* US-12: estilos de impresión. Sidebar, topbar y titlebar se ocultan desde Layout/TitleBar. */
   .estado-export { font-size: 0.8rem; color: var(--text-muted); min-height: 1.2rem; margin-bottom: 0.6rem; }

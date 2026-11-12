@@ -12,7 +12,7 @@
     "desktop:build": "pnpm --filter @lumbreras/desktop tauri build",
     "sidecar:dev": "pnpm --filter @lumbreras/sidecar dev",
     "sidecar:build": "pnpm --filter @lumbreras/sidecar build:binary",
-    "test": "vitest run",
+    "test": "pnpm --filter @lumbreras/database push && vitest run --no-file-parallelism",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down"

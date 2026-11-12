@@ -2,10 +2,19 @@
 // apps/desktop/src/pages/viveres/index.astro
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
-import { getViveres, getDonaciones } from "../../lib/mockData";
+import {
+  CATEGORIAS_DONATIVO_ESPECIE,
+  getViveres,
+  getDonaciones,
+  getDonantes,
+} from "../../lib/mockData";
 import { formatQ } from "../../lib/currency";
 
-const [items, donaciones] = await Promise.all([getViveres(), getDonaciones()]);
+const [items, donaciones, donantes] = await Promise.all([
+  getViveres(),
+  getDonaciones(),
+  getDonantes(),
+]);
 
 const totalFondos = donaciones.reduce((sum, d) => sum + d.monto, 0);
 
@@ -17,11 +26,12 @@ const estadoClass: Record<string, string> = {
 ---
 
 <Layout
-  title="Víveres & Donaciones"
+  title="Víveres Y Donaciones"
   subtitle="Gestión práctica clasificada por donativos en especie (inventario) y donativos económicos en Quetzales (Q)"
   active="viveres"
 >
   <div slot="actions">
+    <a href="/donantes"><button class="btn btn-ghost" type="button">Directorio de Donantes</button></a>
     <button id="btn-nuevo-especie" class="btn btn-primary" type="button">+ Nuevo Donativo en Especie</button>
     <button id="btn-nuevo-economico" class="btn btn-primary" type="button" style="display:none;">+ Nueva Donación Económica</button>
   </div>
@@ -35,7 +45,7 @@ const estadoClass: Record<string, string> = {
     </button>
   </div>
 
-  <!-- FORMULARIO RÁPIDO: NUEVO DONATIVO EN ESPECIE -->
+  <!-- FORMULARIO RÁPIDO: NUEVO DONATIVO EN ESPECIE (F4-04: Categorías sin '&', con Vitaminas, Juguetes y Medicamentos) -->
   <form id="form-especie" class="card form-donativo" style="display:none;" novalidate>
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
       <strong style="font-size:0.9rem;">Registrar Donativo en Especie (Víveres / Insumos)</strong>
@@ -49,15 +59,14 @@ const estadoClass: Record<string, string> = {
       <label>
         Categoría *
         <select name="categoria" required>
-          <option value="Víveres no perecederos">Víveres no perecederos</option>
-          <option value="Nutrición & Suplementos">Nutrición &amp; Suplementos</option>
-          <option value="Material Educativo & Didáctico">Material Educativo &amp; Didáctico</option>
-          <option value="Ropa y Calzado">Ropa y Calzado</option>
+          {CATEGORIAS_DONATIVO_ESPECIE.map((cat) => (
+            <option value={cat}>{cat}</option>
+          ))}
         </select>
       </label>
       <label>
         Donante / Fuente *
-        <input name="fuente" type="text" placeholder="Ej: Alimentos S.A. / Donante Particular" required />
+        <input name="fuente" type="text" placeholder="Ej: Farmacias La Merced / Donante Particular" required />
       </label>
       <label>
         Ubicación en Bodega *
@@ -90,11 +99,17 @@ const estadoClass: Record<string, string> = {
     </div>
   </form>
 
-  <!-- FORMULARIO RÁPIDO: NUEVA DONACIÓN ECONÓMICA -->
-  <form id="form-economico" class="card form-donativo" style="display:none;" novalidate>
+  <!-- FORMULARIO RÁPIDO: NUEVA DONACIÓN ECONÓMICA (F4-06: Selector de Donantes Registrados, NIT y Persona Individual/Jurídica) -->
+  <form
+    id="form-economico"
+    class="card form-donativo"
+    style="display:none;"
+    data-donantes={JSON.stringify(donantes)}
+    novalidate
+  >
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
       <strong style="font-size:0.9rem;">Registrar Nueva Donación Económica (Q)</strong>
-      <span class="badge badge-curso">Moneda: Quetzales (Q)</span>
+      <span class="badge badge-curso">Vinculado con Catálogo de Donantes (NIT)</span>
     </div>
     <div class="donativo-grid">
       <label>
@@ -102,21 +117,45 @@ const estadoClass: Record<string, string> = {
         <input name="recibo" type="text" placeholder="Ej: REC-2026-092" required />
       </label>
       <label>
-        Nombre del Donante *
-        <input name="donante" type="text" placeholder="Ej: Cooperativa El Quetzal" required />
+        Donante Registrado *
+        <select id="select-donante-economico" name="id_donante" required>
+          <option value="">Seleccionar donante registrado...</option>
+          {donantes.map((d) => (
+            <option
+              value={String(d.idDonante ?? d.id)}
+              data-nombre={d.nombre}
+              data-tipo={d.tipoPersona || d.tipo}
+              data-nit={d.nit}
+            >
+              {d.nombre} — NIT: {d.nit} ({d.tipoPersona || d.tipo})
+            </option>
+          ))}
+        </select>
+        <input type="hidden" id="input-nombre-donante-hidden" name="donante" value="" />
       </label>
       <label>
         Tipo de Donante *
-        <select name="tipo" required>
-          <option value="Empresa">Empresa</option>
-          <option value="Persona Natural">Persona Natural</option>
+        <select id="select-tipo-donante" name="tipo" required>
+          <option value="Persona Jurídica">Persona Jurídica</option>
+          <option value="Persona Individual">Persona Individual</option>
         </select>
+      </label>
+      <label>
+        NIT Asociado al Donante
+        <input
+          id="input-nit-economico"
+          name="nit"
+          type="text"
+          readonly
+          placeholder="Se autocompleta al seleccionar donante"
+          style="background:#f0fdfa; font-family:monospace; font-weight:700; color:#0f766e;"
+        />
       </label>
       <label>
         Monto del Donativo (Q) *
         <input name="monto" type="number" min="0.01" step="0.01" placeholder="Ej: 1500.00" required />
       </label>
-      <label style="grid-column: 1 / -1;">
+      <label>
         Destino / Programa *
         <input name="destino" type="text" placeholder="Ej: Jornada Multidisciplinaria Salud / Entrega de Víveres" required />
       </label>
@@ -138,14 +177,30 @@ const estadoClass: Record<string, string> = {
 
   <!-- SECCIÓN 1: DONATIVOS EN ESPECIE (INVENTARIO) -->
   <div id="panel-especie" class="tab-panel">
-    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.8rem;">
-      Registro práctico de alimentos, suplementos nutricionales, juguetes, insumos escolares y vestimenta recibidos como donativo en especie.
+    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+      Registro práctico de alimentos, vitaminas, juguetes, medicamentos, material educativo y didáctico, y ropa y calzado recibidos como donativo en especie.
     </p>
+
+    <!-- FILTROS REACTIVOS POR CATEGORÍA DE ESPECIE (F4-04) -->
+    <div class="especie-filter-bar">
+      <div class="especie-cat-pills">
+        <button type="button" class="cat-pill active" data-cat="todas">Todas</button>
+        {CATEGORIAS_DONATIVO_ESPECIE.map((cat) => (
+          <button type="button" class="cat-pill" data-cat={cat}>{cat}</button>
+        ))}
+      </div>
+      <input
+        id="buscar-especie"
+        type="search"
+        placeholder="Buscar insumo o fuente..."
+        class="especie-search-input"
+      />
+    </div>
 
     <table class="tabla-viveres">
       <thead>
         <tr>
-          <th>Artículo &amp; Fuente</th>
+          <th>Artículo Y Fuente</th>
           <th>Descripción del Donativo</th>
           <th>Categoría</th>
           <th>Cantidad</th>
@@ -156,7 +211,11 @@ const estadoClass: Record<string, string> = {
       </thead>
       <tbody id="tbody-especie">
         {items.map((item) => (
-          <tr>
+          <tr
+            class="especie-row"
+            data-categoria={item.categoria}
+            data-texto={`${item.nombre} ${item.fuente} ${item.categoria}`.toLowerCase()}
+          >
             <td>
               <div style="font-weight:600;">{item.nombre}</div>
               <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
@@ -164,7 +223,9 @@ const estadoClass: Record<string, string> = {
             <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">
               {item.descripcion}
             </td>
-            <td>{item.categoria}</td>
+            <td>
+              <span class="badge badge-curso">{item.categoria}</span>
+            </td>
             <td><strong>{item.cantidadActual}</strong> {item.unidad}</td>
             <td>{item.minimo} {item.unidad}</td>
             <td>{item.ubicacionBodega}</td>
@@ -194,7 +255,7 @@ const estadoClass: Record<string, string> = {
       <thead>
         <tr>
           <th>Recibo</th>
-          <th>Donante</th>
+          <th>Donante Y NIT</th>
           <th>Tipo</th>
           <th>Destino / Programa</th>
           <th>Descripción del Donativo</th>
@@ -209,9 +270,14 @@ const estadoClass: Record<string, string> = {
             </td>
             <td>
               <div style="font-weight: 600;">{d.donante}</div>
+              {d.nit && (
+                <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">
+                  NIT: {d.nit}
+                </div>
+              )}
             </td>
             <td>
-              <span class="badge badge-media">{d.tipo}</span>
+              <span class="badge badge-media">{d.tipoPersona || d.tipo}</span>
             </td>
             <td>{d.destino}</td>
             <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">
@@ -258,6 +324,48 @@ const estadoClass: Record<string, string> = {
     color: var(--accent);
     border-color: var(--card-border);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .especie-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+  .especie-cat-pills {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+  .cat-pill {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 0.32rem 0.72rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .cat-pill:hover {
+    color: var(--text-main);
+    border-color: var(--accent);
+  }
+  .cat-pill.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .especie-search-input {
+    min-width: 210px;
+    padding: 0.42rem 0.68rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--card-bg);
   }
 
   .form-donativo {
@@ -334,6 +442,55 @@ const estadoClass: Record<string, string> = {
   const kpiCountDonaciones = document.getElementById("kpi-count-donaciones");
   const kpiTotalFondos = document.getElementById("kpi-total-fondos");
 
+  // Selector de Donantes Registrados (F4-06)
+  const selectDonanteEcon = document.getElementById("select-donante-economico") as HTMLSelectElement | null;
+  const inputNombreDonanteHidden = document.getElementById("input-nombre-donante-hidden") as HTMLInputElement | null;
+  const selectTipoDonante = document.getElementById("select-tipo-donante") as HTMLSelectElement | null;
+  const inputNitEconomico = document.getElementById("input-nit-economico") as HTMLInputElement | null;
+
+  // Incorporar donantes creados localmente si el Sidecar estaba offline
+  try {
+    const rawDonantesLocal = localStorage.getItem("lumbreras_donantes_creados");
+    const locales: Array<Record<string, any>> = rawDonantesLocal ? JSON.parse(rawDonantesLocal) : [];
+    if (selectDonanteEcon && locales.length > 0) {
+      const idsExistentes = new Set(
+        Array.from(selectDonanteEcon.options).map((o) => o.value)
+      );
+      for (const d of locales) {
+        const val = String(d.idDonante ?? d.id);
+        if (val && !idsExistentes.has(val)) {
+          const opt = document.createElement("option");
+          opt.value = val;
+          opt.dataset.nombre = d.nombre || d.razonSocial || "";
+          opt.dataset.tipo = d.tipoPersona || d.tipo || "Persona Jurídica";
+          opt.dataset.nit = d.nit || "";
+          opt.textContent = `${opt.dataset.nombre} — NIT: ${opt.dataset.nit} (${opt.dataset.tipo})`;
+          selectDonanteEcon.appendChild(opt);
+          idsExistentes.add(val);
+        }
+      }
+    }
+  } catch {}
+
+  function sincronizarDonanteSeleccionado() {
+    if (!selectDonanteEcon) return;
+    const selectedOpt = selectDonanteEcon.options[selectDonanteEcon.selectedIndex];
+    if (!selectedOpt || !selectedOpt.value) {
+      if (inputNombreDonanteHidden) inputNombreDonanteHidden.value = "";
+      if (inputNitEconomico) inputNitEconomico.value = "";
+      return;
+    }
+    const nombre = selectedOpt.dataset.nombre ?? "";
+    const tipo = selectedOpt.dataset.tipo ?? "Persona Jurídica";
+    const nit = selectedOpt.dataset.nit ?? "";
+
+    if (inputNombreDonanteHidden) inputNombreDonanteHidden.value = nombre;
+    if (selectTipoDonante) selectTipoDonante.value = tipo;
+    if (inputNitEconomico) inputNitEconomico.value = nit;
+  }
+
+  selectDonanteEcon?.addEventListener("change", sincronizarDonanteSeleccionado);
+
   function cambiarPestaña(activa: "especie" | "economicos") {
     if (activa === "especie") {
       tabEspecie?.classList.add("active");
@@ -356,6 +513,43 @@ const estadoClass: Record<string, string> = {
 
   tabEspecie?.addEventListener("click", () => cambiarPestaña("especie"));
   tabEconomicos?.addEventListener("click", () => cambiarPestaña("economicos"));
+
+  // Si viene desde /donantes?donanteId=..., abrir pestaña económica y preseleccionar donante
+  const urlParams = new URLSearchParams(window.location.search);
+  const preDonanteId = urlParams.get("donanteId");
+  if (preDonanteId && selectDonanteEcon) {
+    cambiarPestaña("economicos");
+    if (formEconomico) formEconomico.style.display = "block";
+    selectDonanteEcon.value = preDonanteId;
+    sincronizarDonanteSeleccionado();
+  }
+
+  // Filtros de inventario en especie (F4-04)
+  const catPills = Array.from(document.querySelectorAll<HTMLButtonElement>(".cat-pill"));
+  const inputBuscarEspecie = document.getElementById("buscar-especie") as HTMLInputElement | null;
+  let catSeleccionada = "todas";
+
+  function filtrarInventarioEspecie() {
+    const q = (inputBuscarEspecie?.value ?? "").trim().toLowerCase();
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".especie-row"));
+    for (const row of rows) {
+      const cat = row.dataset.categoria ?? "";
+      const txt = row.dataset.texto ?? "";
+      const matchCat = catSeleccionada === "todas" || cat === catSeleccionada;
+      const matchTxt = !q || txt.includes(q);
+      row.style.display = matchCat && matchTxt ? "" : "none";
+    }
+  }
+
+  for (const pill of catPills) {
+    pill.addEventListener("click", () => {
+      catPills.forEach((p) => p.classList.remove("active"));
+      pill.classList.add("active");
+      catSeleccionada = pill.dataset.cat ?? "todas";
+      filtrarInventarioEspecie();
+    });
+  }
+  inputBuscarEspecie?.addEventListener("input", filtrarInventarioEspecie);
 
   btnNuevoEspecie?.addEventListener("click", () => {
     if (!formEspecie) return;
@@ -393,13 +587,16 @@ const estadoClass: Record<string, string> = {
     const badgeCls = estado === "Óptimo" ? "badge-baja" : estado === "Bajo Stock" ? "badge-media" : "badge-alta";
 
     const tr = document.createElement("tr");
+    tr.className = "especie-row";
+    tr.dataset.categoria = categoria;
+    tr.dataset.texto = `${nombre} ${fuente} ${categoria}`.toLowerCase();
     tr.innerHTML = `
       <td>
         <div style="font-weight:600;">${nombre}</div>
         <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: ${fuente}</div>
       </td>
       <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
-      <td>${categoria}</td>
+      <td><span class="badge badge-curso">${categoria}</span></td>
       <td><strong>${cantidad}</strong> ${unidad}</td>
       <td>${minimo} ${unidad}</td>
       <td>${ubicacionBodega}</td>
@@ -411,6 +608,7 @@ const estadoClass: Record<string, string> = {
     }
     formEspecie.reset();
     formEspecie.style.display = "none";
+    filtrarInventarioEspecie();
   });
 
   formEconomico?.addEventListener("submit", async (e) => {
@@ -419,10 +617,13 @@ const estadoClass: Record<string, string> = {
       formEconomico.reportValidity();
       return;
     }
+    sincronizarDonanteSeleccionado();
     const fd = new FormData(formEconomico);
     const recibo = String(fd.get("recibo") ?? "");
+    const idDonante = Number(fd.get("id_donante") ?? 0) || undefined;
     const donante = String(fd.get("donante") ?? "");
-    const tipo = String(fd.get("tipo") ?? "Empresa");
+    const tipo = String(fd.get("tipo") ?? "Persona Jurídica");
+    const nit = String(fd.get("nit") ?? "");
     const destino = String(fd.get("destino") ?? "");
     const descripcion = String(fd.get("descripcion") ?? "");
     const monto = parseFloat(String(fd.get("monto") ?? "0")) || 0;
@@ -431,7 +632,18 @@ const estadoClass: Record<string, string> = {
       await fetch("http://127.0.0.1:4111/donaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ recibo, donante, tipo, destino, descripcion, monto }),
+        body: JSON.stringify({
+          recibo,
+          numero_recibo: recibo,
+          id_donante: idDonante,
+          donante,
+          tipo,
+          nit,
+          destino,
+          programa_destino: destino,
+          descripcion,
+          monto,
+        }),
       });
     } catch {
       // Fallback directo en tabla UI si el sidecar no está disponible
@@ -440,7 +652,10 @@ const estadoClass: Record<string, string> = {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td><span style="font-family: monospace; font-weight: 600;">${recibo}</span></td>
-      <td><div style="font-weight: 600;">${donante}</div></td>
+      <td>
+        <div style="font-weight: 600;">${donante}</div>
+        ${nit ? `<div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">NIT: ${nit}</div>` : ""}
+      </td>
       <td><span class="badge badge-media">${tipo}</span></td>
       <td>${destino}</td>
       <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
@@ -461,6 +676,7 @@ const estadoClass: Record<string, string> = {
     }
 
     formEconomico.reset();
+    sincronizarDonanteSeleccionado();
     formEconomico.style.display = "none";
   });
 </script>

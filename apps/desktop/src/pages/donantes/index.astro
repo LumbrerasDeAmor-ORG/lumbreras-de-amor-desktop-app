@@ -1,0 +1,655 @@
+---
+// apps/desktop/src/pages/donantes/index.astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getDonantes } from "../../lib/mockData";
+
+const donantes = await getDonantes();
+const donantesEconomicos = donantes.filter(
+  (d) => d.clasificacion === "Económico" || d.clasificacion === "Mixto"
+);
+const donantesEspecie = donantes.filter(
+  (d) => d.clasificacion === "Especie" || d.clasificacion === "Mixto"
+);
+---
+
+<Layout
+  title="Directorio Oficial de Donantes"
+  subtitle="Gestión de benefactores clasificados en Persona Individual y Persona Jurídica con registro tributario NIT y tipo de aporte"
+  active="donantes"
+>
+  <div slot="actions">
+    <a href="/viveres"><button class="btn btn-ghost" type="button">Ir a Víveres Y Donaciones</button></a>
+    <button id="btn-toggle-nuevo-donante" class="btn btn-primary" type="button">+ Nuevo Donante</button>
+  </div>
+
+  <!-- RESUMEN SUPERIOR CON CONTADORES (F4-05) -->
+  <div class="grid" style="margin-bottom: 1.2rem;">
+    <div class="card">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Total Donantes Registrados</div>
+      <div id="kpi-total-donantes" style="font-size:1.6rem; font-weight:700;">{donantes.length} Donantes</div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">Personas individuales y jurídicas con NIT</div>
+    </div>
+    <div class="card" style="border-left: 4px solid var(--accent);">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Donantes Económicos</div>
+      <div id="kpi-donantes-economicos" style="font-size:1.6rem; font-weight:700; color:var(--accent);">
+        {donantesEconomicos.length} Económicos
+      </div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">Aportes monetarios en Quetzales (Q)</div>
+    </div>
+    <div class="card" style="border-left: 4px solid #1e40af;">
+      <div style="font-size:0.75rem; color:var(--text-muted);">Donantes en Especie</div>
+      <div id="kpi-donantes-especie" style="font-size:1.6rem; font-weight:700; color:#1e40af;">
+        {donantesEspecie.length} En Especie
+      </div>
+      <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.15rem;">Víveres, vitaminas, medicamentos y juguetes</div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO DESPLEGABLE PARA REGISTRAR DONANTE (PERSONA INDIVIDUAL / PERSONA JURÍDICA CON NIT) -->
+  <form id="form-nuevo-donante" class="card" style="display:none; margin-bottom:1.2rem; max-width: 780px;" novalidate>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+      <strong style="font-size:0.92rem;">Registrar Nuevo Donante (Persona Individual o Persona Jurídica)</strong>
+      <span class="badge badge-curso">Validación de NIT Guatemalteco</span>
+    </div>
+
+    <div class="donante-form-grid">
+      <label>
+        Tipo de Entidad *
+        <select id="select-tipo-persona" name="tipo_persona" required>
+          <option value="Persona Jurídica">Persona Jurídica (Empresa / Fundación / Institución)</option>
+          <option value="Persona Individual">Persona Individual (Particular / Profesional)</option>
+        </select>
+      </label>
+
+      <label>
+        Clasificación de Aporte *
+        <select name="clasificacion" required>
+          <option value="Económico">Económico</option>
+          <option value="Especie">Especie</option>
+          <option value="Mixto">Mixto</option>
+        </select>
+      </label>
+
+      <label>
+        NIT / Identificación Tributaria *
+        <input id="input-nit-donante" name="nit" type="text" placeholder="Ej: 90012345-1 o 45892301-K" required />
+      </label>
+
+      <label>
+        Teléfono de Contacto *
+        <input name="telefono" type="tel" placeholder="Ej: +502 2331 4455" required />
+      </label>
+
+      <!-- Campos específicos de Persona Jurídica -->
+      <div id="campos-juridica" class="subgrid-entidad" style="grid-column: 1 / -1;">
+        <label>
+          Razón Social *
+          <input id="input-razon-social" name="razon_social" type="text" placeholder="Ej: Fundación Bolívar Construye" required />
+        </label>
+        <label>
+          Nombre Comercial
+          <input name="nombre_comercial" type="text" placeholder="Ej: Bolívar Construye" />
+        </label>
+        <label>
+          Representante Legal / Persona de Contacto
+          <input name="representante_legal" type="text" placeholder="Ej: Ing. Roberto Bolívar" />
+        </label>
+        <label>
+          Sector o Actividad
+          <input name="sector_actividad" type="text" placeholder="Ej: Construcción y RSE / Salud" />
+        </label>
+      </div>
+
+      <!-- Campos específicos de Persona Individual -->
+      <div id="campos-individual" class="subgrid-entidad" style="grid-column: 1 / -1; display: none;">
+        <label>
+          Nombres *
+          <input id="input-nombres-ind" name="nombres" type="text" placeholder="Ej: Mariana" />
+        </label>
+        <label>
+          Apellidos *
+          <input id="input-apellidos-ind" name="apellidos" type="text" placeholder="Ej: Restrepo" />
+        </label>
+        <label>
+          DPI (13 dígitos)
+          <input id="input-dpi-ind" name="dpi" type="text" maxlength="13" placeholder="Ej: 1988234560101" />
+        </label>
+        <label>
+          Profesión u Ocupación
+          <input name="profesion" type="text" placeholder="Ej: Médico Pediatra / Empresario" />
+        </label>
+      </div>
+
+      <label>
+        Correo Electrónico
+        <input name="email" type="email" placeholder="contacto@entidad.org" />
+      </label>
+
+      <label>
+        Dirección Fiscal / Domicilio
+        <input name="direccion" type="text" placeholder="Ej: Av. Reforma 12-45 Zona 10, Ciudad de Guatemala" />
+      </label>
+    </div>
+
+    <p id="donante-form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.75rem; font-weight:600;"></p>
+
+    <div style="margin-top:0.95rem; display:flex; gap:0.6rem;">
+      <button class="btn btn-primary" type="submit">Guardar Donante</button>
+      <button id="btn-cancelar-donante" class="btn btn-ghost" type="button">Cancelar</button>
+    </div>
+  </form>
+
+  <!-- PESTAÑAS Y BUSCADOR REACTIVO DE DONANTES (F4-05) -->
+  <div class="donantes-filter-bar">
+    <div class="donantes-tabs">
+      <button type="button" class="donante-tab active" data-clasificacion="todos">
+        Todos (<span id="tab-count-todos">{donantes.length}</span>)
+      </button>
+      <button type="button" class="donante-tab" data-clasificacion="Especie">
+        Donantes en Especie (<span id="tab-count-especie">{donantesEspecie.length}</span>)
+      </button>
+      <button type="button" class="donante-tab" data-clasificacion="Económico">
+        Donantes Económicos (<span id="tab-count-economico">{donantesEconomicos.length}</span>)
+      </button>
+    </div>
+
+    <div class="donantes-search-controls">
+      <select id="filtro-tipo-entidad" class="donante-select-filter">
+        <option value="todos">Todas las entidades</option>
+        <option value="Persona Individual">Persona Individual</option>
+        <option value="Persona Jurídica">Persona Jurídica</option>
+      </select>
+      <input
+        id="buscar-donante"
+        type="search"
+        placeholder="Buscar por NIT, nombre o razón social..."
+        class="donante-search-input"
+      />
+    </div>
+  </div>
+
+  <!-- DETALLE RÁPIDO SELECCIONADO -->
+  <div id="ficha-donante-card" class="card" style="display:none; margin-bottom: 1rem; border-left: 4px solid var(--accent);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <strong id="ficha-donante-titulo" style="font-size:0.95rem;"></strong>
+        <div id="ficha-donante-sub" style="font-size:0.78rem; color:var(--text-muted); margin-top:0.2rem;"></div>
+      </div>
+      <button id="btn-cerrar-ficha" class="btn btn-ghost" type="button" style="padding:0.25rem 0.6rem; font-size:0.75rem;">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- TABLA DE DONANTES CON LAS 6 COLUMNAS REQUERIDAS (F4-05) -->
+  <table class="tabla-donantes">
+    <thead>
+      <tr>
+        <th>NIT / Identificación</th>
+        <th>Nombre o Razón Social</th>
+        <th>Tipo de Entidad</th>
+        <th>Clasificación de Aporte</th>
+        <th>Teléfono / Contacto</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tbody-donantes">
+      {donantes.map((d) => {
+        const tipoEntidad = d.tipoPersona || d.tipo;
+        const detalleSecundario =
+          tipoEntidad === "Persona Jurídica"
+            ? d.juridica?.representanteLegal
+              ? `Rep. Legal: ${d.juridica.representanteLegal}`
+              : d.personaContacto
+                ? `Contacto: ${d.personaContacto}`
+                : "Entidad Jurídica Aliada"
+            : d.individual?.dpi
+              ? `DPI: ${d.individual.dpi}${d.individual.profesion ? ` · ${d.individual.profesion}` : ""}`
+              : d.individual?.profesion || "Donante Individual";
+
+        const badgeClasif =
+          d.clasificacion === "Económico"
+            ? "badge-curso"
+            : d.clasificacion === "Especie"
+              ? "badge-media"
+              : "badge-alta";
+
+        return (
+          <tr
+            class="donante-row"
+            data-id={d.id}
+            data-nit={d.nit.toLowerCase()}
+            data-nombre={d.nombre.toLowerCase()}
+            data-tipo={tipoEntidad}
+            data-clasificacion={d.clasificacion}
+            data-json={JSON.stringify(d)}
+          >
+            <td>
+              <span class="nit-badge">{d.nit}</span>
+            </td>
+            <td>
+              <div style="font-weight: 700; color: var(--text-main);">{d.nombre}</div>
+              <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.12rem;">
+                {detalleSecundario}
+              </div>
+            </td>
+            <td>
+              <span class={`badge ${tipoEntidad === "Persona Jurídica" ? "badge-media" : "badge-baja"}`}>
+                {tipoEntidad}
+              </span>
+            </td>
+            <td>
+              <span class={`badge ${badgeClasif}`}>{d.clasificacion}</span>
+            </td>
+            <td>
+              <div style="font-weight: 600; font-size: 0.8rem;">{d.telefono}</div>
+              <div style="font-size: 0.73rem; color: var(--text-muted);">{d.email}</div>
+            </td>
+            <td>
+              <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                <button type="button" class="btn btn-ghost btn-sm btn-ver-ficha">Ver Ficha</button>
+                <a href={`/viveres?donanteId=${encodeURIComponent(d.id)}`}>
+                  <button type="button" class="btn btn-primary btn-sm">+ Donación</button>
+                </a>
+              </div>
+            </td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</Layout>
+
+<style>
+  .donante-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+  .subgrid-entidad {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+    padding: 0.75rem;
+    background: #f9fafb;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+  }
+  .donante-form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .donante-form-grid input,
+  .donante-form-grid select {
+    font-weight: 400;
+    padding: 0.48rem 0.6rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-family: inherit;
+    background: #fff;
+  }
+
+  .donantes-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .donantes-tabs {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+  }
+  .donante-tab {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .donante-tab:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--text-main);
+  }
+  .donante-tab.active {
+    background: var(--card-bg);
+    color: var(--accent);
+    border-color: var(--card-border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+
+  .donantes-search-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .donante-select-filter {
+    padding: 0.46rem 0.65rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: var(--card-bg);
+  }
+  .donante-search-input {
+    min-width: 240px;
+    padding: 0.48rem 0.75rem;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    background: var(--card-bg);
+  }
+
+  .tabla-donantes {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    overflow: hidden;
+    font-size: 0.82rem;
+  }
+  .tabla-donantes th {
+    text-align: left;
+    background: #f9fafb;
+    padding: 0.72rem 0.9rem;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .tabla-donantes td {
+    padding: 0.72rem 0.9rem;
+    border-top: 1px solid var(--card-border);
+    vertical-align: middle;
+  }
+  .nit-badge {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 6px;
+    background: #f0fdfa;
+    color: #0f766e;
+    border: 1px solid #99f6e4;
+  }
+  .btn-sm {
+    padding: 0.32rem 0.6rem;
+    font-size: 0.75rem;
+  }
+</style>
+
+<script>
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".donante-tab"));
+  const selectTipoEntidad = document.getElementById("filtro-tipo-entidad") as HTMLSelectElement | null;
+  const inputBuscar = document.getElementById("buscar-donante") as HTMLInputElement | null;
+  const tbody = document.getElementById("tbody-donantes");
+
+  const btnToggleForm = document.getElementById("btn-toggle-nuevo-donante");
+  const btnCancelForm = document.getElementById("btn-cancelar-donante");
+  const formDonante = document.getElementById("form-nuevo-donante") as HTMLFormElement | null;
+  const selectTipoPersona = document.getElementById("select-tipo-persona") as HTMLSelectElement | null;
+  const camposJuridica = document.getElementById("campos-juridica");
+  const camposIndividual = document.getElementById("campos-individual");
+  const inputRazonSocial = document.getElementById("input-razon-social") as HTMLInputElement | null;
+  const inputNombresInd = document.getElementById("input-nombres-ind") as HTMLInputElement | null;
+  const inputApellidosInd = document.getElementById("input-apellidos-ind") as HTMLInputElement | null;
+  const errorEl = document.getElementById("donante-form-error");
+
+  const fichaCard = document.getElementById("ficha-donante-card");
+  const fichaTitulo = document.getElementById("ficha-donante-titulo");
+  const fichaSub = document.getElementById("ficha-donante-sub");
+  const btnCerrarFicha = document.getElementById("btn-cerrar-ficha");
+
+  let filtroClasificacion = "todos";
+
+  function actualizarVisibilidadTipoPersona() {
+    const esJuridica = selectTipoPersona?.value === "Persona Jurídica";
+    if (camposJuridica) camposJuridica.style.display = esJuridica ? "grid" : "none";
+    if (camposIndividual) camposIndividual.style.display = esJuridica ? "none" : "grid";
+    if (inputRazonSocial) inputRazonSocial.required = esJuridica;
+    if (inputNombresInd) inputNombresInd.required = !esJuridica;
+    if (inputApellidosInd) inputApellidosInd.required = !esJuridica;
+  }
+
+  selectTipoPersona?.addEventListener("change", actualizarVisibilidadTipoPersona);
+  actualizarVisibilidadTipoPersona();
+
+  function aplicarFiltros() {
+    const q = (inputBuscar?.value ?? "").trim().toLowerCase();
+    const tipoSel = selectTipoEntidad?.value ?? "todos";
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".donante-row"));
+
+    for (const row of rows) {
+      const nit = row.dataset.nit ?? "";
+      const nom = row.dataset.nombre ?? "";
+      const tipo = row.dataset.tipo ?? "";
+      const clasif = row.dataset.clasificacion ?? "";
+
+      const matchClasif =
+        filtroClasificacion === "todos" ||
+        clasif === filtroClasificacion ||
+        clasif === "Mixto";
+      const matchTipo = tipoSel === "todos" || tipo === tipoSel;
+      const matchTexto = !q || nit.includes(q) || nom.includes(q);
+
+      row.style.display = matchClasif && matchTipo && matchTexto ? "" : "none";
+    }
+  }
+
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      tabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      filtroClasificacion = tab.dataset.clasificacion ?? "todos";
+      aplicarFiltros();
+    });
+  }
+
+  selectTipoEntidad?.addEventListener("change", aplicarFiltros);
+  inputBuscar?.addEventListener("input", aplicarFiltros);
+
+  function vincularBotonesFicha() {
+    const btns = Array.from(document.querySelectorAll<HTMLButtonElement>(".btn-ver-ficha"));
+    for (const btn of btns) {
+      btn.onclick = () => {
+        const tr = btn.closest<HTMLTableRowElement>(".donante-row");
+        if (!tr || !tr.dataset.json) return;
+        const d = JSON.parse(tr.dataset.json);
+        if (fichaTitulo) {
+          fichaTitulo.textContent = `${d.nombre} · NIT: ${d.nit} (${d.tipoPersona || d.tipo})`;
+        }
+        if (fichaSub) {
+          fichaSub.textContent = `Clasificación: ${d.clasificacion} | Teléfono: ${d.telefono || "—"} | Correo: ${d.email || "—"} | Dirección: ${d.direccion || "Ciudad de Guatemala"}`;
+        }
+        if (fichaCard) fichaCard.style.display = "block";
+      };
+    }
+  }
+
+  vincularBotonesFicha();
+  btnCerrarFicha?.addEventListener("click", () => {
+    if (fichaCard) fichaCard.style.display = "none";
+  });
+
+  btnToggleForm?.addEventListener("click", () => {
+    if (!formDonante) return;
+    formDonante.style.display = formDonante.style.display === "none" ? "block" : "none";
+  });
+
+  btnCancelForm?.addEventListener("click", () => {
+    if (formDonante) formDonante.style.display = "none";
+  });
+
+  formDonante?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!formDonante.checkValidity()) {
+      if (errorEl) {
+        errorEl.textContent = "Completá los campos obligatorios (*) y el NIT antes de guardar.";
+        errorEl.style.display = "block";
+      }
+      formDonante.reportValidity();
+      return;
+    }
+    if (errorEl) errorEl.style.display = "none";
+
+    const fd = new FormData(formDonante);
+    const tipoPersona = String(fd.get("tipo_persona") ?? "Persona Jurídica");
+    const clasificacion = String(fd.get("clasificacion") ?? "Económico");
+    const nit = String(fd.get("nit") ?? "").trim();
+    const telefono = String(fd.get("telefono") ?? "").trim();
+    const email = String(fd.get("email") ?? "").trim();
+    const direccion = String(fd.get("direccion") ?? "").trim();
+
+    const razonSocial = String(fd.get("razon_social") ?? "").trim();
+    const nombreComercial = String(fd.get("nombre_comercial") ?? "").trim();
+    const representanteLegal = String(fd.get("representante_legal") ?? "").trim();
+    const sectorActividad = String(fd.get("sector_actividad") ?? "").trim();
+
+    const nombres = String(fd.get("nombres") ?? "").trim();
+    const apellidos = String(fd.get("apellidos") ?? "").trim();
+    const dpi = String(fd.get("dpi") ?? "").trim();
+    const profesion = String(fd.get("profesion") ?? "").trim();
+
+    const nombreMostrar =
+      tipoPersona === "Persona Jurídica" ? razonSocial : `${nombres} ${apellidos}`.trim();
+
+    const payload = {
+      tipo_persona: tipoPersona,
+      tipoPersona,
+      clasificacion,
+      clasificacion_aporte: clasificacion,
+      nit,
+      telefono,
+      email,
+      direccion,
+      razon_social: razonSocial,
+      nombre_comercial: nombreComercial,
+      representante_legal: representanteLegal,
+      sector_actividad: sectorActividad,
+      nombres,
+      apellidos,
+      dpi,
+      profesion,
+    };
+
+    let nuevoId = String(Date.now());
+    try {
+      const res = await fetch("http://127.0.0.1:4111/donantes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (res.ok && result.success && result.data?.id) {
+        nuevoId = String(result.data.id);
+      }
+    } catch {}
+
+    const nuevoDonanteObj = {
+      id: nuevoId,
+      idDonante: Number(nuevoId) || Date.now(),
+      tipo: tipoPersona,
+      tipoPersona,
+      clasificacion,
+      nombre: nombreMostrar,
+      razonSocial: nombreMostrar,
+      nit,
+      telefono,
+      email,
+      direccion,
+    };
+
+    try {
+      const rawPrev = localStorage.getItem("lumbreras_donantes_creados");
+      const prev = rawPrev ? JSON.parse(rawPrev) : [];
+      prev.unshift(nuevoDonanteObj);
+      localStorage.setItem("lumbreras_donantes_creados", JSON.stringify(prev));
+    } catch {}
+
+    const badgeClasif =
+      clasificacion === "Económico"
+        ? "badge-curso"
+        : clasificacion === "Especie"
+          ? "badge-media"
+          : "badge-alta";
+    const detalleSecundario =
+      tipoPersona === "Persona Jurídica"
+        ? representanteLegal
+          ? `Rep. Legal: ${representanteLegal}`
+          : "Entidad Jurídica Aliada"
+        : dpi
+          ? `DPI: ${dpi}${profesion ? ` · ${profesion}` : ""}`
+          : profesion || "Donante Individual";
+
+    const tr = document.createElement("tr");
+    tr.className = "donante-row";
+    tr.dataset.id = nuevoId;
+    tr.dataset.nit = nit.toLowerCase();
+    tr.dataset.nombre = nombreMostrar.toLowerCase();
+    tr.dataset.tipo = tipoPersona;
+    tr.dataset.clasificacion = clasificacion;
+    tr.dataset.json = JSON.stringify(nuevoDonanteObj);
+    tr.innerHTML = `
+      <td><span class="nit-badge">${nit}</span></td>
+      <td>
+        <div style="font-weight: 700; color: var(--text-main);">${nombreMostrar}</div>
+        <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.12rem;">${detalleSecundario}</div>
+      </td>
+      <td>
+        <span class="badge ${tipoPersona === "Persona Jurídica" ? "badge-media" : "badge-baja"}">${tipoPersona}</span>
+      </td>
+      <td><span class="badge ${badgeClasif}">${clasificacion}</span></td>
+      <td>
+        <div style="font-weight: 600; font-size: 0.8rem;">${telefono}</div>
+        <div style="font-size: 0.73rem; color: var(--text-muted);">${email}</div>
+      </td>
+      <td>
+        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost btn-sm btn-ver-ficha">Ver Ficha</button>
+          <a href="/viveres?donanteId=${encodeURIComponent(nuevoId)}">
+            <button type="button" class="btn btn-primary btn-sm">+ Donación</button>
+          </a>
+        </div>
+      </td>
+    `;
+    tbody?.prepend(tr);
+    vincularBotonesFicha();
+
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".donante-row"));
+    const total = rows.length;
+    const econ = rows.filter((r) => r.dataset.clasificacion === "Económico" || r.dataset.clasificacion === "Mixto").length;
+    const esp = rows.filter((r) => r.dataset.clasificacion === "Especie" || r.dataset.clasificacion === "Mixto").length;
+
+    const kpiTotal = document.getElementById("kpi-total-donantes");
+    const kpiEcon = document.getElementById("kpi-donantes-economicos");
+    const kpiEsp = document.getElementById("kpi-donantes-especie");
+    const tabTodos = document.getElementById("tab-count-todos");
+    const tabEsp = document.getElementById("tab-count-especie");
+    const tabEcon = document.getElementById("tab-count-economico");
+
+    if (kpiTotal) kpiTotal.textContent = `${total} Donantes`;
+    if (kpiEcon) kpiEcon.textContent = `${econ} Económicos`;
+    if (kpiEsp) kpiEsp.textContent = `${esp} En Especie`;
+    if (tabTodos) tabTodos.textContent = String(total);
+    if (tabEsp) tabEsp.textContent = String(esp);
+    if (tabEcon) tabEcon.textContent = String(econ);
+
+    formDonante.reset();
+    actualizarVisibilidadTipoPersona();
+    formDonante.style.display = "none";
+    aplicarFiltros();
+  });
+</script>

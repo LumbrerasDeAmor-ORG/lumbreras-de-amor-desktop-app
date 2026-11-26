@@ -1,0 +1,119 @@
+---
+// apps/desktop/src/pages/diplomas/ver.astro
+// Vista previa / impresión de un diploma. Se usa con ?id=<diploma> o ?plantilla=<plantilla> (previsualiza
+// una plantilla con los datos de un diploma existente).
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+---
+
+<Layout title="Vista del diploma" subtitle="Previsualización del diploma con su plantilla HTML" active="diplomas">
+  <div slot="actions">
+    <a href="/diplomas" class="btn btn-ghost">← Volver al listado</a>
+    <button id="btn-descargar" type="button" class="btn btn-ghost" disabled><Icon name="download" /> Descargar HTML</button>
+    <button id="btn-imprimir" type="button" class="btn btn-primary" disabled><Icon name="printer" /> Imprimir / PDF</button>
+  </div>
+
+  <div id="barra" class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 print:hidden">
+    <div class="min-w-0">
+      <p id="info-nombre" class="truncate text-[15px] font-semibold text-slate-900">Cargando...</p>
+      <p id="info-titulo" class="truncate text-[13px] text-slate-500"></p>
+    </div>
+    <label class="ml-auto flex items-center gap-2 text-[13px] text-slate-500">Probar con la plantilla
+      <select id="selector-plantilla" class="form-control !w-auto"></select>
+    </label>
+  </div>
+  <p id="error-vista" class="form-error mb-4" style="display:none;"></p>
+
+  <div id="escenario" class="mx-auto w-full max-w-[1100px] overflow-hidden rounded-xl border border-slate-200 bg-slate-200/60 shadow-card" style="aspect-ratio: 297 / 210;">
+    <!-- Sin allow-scripts: el HTML de la plantilla nunca ejecuta código. allow-same-origin solo permite imprimir.
+         El iframe mide una hoja A4 (1123x794 px) y se escala al ancho disponible. -->
+    <iframe id="marco" title="Vista previa del diploma" class="block origin-top-left border-0 bg-white" style="width:1123px;height:794px;" scrolling="no" sandbox="allow-same-origin allow-modals"></iframe>
+  </div>
+  <p class="mx-auto mt-3 max-w-[1100px] text-xs text-slate-400 print:hidden">Para guardar como PDF elegí «Guardar como PDF» en el diálogo de impresión. El diseño está preparado para papel A4 horizontal.</p>
+</Layout>
+
+<script>
+  import {
+    listarDiplomas,
+    obtenerDiploma,
+    listarPlantillas,
+    renderizarDiplomaHtml,
+    type Diploma,
+  } from "../../lib/diplomas";
+
+  const params = new URLSearchParams(window.location.search);
+  const idParam = params.get("id");
+  const plantillaParam = params.get("plantilla");
+
+  const marco = document.getElementById("marco") as HTMLIFrameElement;
+  const selector = document.getElementById("selector-plantilla") as HTMLSelectElement;
+  const btnImprimir = document.getElementById("btn-imprimir") as HTMLButtonElement;
+  const btnDescargar = document.getElementById("btn-descargar") as HTMLButtonElement;
+  const errorEl = document.getElementById("error-vista")!;
+  const escenario = document.getElementById("escenario")!;
+  const ajustarEscala = () => (marco.style.transform = `scale(${escenario.clientWidth / 1123})`);
+  new ResizeObserver(ajustarEscala).observe(escenario);
+  ajustarEscala();
+  let htmlActual = "";
+  let diploma: Diploma | null = null;
+
+  const mostrarError = (m: string) => {
+    errorEl.textContent = m;
+    errorEl.style.display = "block";
+  };
+
+  async function pintar() {
+    if (!diploma) return;
+    errorEl.style.display = "none";
+    try {
+      htmlActual = await renderizarDiplomaHtml(diploma.id, selector.value || undefined);
+      marco.srcdoc = htmlActual;
+      btnImprimir.disabled = btnDescargar.disabled = false;
+    } catch (e) {
+      mostrarError(`No se pudo generar el diploma: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  async function iniciar() {
+    try {
+      if (idParam) diploma = await obtenerDiploma(idParam);
+      else if (plantillaParam) diploma = (await listarDiplomas())[0] ?? null;
+      if (!diploma) {
+        mostrarError("No se encontró el diploma solicitado.");
+        document.getElementById("info-nombre")!.textContent = "Diploma no encontrado";
+        return;
+      }
+      document.getElementById("info-nombre")!.textContent = diploma.nombre;
+      document.getElementById("info-titulo")!.textContent = `${diploma.titulo} · ${diploma.codigo}`;
+
+      const { data: plantillas } = await listarPlantillas();
+      selector.innerHTML =
+        `<option value="">Predeterminada del diploma${diploma.plantillaNombre ? ` (${diploma.plantillaNombre})` : ""}</option>` +
+        `<option value="default">Diseño del sistema</option>` +
+        plantillas.map((p) => `<option value="${p.id}">${p.nombre.replace(/</g, "&lt;")}</option>`).join("");
+      if (plantillaParam) selector.value = plantillaParam;
+      await pintar();
+    } catch (e) {
+      mostrarError(`No se pudo conectar con la base de datos local: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
+
+  selector.addEventListener("change", pintar);
+  btnImprimir.addEventListener("click", () => {
+    marco.contentWindow?.focus();
+    marco.contentWindow?.print();
+  });
+  btnDescargar.addEventListener("click", () => {
+    const blob = new Blob([htmlActual], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${(diploma?.codigo ?? "diploma").toLowerCase()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+
+  iniciar();
+</script>

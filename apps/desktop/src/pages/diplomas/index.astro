@@ -1,0 +1,297 @@
+---
+// apps/desktop/src/pages/diplomas/index.astro
+// Listado de diplomas y gestión de plantillas HTML.
+// El formulario de alta/edición de diplomas lo desarrolla otra persona del equipo (ver lib/diplomas.ts).
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+---
+
+<Layout
+  title="Diplomas"
+  subtitle="Reconocimientos y certificados entregados por la organización, con diseño personalizable en HTML"
+  active="diplomas"
+>
+  <div slot="actions">
+    <!-- Aquí irá el botón "+ Nuevo diploma" (enlace al formulario de alta que desarrolla el equipo). -->
+    <a id="slot-nuevo-diploma" href="/diplomas/nuevo" class="btn btn-primary" hidden>+ Nuevo diploma</a>
+  </div>
+
+  <p id="estado-diplomas" class="mb-3 min-h-5 text-[13px] text-slate-500" role="status"></p>
+
+  <div class="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200" role="tablist" aria-label="Secciones de diplomas">
+    <button type="button" role="tab" data-tab="diplomas" aria-selected="true" class="tab-btn">Diplomas <span id="count-diplomas" class="tab-count">·</span></button>
+    <button type="button" role="tab" data-tab="plantillas" aria-selected="false" class="tab-btn">Plantillas HTML <span id="count-plantillas" class="tab-count">·</span></button>
+  </div>
+
+  <!-- ───────── Diplomas ───────── -->
+  <section id="panel-diplomas" role="tabpanel">
+    <div class="mb-3 flex flex-wrap items-center gap-3">
+      <input id="buscar-diploma" type="search" class="form-control !w-80" placeholder="Buscar por nombre, título o descripción..." aria-label="Buscar diplomas" />
+      <label class="flex items-center gap-2 text-[13px] text-slate-500">Desde <input id="fecha-desde" type="date" class="form-control !w-auto" /></label>
+      <label class="flex items-center gap-2 text-[13px] text-slate-500">Hasta <input id="fecha-hasta" type="date" class="form-control !w-auto" /></label>
+    </div>
+    <div id="tabla-diplomas"><p class="py-10 text-center text-sm text-slate-500">Cargando diplomas...</p></div>
+  </section>
+
+  <!-- ───────── Plantillas ───────── -->
+  <section id="panel-plantillas" role="tabpanel" hidden>
+    <div class="card mb-5">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div class="max-w-2xl">
+          <h2 class="text-[15px] font-semibold text-slate-900">Personalizar el diseño con HTML</h2>
+          <p class="mt-1 text-[13px] leading-relaxed text-slate-500">
+            Descargá la plantilla base, modificala con tu editor de código y subila de nuevo. Los marcadores entre llaves
+            se reemplazan con los datos de cada diploma. Se eliminan automáticamente scripts y código ejecutable.
+          </p>
+          <p id="marcadores" class="mt-3 flex flex-wrap gap-1.5 text-xs"></p>
+        </div>
+        <a id="btn-base" class="btn btn-ghost" href="#" download="plantilla-diploma-base.html"><Icon name="download" /> Descargar plantilla base</a>
+      </div>
+
+      <form id="form-plantilla" class="mt-5 grid grid-cols-1 items-end gap-3 border-t border-slate-100 pt-5 sm:grid-cols-[1fr_1.4fr_auto]" novalidate>
+        <label class="flex flex-col gap-1.5 text-[13px] font-medium text-slate-700">Nombre de la plantilla *
+          <input name="nombre" type="text" class="form-control" placeholder="Ej: Diploma navideño" required />
+        </label>
+        <label class="flex flex-col gap-1.5 text-[13px] font-medium text-slate-700">Archivo HTML *
+          <input name="archivo" type="file" accept=".html,.htm,text/html" class="form-control file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-3 file:py-1 file:text-xs file:font-semibold file:text-brand-700" required />
+        </label>
+        <button class="btn btn-primary" type="submit">Subir plantilla</button>
+        <p id="plantilla-error" class="form-error sm:col-span-3 !mt-1" style="display:none;"></p>
+      </form>
+    </div>
+
+    <div id="lista-plantillas" class="flex flex-col gap-3"></div>
+  </section>
+
+  <!-- Confirmación de borrado -->
+  <dialog id="modal-confirmar" class="m-auto w-[min(440px,92vw)] rounded-2xl border border-slate-200 bg-white p-0 shadow-pop backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm">
+    <form method="dialog" class="p-6">
+      <h2 id="confirmar-titulo" class="text-[16px] font-semibold text-slate-900"></h2>
+      <p id="confirmar-texto" class="mt-1.5 text-[13px] leading-relaxed text-slate-500"></p>
+      <div class="mt-5 flex flex-row-reverse gap-2.5">
+        <button id="confirmar-ok" class="btn btn-danger" type="button">Eliminar</button>
+        <button class="btn btn-ghost" value="cancel">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+</Layout>
+
+<style>
+  .tab-btn { cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; padding: 0.6rem 0.9rem; margin-bottom: -1px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); transition: color 0.15s, border-color 0.15s; }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count { margin-left: 0.2rem; font-size: 0.72rem; font-weight: 500; color: #98a2b3; font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+  import { crearTabla, esc, tag } from "../../lib/dataTable";
+  import {
+    listarDiplomas,
+    eliminarDiplomaApi,
+    listarPlantillas,
+    subirPlantilla,
+    eliminarPlantillaApi,
+    marcarPlantillaPredeterminada,
+    usarDisenoDelSistema,
+    urlPlantillaBase,
+    formatearFecha,
+    type Diploma,
+    type Plantilla,
+  } from "../../lib/diplomas";
+
+  const estado = document.getElementById("estado-diplomas")!;
+  const avisar = (m: string) => (estado.textContent = m);
+  const errorTexto = (e: unknown) => (e instanceof Error ? e.message : String(e));
+
+  // ───────── Tabs ─────────
+  const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-tab]"));
+  function activarTab(id: string) {
+    for (const t of tabs) t.setAttribute("aria-selected", String(t.dataset.tab === id));
+    document.getElementById("panel-diplomas")!.hidden = id !== "diplomas";
+    document.getElementById("panel-plantillas")!.hidden = id !== "plantillas";
+  }
+  tabs.forEach((t) => t.addEventListener("click", () => activarTab(t.dataset.tab!)));
+
+  // ───────── Confirmación ─────────
+  const modal = document.getElementById("modal-confirmar") as HTMLDialogElement;
+  let accionConfirmada: (() => Promise<void>) | null = null;
+  function confirmar(titulo: string, texto: string, accion: () => Promise<void>) {
+    document.getElementById("confirmar-titulo")!.textContent = titulo;
+    document.getElementById("confirmar-texto")!.textContent = texto;
+    accionConfirmada = accion;
+    modal.showModal();
+  }
+  document.getElementById("confirmar-ok")!.addEventListener("click", async () => {
+    modal.close();
+    try {
+      await accionConfirmada?.();
+    } catch (e) {
+      avisar(`No se pudo completar la acción: ${errorTexto(e)}`);
+    }
+  });
+
+  // ───────── Diplomas ─────────
+  const buscar = document.getElementById("buscar-diploma") as HTMLInputElement;
+  const desde = document.getElementById("fecha-desde") as HTMLInputElement;
+  const hasta = document.getElementById("fecha-hasta") as HTMLInputElement;
+  let diplomas: Diploma[] = [];
+
+  const tablaDiplomas = crearTabla<Diploma, string>({
+    mount: document.getElementById("tabla-diplomas")!,
+    data: [],
+    noun: "diplomas",
+    initialSort: { id: "fecha", desc: true },
+    emptyTitle: "No hay diplomas para mostrar",
+    emptyText: "Cuando se registren diplomas aparecerán aquí.",
+    filter: (d, q) => !q || `${d.nombre} ${d.titulo} ${d.descripcion} ${d.codigo}`.toLowerCase().includes(q),
+    columns: [
+      { id: "codigo", header: "Código", accessor: (d) => d.codigo, cell: (d) => `<span class="font-mono text-[13px] font-semibold text-brand-700">${esc(d.codigo)}</span>`, className: "whitespace-nowrap" },
+      { id: "nombre", header: "Nombre", accessor: (d) => d.nombre, cell: (d) => `<div class="font-semibold text-slate-900">${esc(d.nombre)}</div>` },
+      {
+        id: "titulo",
+        header: "Título",
+        accessor: (d) => d.titulo,
+        cell: (d) => `<div class="text-slate-800">${esc(d.titulo)}</div>${d.descripcion ? `<div class="mt-0.5 line-clamp-1 max-w-[320px] text-xs text-slate-500">${esc(d.descripcion)}</div>` : ""}`,
+      },
+      { id: "fecha", header: "Entrega", accessor: (d) => d.fechaEntrega, cell: (d) => esc(formatearFecha(d.fechaEntrega)), className: "whitespace-nowrap tabular-nums" },
+      {
+        id: "plantilla",
+        header: "Diseño",
+        accessor: (d) => d.plantillaNombre || "",
+        cell: (d) => (d.plantillaNombre ? tag("brand", d.plantillaNombre) : `<span class="text-xs text-slate-400">Predeterminado</span>`),
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "acciones",
+        header: "Acciones",
+        cell: (d) =>
+          `<div class="flex gap-1.5">
+            <a href="/diplomas/ver?id=${encodeURIComponent(d.id)}" class="btn btn-ghost btn-sm">Ver diploma</a>
+            <button type="button" data-action="eliminar" class="btn btn-ghost btn-sm !text-red-700 hover:!bg-red-50">Eliminar</button>
+          </div>`,
+      },
+    ],
+    onAction: (accion, d) => {
+      if (accion !== "eliminar") return;
+      confirmar("¿Eliminar este diploma?", `Se eliminará «${d.titulo}» de ${d.nombre}. Esta acción no se puede deshacer.`, async () => {
+        await eliminarDiplomaApi(d.id);
+        avisar("Diploma eliminado.");
+        await cargarDiplomas();
+      });
+    },
+  });
+
+  async function cargarDiplomas() {
+    try {
+      diplomas = await listarDiplomas({ desde: desde.value, hasta: hasta.value });
+      tablaDiplomas.setData(diplomas);
+      document.getElementById("count-diplomas")!.textContent = String(diplomas.length);
+    } catch (e) {
+      avisar(`No se pudieron cargar los diplomas. Verificá que la base de datos local esté activa. (${errorTexto(e)})`);
+      (document.getElementById("tabla-diplomas") as HTMLElement).querySelector("p")!.textContent = "No se pudieron cargar los diplomas.";
+    }
+  }
+  buscar.addEventListener("input", () => tablaDiplomas.setFilter(buscar.value.trim().toLowerCase() || undefined));
+  desde.addEventListener("change", cargarDiplomas);
+  hasta.addEventListener("change", cargarDiplomas);
+
+  // ───────── Plantillas ─────────
+  const lista = document.getElementById("lista-plantillas")!;
+  const formPlantilla = document.getElementById("form-plantilla") as HTMLFormElement;
+  const errorPlantilla = document.getElementById("plantilla-error")!;
+  (document.getElementById("btn-base") as HTMLAnchorElement).href = urlPlantillaBase();
+
+  function pintarPlantillas(plantillas: Plantilla[], usaSistema: boolean, marcadores: string[]) {
+    document.getElementById("count-plantillas")!.textContent = String(plantillas.length + 1);
+    document.getElementById("marcadores")!.innerHTML =
+      '<span class="mr-1 font-medium text-slate-500">Marcadores:</span>' +
+      marcadores.map((m) => `<code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11.5px] text-slate-700">{{${esc(m)}}}</code>`).join("");
+
+    const fila = (opts: { id: string; nombre: string; descripcion: string; activa: boolean; uso: string; sistema?: boolean }) => `
+      <article class="card flex flex-wrap items-center gap-4 !p-4" data-id="${esc(opts.id)}">
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h3 class="text-[14.5px] font-semibold text-slate-900">${esc(opts.nombre)}</h3>
+            ${opts.activa ? tag("ok", "Predeterminada") : ""}
+          </div>
+          <p class="mt-0.5 text-[13px] text-slate-500">${esc(opts.descripcion)}</p>
+          <p class="mt-1 text-xs text-slate-400">${esc(opts.uso)}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          ${opts.sistema ? "" : `<a class="btn btn-ghost btn-sm" href="/diplomas/ver?plantilla=${encodeURIComponent(opts.id)}">Vista previa</a>`}
+          ${opts.activa ? "" : `<button type="button" class="btn btn-ghost btn-sm" data-accion="predeterminar" data-id="${esc(opts.id)}">Usar como predeterminada</button>`}
+          ${opts.sistema ? "" : `<button type="button" class="btn btn-ghost btn-sm !text-red-700 hover:!bg-red-50" data-accion="eliminar" data-id="${esc(opts.id)}" data-nombre="${esc(opts.nombre)}">Eliminar</button>`}
+        </div>
+      </article>`;
+
+    lista.innerHTML =
+      fila({ id: "sistema", nombre: "Diseño del sistema", descripcion: "Diploma A4 horizontal con los colores de Lumbreras de Amor. Siempre disponible.", activa: usaSistema, uso: "Se usa cuando un diploma no tiene plantilla propia ni hay una predeterminada.", sistema: true }) +
+      plantillas
+        .map((p) =>
+          fila({
+            id: p.id,
+            nombre: p.nombre,
+            descripcion: p.descripcion || "Plantilla HTML personalizada.",
+            activa: p.esPredeterminada,
+            uso: `${p.diplomasCount} ${p.diplomasCount === 1 ? "diploma la usa" : "diplomas la usan"} de forma específica`,
+          })
+        )
+        .join("");
+  }
+
+  async function cargarPlantillas() {
+    try {
+      const r = await listarPlantillas();
+      pintarPlantillas(r.data, r.usaPredeterminadaDelSistema, r.marcadores);
+    } catch (e) {
+      lista.innerHTML = `<p class="py-6 text-center text-sm text-slate-500">No se pudieron cargar las plantillas (${esc(errorTexto(e))}).</p>`;
+    }
+  }
+
+  lista.addEventListener("click", async (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>("[data-accion]");
+    if (!btn) return;
+    const id = btn.dataset.id!;
+    if (btn.dataset.accion === "predeterminar") {
+      try {
+        if (id === "sistema") await usarDisenoDelSistema();
+        else await marcarPlantillaPredeterminada(id);
+        avisar("Plantilla predeterminada actualizada.");
+        await cargarPlantillas();
+      } catch (err) {
+        avisar(`No se pudo actualizar: ${errorTexto(err)}`);
+      }
+    } else if (btn.dataset.accion === "eliminar") {
+      confirmar("¿Eliminar esta plantilla?", `Se eliminará «${btn.dataset.nombre}». Los diplomas que la usaban volverán al diseño predeterminado.`, async () => {
+        await eliminarPlantillaApi(id);
+        avisar("Plantilla eliminada.");
+        await Promise.all([cargarPlantillas(), cargarDiplomas()]);
+      });
+    }
+  });
+
+  formPlantilla.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorPlantilla.style.display = "none";
+    const fd = new FormData(formPlantilla);
+    const archivo = fd.get("archivo") as File | null;
+    const nombre = String(fd.get("nombre") ?? "").trim();
+    if (!nombre || !archivo || archivo.size === 0) {
+      errorPlantilla.textContent = "Indicá un nombre y seleccioná un archivo HTML.";
+      errorPlantilla.style.display = "block";
+      return;
+    }
+    try {
+      await subirPlantilla({ nombre, html: await archivo.text() });
+      formPlantilla.reset();
+      avisar(`Plantilla «${nombre}» subida correctamente.`);
+      await cargarPlantillas();
+    } catch (err) {
+      errorPlantilla.textContent = errorTexto(err);
+      errorPlantilla.style.display = "block";
+    }
+  });
+
+  cargarDiplomas();
+  cargarPlantillas();
+</script>

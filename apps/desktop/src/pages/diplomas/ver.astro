@@ -10,9 +10,12 @@ import Icon from "../../componentes/icon.astro";
   <div slot="actions">
     <a href="/diplomas" class="btn btn-ghost">← Volver al listado</a>
     <a id="btn-editar" href="/diplomas" class="btn btn-ghost" hidden>Editar diploma</a>
-    <button id="btn-descargar" type="button" class="btn btn-ghost" disabled><Icon name="download" /> Descargar HTML</button>
-    <button id="btn-imprimir" type="button" class="btn btn-primary" disabled><Icon name="printer" /> Imprimir / PDF</button>
+    <button id="btn-descargar" type="button" class="btn btn-ghost" disabled><Icon name="download" /> HTML</button>
+    <button id="btn-imprimir" type="button" class="btn btn-ghost" disabled><Icon name="printer" /> Imprimir</button>
+    <button id="btn-pdf" type="button" class="btn btn-primary" disabled><Icon name="download" /> Guardar PDF</button>
   </div>
+
+  <p id="estado-vista" class="mb-3 min-h-5 text-[13px] text-slate-500 print:hidden" role="status"></p>
 
   <div id="barra" class="mb-4 flex flex-wrap items-center gap-x-6 gap-y-2 print:hidden">
     <div class="min-w-0">
@@ -30,7 +33,7 @@ import Icon from "../../componentes/icon.astro";
          El iframe mide una hoja A4 (1123x794 px) y se escala al ancho disponible. -->
     <iframe id="marco" title="Vista previa del diploma" class="block origin-top-left border-0 bg-white" style="width:1123px;height:794px;" scrolling="no" sandbox="allow-same-origin allow-modals"></iframe>
   </div>
-  <p class="mx-auto mt-3 max-w-[1100px] text-xs text-slate-400 print:hidden">Para guardar como PDF elegí «Guardar como PDF» en el diálogo de impresión. El diseño está preparado para papel A4 horizontal.</p>
+  <p class="mx-auto mt-3 max-w-[1100px] text-xs text-slate-400 print:hidden">El diseño está preparado para papel A4 horizontal. Podés guardarlo directamente como PDF o enviarlo a imprimir.</p>
 </Layout>
 
 <script>
@@ -41,6 +44,7 @@ import Icon from "../../componentes/icon.astro";
     renderizarDiplomaHtml,
     type Diploma,
   } from "../../lib/diplomas";
+  import { guardarDiplomaPdf } from "../../lib/diplomaPdf";
 
   const params = new URLSearchParams(window.location.search);
   const idParam = params.get("id");
@@ -50,6 +54,8 @@ import Icon from "../../componentes/icon.astro";
   const selector = document.getElementById("selector-plantilla") as HTMLSelectElement;
   const btnImprimir = document.getElementById("btn-imprimir") as HTMLButtonElement;
   const btnDescargar = document.getElementById("btn-descargar") as HTMLButtonElement;
+  const btnPdf = document.getElementById("btn-pdf") as HTMLButtonElement;
+  const estadoEl = document.getElementById("estado-vista")!;
   const errorEl = document.getElementById("error-vista")!;
   const escenario = document.getElementById("escenario")!;
   const ajustarEscala = () => (marco.style.transform = `scale(${escenario.clientWidth / 1123})`);
@@ -69,7 +75,7 @@ import Icon from "../../componentes/icon.astro";
     try {
       htmlActual = await renderizarDiplomaHtml(diploma.id, selector.value || undefined);
       marco.srcdoc = htmlActual;
-      btnImprimir.disabled = btnDescargar.disabled = false;
+      btnImprimir.disabled = btnDescargar.disabled = btnPdf.disabled = false;
     } catch (e) {
       mostrarError(`No se pudo generar el diploma: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -119,6 +125,24 @@ import Icon from "../../componentes/icon.astro";
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  btnPdf.addEventListener("click", async () => {
+    if (!diploma || !htmlActual) return;
+    const htmlOriginal = btnPdf.innerHTML;
+    btnPdf.disabled = true;
+    btnPdf.textContent = "Generando PDF...";
+    errorEl.style.display = "none";
+    estadoEl.textContent = "Generando archivo PDF...";
+    try {
+      const guardado = await guardarDiplomaPdf(diploma, { html: htmlActual });
+      estadoEl.textContent = guardado ? `PDF guardado: ${guardado}` : "Guardado de PDF cancelado.";
+    } catch (e) {
+      estadoEl.textContent = "";
+      mostrarError(`No se pudo guardar el PDF: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      btnPdf.innerHTML = htmlOriginal;
+      btnPdf.disabled = false;
+    }
   });
 
   iniciar();

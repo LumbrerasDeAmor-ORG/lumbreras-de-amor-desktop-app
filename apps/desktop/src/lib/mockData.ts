@@ -390,6 +390,7 @@ export interface Voluntario {
   disponibilidad: string;
   habilidades: string[];
   horasAcumuladas: number;
+  contactoEmergencia?: string;
 }
 
 const VOLUNTARIOS: Voluntario[] = [

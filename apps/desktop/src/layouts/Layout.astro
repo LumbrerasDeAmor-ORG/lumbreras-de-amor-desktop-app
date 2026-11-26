@@ -16,6 +16,7 @@ interface Props {
     | "eventos"
     | "jornadas"
     | "donantes"
+    | "diplomas"
     | "viveres"
     | "reportes";
 }
@@ -35,6 +36,7 @@ const icons = {
   heart: '<path d="M12 20.5S3.5 15.2 3.5 9.3C3.5 6.4 5.8 4 8.7 4c1.7 0 3.1.9 3.3 2.2C12.2 4.9 13.6 4 15.3 4c2.9 0 5.2 2.4 5.2 5.3 0 5.9-8.5 11.2-8.5 11.2Z"/>',
   file: '<path d="M6 3.5h8l4 4V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z"/><path d="M14 3.5V8h4"/><path d="M8 13h8"/><path d="M8 17h8"/>',
   jornada: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6"/><path d="M9 16h4"/>',
+  diploma: '<circle cx="12" cy="9" r="6"/><path d="m8.6 14.2-1.6 7.3L12 18.6l5 2.9-1.6-7.3"/>',
   chevron: '<polyline points="6 9 12 15 18 9"/>',
 } as const;
 
@@ -54,316 +56,117 @@ const organizarSubItems = [
 const bottomNavItems = [
   { key: "donantes", label: "Donantes", href: "/donantes", icon: icons.donantes },
   { key: "viveres", label: "Víveres Y Donaciones", href: "/viveres", icon: icons.box },
+  { key: "diplomas", label: "Diplomas", href: "/diplomas", icon: icons.diploma },
   { key: "reportes", label: "Reportes Mensuales", href: "/reportes", icon: icons.file },
 ] as const;
 
+const navBase =
+  "group relative flex w-full items-center justify-between gap-2.5 rounded-lg px-3 py-2 text-[13.5px] font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent-300";
+const navIdle = "text-slate-400 hover:bg-white/5 hover:text-slate-100";
+const navActive = "bg-white/10 text-white before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r-full before:bg-accent-300";
+const iconBase = "size-[18px] shrink-0 transition-colors";
+const svgAttrs = { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "1.7", "stroke-linecap": "round", "stroke-linejoin": "round" } as const;
+const sectionLabel = "px-3 pb-1.5 pt-4 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-500";
+
 const isOrganizarActive = active === "eventos" || active === "jornadas";
 ---
-
+<!doctype html>
 <html lang="es">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title} · Lumbreras de Amor</title>
+    <script is:inline>
+      try { if (localStorage.getItem("sidebar_collapsed") === "1") document.documentElement.dataset.sidebar = "collapsed"; } catch {}
+    </script>
     <style is:global>
-      :root {
-        --sidebar-bg: #0b1120;
-        --sidebar-fg: #cbd5e1;
-        --sidebar-active-bg: #0d9488;
-        --sidebar-active-fg: #ffffff;
-        --content-bg: #f4f6f8;
-        --card-bg: #ffffff;
-        --card-border: #e5e7eb;
-        --text-main: #111827;
-        --text-muted: #6b7280;
-        --accent: #0d9488;
-        --accent-dark: #0f766e;
-        --badge-alta-bg: #fef3c7;
-        --badge-alta-fg: #92400e;
-        --badge-media-bg: #dbeafe;
-        --badge-media-fg: #1e40af;
-        --badge-baja-bg: #dcfce7;
-        --badge-baja-fg: #166534;
-        --badge-curso-bg: #ccfbf1;
-        --badge-curso-fg: #0f766e;
-        --content-zoom: 1;
-        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body {
-        height: 100%;
-        width: 100%;
-        overflow: hidden;
-      }
-      body {
-        font-family: var(--font-sans);
-        background: var(--content-bg);
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-      }
-      .shell { flex: 1; display: flex; min-height: 0; overflow: hidden; }
-
-      /* Sidebar */
-      .sidebar {
-        width: 250px;
-        flex-shrink: 0;
-        background: var(--sidebar-bg);
-        color: var(--sidebar-fg);
-        display: flex;
-        flex-direction: column;
-        padding: 1.25rem 0.9rem;
-        overflow-y: auto;
-      }
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        padding: 0 0.4rem 1.25rem 0.4rem;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid #1f2937;
-      }
-      .brand-icon {
-        width: 34px; height: 34px;
-        border-radius: 8px;
-        background: var(--accent);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.1rem;
-      }
-      .brand-name { font-weight: 700; font-size: 0.95rem; color: #fff; line-height: 1.1; }
-      .brand-sub { font-size: 0.68rem; color: var(--accent); letter-spacing: 0.02em; }
-
-      .context-pill {
-        display: flex; align-items: center; justify-content: space-between;
-        background: #111827;
-        border-radius: 8px;
-        padding: 0.5rem 0.7rem;
-        font-size: 0.78rem;
-        margin-bottom: 0.75rem;
-      }
-      .context-pill .status { color: var(--accent); font-weight: 600; font-size: 0.68rem; }
-
-      nav { display: flex; flex-direction: column; gap: 0.2rem; flex: 1; }
-      .nav-item {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: 0.6rem;
-        padding: 0.6rem 0.7rem;
-        border-radius: 8px;
-        color: var(--sidebar-fg);
-        text-decoration: none;
-        font-size: 0.86rem;
-        transition: background-color 0.12s;
-        border: none;
-        background: transparent;
-        width: 100%;
-        cursor: pointer;
-        font-family: inherit;
-        text-align: left;
-      }
-      .nav-item:hover { background: #111827; }
-      .nav-item.active {
-        background: var(--sidebar-active-bg);
-        color: var(--sidebar-active-fg);
-        font-weight: 600;
-      }
-      .nav-item .label { display: flex; align-items: center; gap: 0.55rem; }
-      .nav-icon { width: 17px; height: 17px; flex-shrink: 0; opacity: 0.85; }
-      .nav-badge {
-        background: rgba(255,255,255,0.18);
-        border-radius: 999px;
-        font-size: 0.68rem;
-        padding: 0.05rem 0.45rem;
-      }
-
-      /* Grupo desplegable Organizar algo */
-      .nav-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-      }
-      .nav-group-toggle.open {
-        background: #111827;
-        color: #ffffff;
-      }
-      .nav-chevron {
-        width: 15px;
-        height: 15px;
-        opacity: 0.75;
-        transition: transform 0.18s ease;
-      }
-      .nav-group-toggle.open .nav-chevron {
-        transform: rotate(180deg);
-      }
-      .nav-subitems {
-        display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        padding-left: 1.15rem;
-        margin-left: 0.75rem;
-        border-left: 1px solid #1f2937;
-      }
-      .nav-subitems.collapsed {
-        display: none;
-      }
-      .nav-subitem {
-        padding: 0.48rem 0.65rem;
-        font-size: 0.82rem;
-      }
-
-      .sidebar-footer {
-        margin-top: 0.75rem;
-        background: #111827;
-        border-radius: 10px;
-        padding: 0.75rem;
-        font-size: 0.72rem;
-        color: var(--text-muted);
-      }
-      .sidebar-footer strong { color: #fff; display: block; margin-bottom: 0.2rem; }
-
-      /* Main area */
-      .main { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
-      .topbar {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 1.1rem 1.75rem;
-        background: var(--card-bg);
-        border-bottom: 1px solid var(--card-border);
-        flex-shrink: 0;
-      }
-      .topbar h1 { font-size: 1.15rem; font-weight: 700; }
-      .topbar p { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
-      .topbar-actions { display: flex; align-items: center; gap: 0.6rem; }
-      .btn {
-        border: none; border-radius: 8px; padding: 0.5rem 0.9rem;
-        font-size: 0.82rem; font-weight: 600; cursor: pointer;
-      }
-      .btn-primary { background: var(--accent); color: #fff; }
-      .btn-primary:hover { background: var(--accent-dark); }
-      .btn-ghost { background: #f3f4f6; color: var(--text-main); }
-
-      .content {
-        flex: 1;
-        padding: 1.5rem 1.75rem;
-        overflow-y: auto;
-        overflow-x: auto;
-        min-height: 0;
-        zoom: var(--content-zoom);
-      }
-
-      /* Reusable card / grid pieces used across pages */
-      .card {
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 12px;
-        padding: 1.1rem;
-      }
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 1rem;
-      }
-      .badge {
-        display: inline-block;
-        border-radius: 999px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 0.15rem 0.55rem;
-      }
-      .badge-alta { background: var(--badge-alta-bg); color: var(--badge-alta-fg); }
-      .badge-media { background: var(--badge-media-bg); color: var(--badge-media-fg); }
-      .badge-baja { background: var(--badge-baja-bg); color: var(--badge-baja-fg); }
-      .badge-curso { background: var(--badge-curso-bg); color: var(--badge-curso-fg); border: 1px solid #99f6e4; }
-
-      @media print {
-        body { display: block; height: auto; overflow: visible; }
-        .shell, .main { display: block; }
-        .sidebar, .topbar { display: none; }
-        .content { padding: 0; overflow: visible; }
-      }
+      @import "../styles/global.css";
     </style>
   </head>
   <body>
     <TitleBar />
-    <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-icon"><Icon name="heart" size={18} /></div>
-        <div>
-          <div class="brand-name">Lumbreras de Amor</div>
-          <div class="brand-sub">ONG Y IMPACTO SOCIAL</div>
+    <div class="flex min-h-0 flex-1 overflow-hidden print:block">
+      <aside class="sidebar flex shrink-0 flex-col overflow-y-auto border-r border-white/5 bg-sidebar px-4 py-5 text-slate-300 print:hidden">
+        <div class="sidebar-brand flex items-center gap-3 px-1 pb-5">
+          <img src="/logo.png" alt="Lumbreras de Amor ONG" width="44" height="44" class="size-11 shrink-0 rounded-full shadow-lg shadow-black/40 ring-2 ring-white/10" />
+          <div class="brand-text font-display text-[17px] font-semibold leading-tight tracking-tight text-white">Lumbreras de Amor</div>
         </div>
-      </div>
 
-      <div class="context-pill">
-        <span>Gestión Integral 2026</span>
-        <span class="status">Activo</span>
-      </div>
+        <nav class="mt-1 flex flex-1 flex-col gap-0.5" aria-label="Navegación principal">
+          <div class={`section-label ${sectionLabel}`}>General</div>
+          {topNavItems.map((item) => (
+            <a class={`${navBase} ${active === item.key ? navActive : navIdle}`} href={item.href} title={item.label} aria-current={active === item.key ? "page" : undefined}>
+              <span class="flex items-center gap-3">
+                <svg class={`${iconBase} ${active === item.key ? "text-accent-300" : "text-slate-500 group-hover:text-slate-300"}`} {...svgAttrs} set:html={item.icon} />
+                <span class="nav-label">{item.label}</span>
+              </span>
+            </a>
+          ))}
 
-      <nav>
-        {topNavItems.map((item) => (
-          <a class={`nav-item ${active === item.key ? "active" : ""}`} href={item.href}>
-            <span class="label">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={item.icon} />
-              {item.label}
-            </span>
-          </a>
-        ))}
+          <div class={`section-label ${sectionLabel}`}>Organización</div>
+          <div class="flex flex-col gap-0.5">
+            <button
+              id="btn-organizar-toggle"
+              type="button"
+              class={`${navBase} cursor-pointer ${isOrganizarActive ? "text-white" : navIdle}`}
+              aria-expanded={isOrganizarActive ? "true" : "false"}
+              aria-controls="subnav-organizar"
+              title="Organizar algo"
+            >
+              <span class="flex items-center gap-3">
+                <svg class={`${iconBase} ${isOrganizarActive ? "text-accent-300" : "text-slate-500 group-hover:text-slate-300"}`} {...svgAttrs} set:html={icons.organizar} />
+                <span class="nav-label">Organizar algo</span>
+              </span>
+              <svg class={`nav-chevron size-4 text-slate-500 transition-transform duration-200 ${isOrganizarActive ? "rotate-180" : ""}`} {...svgAttrs} set:html={icons.chevron} />
+            </button>
 
-        <div class="nav-group">
-          <button
-            id="btn-organizar-toggle"
-            type="button"
-            class={`nav-item nav-group-toggle ${isOrganizarActive ? "open" : ""}`}
-            aria-expanded={isOrganizarActive ? "true" : "false"}
-          >
-            <span class="label">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={icons.organizar} />
-              Organizar algo
-            </span>
-            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" set:html={icons.chevron} />
-          </button>
-
-          <div id="subnav-organizar" class={`nav-subitems ${isOrganizarActive ? "" : "collapsed"}`}>
-            {organizarSubItems.map((sub) => (
-              <a class={`nav-item nav-subitem ${active === sub.key ? "active" : ""}`} href={sub.href}>
-                <span class="label">
-                  <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={sub.icon} />
-                  {sub.label}
-                </span>
-              </a>
-            ))}
+            <div id="subnav-organizar" class={`ml-[1.35rem] flex flex-col gap-0.5 border-l border-white/10 pl-3 ${isOrganizarActive ? "" : "hidden"}`}>
+              {organizarSubItems.map((sub) => (
+                <a class={`${navBase} !py-1.5 text-[13px] ${active === sub.key ? navActive.replace("before:-left-3", "before:-left-[13px]") : navIdle}`} href={sub.href} title={sub.label} aria-current={active === sub.key ? "page" : undefined}>
+                  <span class="flex items-center gap-3">
+                    <svg class={`size-4 shrink-0 ${active === sub.key ? "text-accent-300" : "text-slate-500 group-hover:text-slate-300"}`} {...svgAttrs} set:html={sub.icon} />
+                    <span class="nav-label">{sub.label}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {bottomNavItems.map((item) => (
-          <a class={`nav-item ${active === item.key ? "active" : ""}`} href={item.href}>
-            <span class="label">
-              <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={item.icon} />
-              {item.label}
-            </span>
-          </a>
-        ))}
-      </nav>
+          <div class={`section-label ${sectionLabel}`}>Recursos</div>
+          {bottomNavItems.map((item) => (
+            <a class={`${navBase} ${active === item.key ? navActive : navIdle}`} href={item.href} title={item.label} aria-current={active === item.key ? "page" : undefined}>
+              <span class="flex items-center gap-3">
+                <svg class={`${iconBase} ${active === item.key ? "text-accent-300" : "text-slate-500 group-hover:text-slate-300"}`} {...svgAttrs} set:html={item.icon} />
+                <span class="nav-label">{item.label}</span>
+              </span>
+            </a>
+          ))}
+        </nav>
 
-      <div class="sidebar-footer">
-        <strong>Lumbreras de Amor</strong>
-        Plataforma para seguimiento de mujeres, niños, asistencia, víveres y donaciones.
+        <button id="btn-sidebar-toggle" type="button" class={`${navBase} ${navIdle} mt-3 cursor-pointer border-t border-white/5 !rounded-none pt-3`} title="Contraer menú (Ctrl+B)" aria-label="Contraer o expandir menú" aria-expanded="true">
+          <span class="flex items-center gap-3">
+            <svg class={`sidebar-toggle-icon ${iconBase} text-slate-500 transition-transform duration-200`} {...svgAttrs}><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+            <span class="nav-label">Contraer menú</span>
+          </span>
+        </button>
+      </aside>
+
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header class="z-10 flex min-h-[68px] shrink-0 py-2.5 items-center justify-between gap-4 border-b border-slate-200 bg-white/85 px-8 backdrop-blur print:hidden">
+          <div class="min-w-0">
+            <h1 id="page-title" class="font-display truncate text-[21px] font-semibold tracking-tight text-brand-700">{title}</h1>
+            {subtitle && <p id="page-subtitle" class="mt-0.5 line-clamp-2 text-[13px] leading-snug text-slate-500">{subtitle}</p>}
+          </div>
+          <div class="topbar-actions flex shrink-0 items-center gap-2.5">
+            <slot name="actions" />
+          </div>
+        </header>
+        <main class="min-h-0 flex-1 overflow-auto px-8 py-7 print:overflow-visible print:p-0" style="zoom: var(--content-zoom);">
+          <div class="mx-auto w-full max-w-[1400px]">
+            <slot />
+          </div>
+        </main>
       </div>
-    </aside>
-
-    <div class="main">
-      <header class="topbar">
-        <div>
-          <h1>{title}</h1>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
-        <div class="topbar-actions">
-          <slot name="actions" />
-        </div>
-      </header>
-      <main class="content">
-        <slot />
-      </main>
-    </div>
     </div>
 
     <script>
@@ -372,10 +175,27 @@ const isOrganizarActive = active === "eventos" || active === "jornadas";
       const subnavOrganizar = document.getElementById("subnav-organizar");
 
       btnOrganizar?.addEventListener("click", () => {
-        const isOpen = btnOrganizar.classList.toggle("open");
+        const isOpen = btnOrganizar.getAttribute("aria-expanded") !== "true";
         btnOrganizar.setAttribute("aria-expanded", String(isOpen));
-        subnavOrganizar?.classList.toggle("collapsed", !isOpen);
+        subnavOrganizar?.classList.toggle("hidden", !isOpen);
+        btnOrganizar.querySelector(".nav-chevron")?.classList.toggle("rotate-180", isOpen);
       });
+
+      // Contraer / expandir sidebar (solo íconos)
+      const btnSidebar = document.getElementById("btn-sidebar-toggle");
+      function setSidebar(collapsed: boolean) {
+        if (collapsed) document.documentElement.dataset.sidebar = "collapsed";
+        else delete document.documentElement.dataset.sidebar;
+        btnSidebar?.setAttribute("aria-expanded", String(!collapsed));
+        btnSidebar?.setAttribute("title", collapsed ? "Expandir menú (Ctrl+B)" : "Contraer menú (Ctrl+B)");
+        try { localStorage.setItem("sidebar_collapsed", collapsed ? "1" : "0"); } catch {}
+      }
+      const toggleSidebar = () => setSidebar(document.documentElement.dataset.sidebar !== "collapsed");
+      btnSidebar?.addEventListener("click", toggleSidebar);
+      window.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "b") { e.preventDefault(); toggleSidebar(); }
+      });
+      btnSidebar?.setAttribute("aria-expanded", String(document.documentElement.dataset.sidebar !== "collapsed"));
 
       // Control de zoom desacoplado estilo VS Code:
       // Se intercepta el zoom global del navegador/webview para mantener

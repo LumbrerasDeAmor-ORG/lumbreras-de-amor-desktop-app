@@ -2,15 +2,37 @@
 // apps/desktop/src/pages/reportes/index.astro
 import Layout from "../../layouts/Layout.astro";
 import Icon from "../../componentes/icon.astro";
-import { getResumenReporte, getEventos, getJornadas, getDonaciones } from "../../lib/mockData";
+import {
+  getResumenReporte,
+  getEventos,
+  getJornadas,
+  getDonaciones,
+  getMujeres,
+  getNinos,
+  getVoluntarios,
+  getCoordinadores,
+  getDonantes,
+  getViveres,
+} from "../../lib/mockData";
+import { ENTIDADES } from "../../lib/reportesEntidades";
 import { formatQ } from "../../lib/currency";
 
-const [resumen, eventos, jornadas, donaciones] = await Promise.all([
-  getResumenReporte(),
-  getEventos(),
-  getJornadas(),
-  getDonaciones(),
-]);
+const [resumen, eventos, jornadas, donaciones, mujeres, ninos, voluntarios, coordinadores, donantes, viveres] =
+  await Promise.all([
+    getResumenReporte(),
+    getEventos(),
+    getJornadas(),
+    getDonaciones(),
+    getMujeres(),
+    getNinos(),
+    getVoluntarios(),
+    getCoordinadores(),
+    getDonantes(),
+    getViveres(),
+  ]);
+
+// Datos embebidos al compilar: sirven de respaldo si el sidecar no responde.
+const datosEmbebidos = { mujeres, ninos, voluntarios, coordinadores, eventos, jornadas, donantes, donaciones, viveres };
 
 // Jornadas y eventos se reportan juntos, identificados por su tipo.
 const actividades = [
@@ -21,16 +43,28 @@ const actividades = [
 
 <Layout title="Reportes Mensuales Automatizados" subtitle="Informes ejecutivos listos para benefactores, donantes y comités directivos" active="reportes">
   <div slot="actions">
-    <button id="btn-csv" class="btn btn-ghost" type="button"><Icon name="download" /> Descargar CSV</button>
-    <button id="btn-pdf" class="btn btn-primary" type="button"><Icon name="printer" /> Imprimir / Guardar PDF</button>
+    <button id="btn-csv" class="btn btn-ghost" type="button"><Icon name="download" /> CSV</button>
+    <button id="btn-pdf" class="btn btn-ghost" type="button"><Icon name="printer" /> Imprimir / PDF</button>
+    <button id="btn-excel" class="btn btn-primary" type="button"><Icon name="download" /> Exportar a Excel</button>
   </div>
 
   <p id="estado-export" class="estado-export" role="status"></p>
 
+  <!-- TABS POR ENTIDAD -->
+  <div class="tabs-nav -mx-1 mb-5 flex gap-1 overflow-x-auto border-b border-slate-200 px-1" role="tablist" aria-label="Entidades del reporte">
+    <button type="button" role="tab" data-tab="resumen" aria-selected="true" class="tab-btn">Resumen mensual</button>
+    {ENTIDADES.map((e) => (
+      <button type="button" role="tab" data-tab={e.id} aria-selected="false" class="tab-btn">
+        {e.label} <span id={`count-${e.id}`} class="tab-count">·</span>
+      </button>
+    ))}
+  </div>
+
+  <div id="panel-resumen" role="tabpanel" class="tab-panel">
   <div
     id="reporte"
     class="card"
-    style="max-width: 900px;"
+    style="max-width: 1000px;"
     data-reporte={JSON.stringify({ resumen, actividades, donaciones })}
   >
     <h2 style="font-size:1.1rem;">Informe Mensual de Impacto Y Gestión Social</h2>
@@ -78,12 +112,75 @@ const actividades = [
       </tbody>
     </table>
   </div>
+  </div>
+
+  {ENTIDADES.map((e) => (
+    <section id={`panel-${e.id}`} role="tabpanel" class="tab-panel entity-panel" hidden>
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <input id={`buscar-${e.id}`} type="search" class="form-control !w-72" placeholder={`Buscar en ${e.label.toLowerCase()}...`} aria-label={`Buscar en ${e.label}`} />
+        <span class="text-[13px] text-slate-500">{e.descripcion}</span>
+        <button type="button" class="btn btn-ghost ml-auto" data-export-entidad={e.id}><Icon name="download" /> Exportar esta tabla</button>
+      </div>
+      <div id={`tabla-${e.id}`}><p class="py-10 text-center text-sm text-slate-500">Cargando datos...</p></div>
+    </section>
+  ))}
+
+  <p id="estado-datos" class="mt-4 text-xs text-slate-400"></p>
+
+  <!-- MODAL DE EXPORTACIÓN -->
+  <dialog id="modal-export" class="m-auto w-[min(580px,92vw)] rounded-2xl border border-slate-200 bg-white p-0 shadow-pop backdrop:bg-slate-900/50 backdrop:backdrop-blur-sm">
+    <form id="form-export" method="dialog" class="flex max-h-[88vh] flex-col">
+      <div class="form-card-header">
+        <div class="form-card-icon"><Icon name="download" size={20} /></div>
+        <div class="flex-1">
+          <h2 class="form-card-title">Exportar a Excel</h2>
+          <p class="form-card-desc">Elegí qué información incluir en el archivo .xlsx.</p>
+        </div>
+        <button type="button" id="btn-modal-cerrar" class="btn btn-ghost btn-sm" aria-label="Cerrar">✕</button>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-7 py-5">
+        <div class="mb-3 flex items-center justify-between text-[13px]">
+          <span class="font-semibold text-slate-700">Información a exportar</span>
+          <span class="flex gap-3">
+            <button type="button" id="btn-sel-todo" class="font-medium text-brand-700 hover:underline">Seleccionar todo</button>
+            <button type="button" id="btn-sel-nada" class="font-medium text-slate-500 hover:underline">Ninguno</button>
+          </span>
+        </div>
+        <div id="lista-export" class="grid !grid-cols-1 gap-2 sm:!grid-cols-2"></div>
+
+        <fieldset class="mt-5">
+          <legend class="mb-2 text-[13px] font-semibold text-slate-700">Formato de salida</legend>
+          <div class="flex flex-col gap-2">
+            <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 p-3 text-[13px] has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50">
+              <input type="radio" name="modo" value="unico" checked class="mt-0.5 accent-brand-700" />
+              <span><strong class="block text-slate-900">Un solo archivo</strong><span class="text-slate-500">Un libro de Excel con una hoja por cada entidad seleccionada.</span></span>
+            </label>
+            <label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 p-3 text-[13px] has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50">
+              <input type="radio" name="modo" value="separados" class="mt-0.5 accent-brand-700" />
+              <span><strong class="block text-slate-900">Un archivo por entidad</strong><span class="text-slate-500">Archivos .xlsx independientes, guardados en la carpeta que elijas.</span></span>
+            </label>
+          </div>
+        </fieldset>
+        <p id="export-error" class="form-error" style="display:none;"></p>
+      </div>
+
+      <div class="form-card-footer">
+        <button id="btn-export-confirmar" class="btn btn-primary" type="submit">Exportar</button>
+        <button id="btn-export-cancelar" class="btn btn-ghost" type="button">Cancelar</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="application/json" id="datos-entidades" set:html={JSON.stringify(datosEmbebidos).replace(/</g, "\\u003c")}></script>
 </Layout>
 
 <style>
-  .tabla-reporte { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 0.6rem; }
-  .tabla-reporte th { text-align: left; color: var(--text-muted); font-size: 0.7rem; text-transform: uppercase; padding: 0.5rem 0.4rem; border-bottom: 1px solid var(--card-border); }
-  .tabla-reporte td { padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--card-border); }
+  .tabla-reporte { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; margin-top: 0.75rem; border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden; }
+  .tabla-reporte th { text-align: left; background: #f8f8f9; color: var(--text-muted); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--card-border); }
+  .tabla-reporte td { padding: 0.7rem 0.85rem; border-bottom: 1px solid #eef0f3; vertical-align: top; }
+  .tabla-reporte tbody tr:last-child td { border-bottom: 0; }
+  .tabla-reporte tbody tr:nth-child(even) td { background: #fbfbfc; }
   .tabla-reporte th.col-monto,
   .tabla-reporte td.col-monto,
   .col-monto {
@@ -96,7 +193,14 @@ const actividades = [
   /* US-12: estilos de impresión. Sidebar, topbar y titlebar se ocultan desde Layout/TitleBar. */
   .estado-export { font-size: 0.8rem; color: var(--text-muted); min-height: 1.2rem; margin-bottom: 0.6rem; }
 
+  .tab-btn { cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; padding: 0.6rem 0.9rem; margin-bottom: -1px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); transition: color 0.15s, border-color 0.15s; }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count { margin-left: 0.2rem; font-size: 0.72rem; font-weight: 500; color: #98a2b3; font-variant-numeric: tabular-nums; }
+
   @media print {
+    .tabs-nav, .entity-panel, #estado-datos, #modal-export { display: none !important; }
+    #panel-resumen { display: block !important; }
     .estado-export { display: none; }
     #reporte { border: none !important; box-shadow: none !important; max-width: none !important; }
   }
@@ -105,6 +209,16 @@ const actividades = [
 <script>
   import type { ResumenReporte, Evento, Donacion } from "../../lib/mockData";
   import { formatQ } from "../../lib/currency";
+  import { crearTabla, esc, tag } from "../../lib/dataTable";
+  import {
+    ENTIDADES,
+    cargarDatos,
+    columnasTabla,
+    generarXlsx,
+    type DatosFuente,
+    type EntidadId,
+    type Fila,
+  } from "../../lib/reportesEntidades";
 
   type ActividadReporte = Evento & { tipo: string };
 
@@ -205,8 +319,227 @@ const actividades = [
     }
   });
 
-  // US-12: imprimir / guardar como PDF con el diálogo del sistema.
+  // ───────── Tabs por entidad ─────────
+  const botonesTab = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-tab]"));
+  function activarTab(id: string) {
+    for (const b of botonesTab) b.setAttribute("aria-selected", String(b.dataset.tab === id));
+    document.getElementById("panel-resumen")!.hidden = id !== "resumen";
+    for (const e of ENTIDADES) {
+      const panel = document.getElementById(`panel-${e.id}`);
+      if (panel) panel.hidden = id !== e.id;
+    }
+  }
+  for (const b of botonesTab) b.addEventListener("click", () => activarTab(b.dataset.tab!));
+
+  // US-12: imprimir / guardar como PDF con el diálogo del sistema (solo el resumen mensual).
   document.getElementById("btn-pdf")?.addEventListener("click", () => {
+    activarTab("resumen");
     window.print();
+  });
+
+  // ───────── Tablas por entidad (TanStack Table) ─────────
+  let fuente: DatosFuente = JSON.parse(document.getElementById("datos-entidades")?.textContent ?? "{}");
+  const filasPorEntidad = new Map<EntidadId, Fila[]>();
+  const tablas = new Map<EntidadId, ReturnType<typeof crearTabla<Fila, string>>>();
+
+  function celda(c: ReturnType<typeof columnasTabla>[number], valor: string | number | undefined): string {
+    if (valor === undefined || valor === "") return '<span class="text-slate-300">—</span>';
+    if (c.tono) return tag(c.tono(String(valor)), valor);
+    if (c.tipo === "moneda") return `<span class="font-semibold text-slate-900">${esc(formatQ(Number(valor)))}</span>`;
+    if (c.tipo === "numero") return esc(valor);
+    return `<span class="block max-w-[260px] truncate" title="${esc(valor)}">${esc(valor)}</span>`;
+  }
+
+  function actualizarEntidades() {
+    for (const e of ENTIDADES) {
+      const filas = e.construir(fuente);
+      filasPorEntidad.set(e.id, filas);
+      const contador = document.getElementById(`count-${e.id}`);
+      if (contador) contador.textContent = String(filas.length);
+
+      const existente = tablas.get(e.id);
+      if (existente) {
+        existente.setData(filas);
+        continue;
+      }
+      const buscador = document.getElementById(`buscar-${e.id}`) as HTMLInputElement | null;
+      const tabla = crearTabla<Fila, string>({
+        mount: document.getElementById(`tabla-${e.id}`)!,
+        data: filas,
+        noun: e.label.toLowerCase(),
+        pageSizes: [10, 25, 50, 100],
+        emptyTitle: "Sin registros",
+        emptyText: "No hay datos para mostrar con los criterios actuales.",
+        filter: (fila, q) => !q || Object.values(fila).join(" ").toLowerCase().includes(q),
+        columns: columnasTabla(e).map((c) => ({
+          id: c.key,
+          header: c.header,
+          accessor: (f: Fila) => f[c.key] ?? "",
+          cell: (f: Fila) => celda(c, f[c.key]),
+          align: c.tipo === "numero" || c.tipo === "moneda" ? ("right" as const) : ("left" as const),
+          className: c.tipo === "texto" || !c.tipo ? (c.tono ? "whitespace-nowrap" : "") : "whitespace-nowrap",
+        })),
+      });
+      tablas.set(e.id, tabla);
+      buscador?.addEventListener("input", () => tabla.setFilter(buscador.value.trim().toLowerCase() || undefined));
+    }
+  }
+
+  actualizarEntidades();
+  const estadoDatos = document.getElementById("estado-datos");
+  cargarDatos(fuente).then(({ datos, enVivo }) => {
+    fuente = datos;
+    actualizarEntidades();
+    if (estadoDatos) {
+      estadoDatos.textContent = enVivo
+        ? "Datos actualizados desde la base de datos local."
+        : "No se pudo consultar toda la base local: se muestran los datos disponibles al abrir la aplicación.";
+    }
+  });
+
+  // ───────── Exportación a Excel ─────────
+  const modal = document.getElementById("modal-export") as HTMLDialogElement;
+  const formExport = document.getElementById("form-export") as HTMLFormElement;
+  const listaExport = document.getElementById("lista-export")!;
+  const errorExport = document.getElementById("export-error")!;
+  const btnConfirmar = document.getElementById("btn-export-confirmar") as HTMLButtonElement;
+
+  const seleccionadas = () =>
+    ENTIDADES.filter((e) => formExport.querySelector<HTMLInputElement>(`input[name="entidad"][value="${e.id}"]`)?.checked);
+
+  function actualizarBotonExportar() {
+    const n = seleccionadas().length;
+    btnConfirmar.disabled = n === 0;
+    btnConfirmar.textContent = n === 0 ? "Exportar" : `Exportar ${n} ${n === 1 ? "entidad" : "entidades"}`;
+  }
+
+  function abrirModal(preseleccion?: EntidadId) {
+    errorExport.style.display = "none";
+    listaExport.innerHTML = ENTIDADES.map((e) => {
+      const marcada = preseleccion ? e.id === preseleccion : true;
+      const total = filasPorEntidad.get(e.id)?.length ?? 0;
+      return `<label class="flex cursor-pointer items-start gap-2.5 rounded-lg border border-slate-200 p-3 text-[13px] transition-colors hover:border-slate-300 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50">
+        <input type="checkbox" name="entidad" value="${e.id}" ${marcada ? "checked" : ""} class="mt-0.5 size-4 accent-brand-700" />
+        <span class="min-w-0"><strong class="block text-slate-900">${esc(e.label)}</strong><span class="text-xs text-slate-500">${total} ${total === 1 ? "registro" : "registros"}</span></span>
+      </label>`;
+    }).join("");
+    actualizarBotonExportar();
+    modal.showModal();
+  }
+
+  listaExport.addEventListener("change", actualizarBotonExportar);
+  document.getElementById("btn-excel")?.addEventListener("click", () => abrirModal());
+  document.querySelectorAll<HTMLElement>("[data-export-entidad]").forEach((b) =>
+    b.addEventListener("click", () => abrirModal(b.dataset.exportEntidad as EntidadId))
+  );
+  document.getElementById("btn-sel-todo")?.addEventListener("click", () => {
+    listaExport.querySelectorAll<HTMLInputElement>("input").forEach((i) => (i.checked = true));
+    actualizarBotonExportar();
+  });
+  document.getElementById("btn-sel-nada")?.addEventListener("click", () => {
+    listaExport.querySelectorAll<HTMLInputElement>("input").forEach((i) => (i.checked = false));
+    actualizarBotonExportar();
+  });
+  const cerrarModal = () => modal.close();
+  document.getElementById("btn-modal-cerrar")?.addEventListener("click", cerrarModal);
+  document.getElementById("btn-export-cancelar")?.addEventListener("click", cerrarModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) cerrarModal(); // clic en el fondo
+  });
+
+  const XLSX_FILTRO = [{ name: "Libro de Excel", extensions: ["xlsx"] }];
+  const slug = (t: string) =>
+    t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  function descargarXlsxEnNavegador(nombre: string, bytes: Uint8Array) {
+    const blob = new Blob([bytes as BlobPart], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  /** Devuelve los nombres de los archivos guardados, o [] si se canceló. */
+  async function guardarArchivos(archivos: { nombre: string; bytes: Uint8Array }[]): Promise<string[]> {
+    if (!esTauri) {
+      for (const a of archivos) {
+        descargarXlsxEnNavegador(a.nombre, a.bytes);
+        await new Promise((r) => setTimeout(r, 350));
+      }
+      return archivos.map((a) => a.nombre);
+    }
+    const { save, open } = await import("@tauri-apps/plugin-dialog");
+    const { writeFile } = await import("@tauri-apps/plugin-fs");
+    if (archivos.length === 1) {
+      const ruta = await save({ defaultPath: archivos[0].nombre, filters: XLSX_FILTRO });
+      if (!ruta) return [];
+      await writeFile(ruta, archivos[0].bytes);
+      return [ruta];
+    }
+    const carpeta = await open({ directory: true, title: "Elegí la carpeta donde guardar los archivos" });
+    if (!carpeta || Array.isArray(carpeta)) return [];
+    const { join } = await import("@tauri-apps/api/path");
+    const guardados: string[] = [];
+    for (const a of archivos) {
+      const ruta = await join(carpeta, a.nombre);
+      await writeFile(ruta, a.bytes);
+      guardados.push(ruta);
+    }
+    return guardados;
+  }
+
+  formExport.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const elegidas = seleccionadas();
+    if (elegidas.length === 0) return;
+    const modo = (formExport.querySelector<HTMLInputElement>('input[name="modo"]:checked')?.value ?? "unico") as
+      | "unico"
+      | "separados";
+    const fecha = new Date().toISOString().slice(0, 10);
+
+    errorExport.style.display = "none";
+    btnConfirmar.disabled = true;
+    btnConfirmar.textContent = "Generando archivo...";
+    try {
+      const archivos =
+        modo === "separados" && elegidas.length > 1
+          ? await Promise.all(
+              elegidas.map(async (en) => ({
+                nombre: `lumbreras-${slug(en.label)}-${fecha}.xlsx`,
+                bytes: await generarXlsx([en], fuente),
+              }))
+            )
+          : [
+              {
+                nombre:
+                  elegidas.length === 1
+                    ? `lumbreras-${slug(elegidas[0].label)}-${fecha}.xlsx`
+                    : `lumbreras-reporte-${fecha}.xlsx`,
+                bytes: await generarXlsx(elegidas, fuente),
+              },
+            ];
+
+      const guardados = await guardarArchivos(archivos);
+      if (guardados.length === 0) {
+        mostrarEstado("Exportación cancelada.");
+      } else {
+        mostrarEstado(
+          guardados.length === 1
+            ? `Archivo exportado: ${guardados[0]}`
+            : `${guardados.length} archivos exportados correctamente.`
+        );
+        modal.close();
+      }
+    } catch (err) {
+      console.error(err);
+      errorExport.textContent = `No se pudo exportar: ${err instanceof Error ? err.message : String(err)}`;
+      errorExport.style.display = "block";
+    } finally {
+      actualizarBotonExportar();
+    }
   });
 </script>

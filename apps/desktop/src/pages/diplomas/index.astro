@@ -12,8 +12,7 @@ import Icon from "../../componentes/icon.astro";
   active="diplomas"
 >
   <div slot="actions">
-    <!-- Aquí irá el botón "+ Nuevo diploma" (enlace al formulario de alta que desarrolla el equipo). -->
-    <a id="slot-nuevo-diploma" href="/diplomas/nuevo" class="btn btn-primary" hidden>+ Nuevo diploma</a>
+    <a id="slot-nuevo-diploma" href="/diplomas/nuevo" class="btn btn-primary">+ Nuevo diploma</a>
   </div>
 
   <p id="estado-diplomas" class="mb-3 min-h-5 text-[13px] text-slate-500" role="status"></p>
@@ -167,6 +166,7 @@ import Icon from "../../componentes/icon.astro";
         cell: (d) =>
           `<div class="flex gap-1.5">
             <a href="/diplomas/ver?id=${encodeURIComponent(d.id)}" class="btn btn-ghost btn-sm">Ver diploma</a>
+            <a href="/diplomas/nuevo?id=${encodeURIComponent(d.id)}" class="btn btn-ghost btn-sm">Editar</a>
             <button type="button" data-action="eliminar" class="btn btn-ghost btn-sm !text-red-700 hover:!bg-red-50">Eliminar</button>
           </div>`,
       },

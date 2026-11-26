@@ -9,6 +9,7 @@ import Icon from "../../componentes/icon.astro";
 <Layout title="Vista del diploma" subtitle="Previsualización del diploma con su plantilla HTML" active="diplomas">
   <div slot="actions">
     <a href="/diplomas" class="btn btn-ghost">← Volver al listado</a>
+    <a id="btn-editar" href="/diplomas" class="btn btn-ghost" hidden>Editar diploma</a>
     <button id="btn-descargar" type="button" class="btn btn-ghost" disabled><Icon name="download" /> Descargar HTML</button>
     <button id="btn-imprimir" type="button" class="btn btn-primary" disabled><Icon name="printer" /> Imprimir / PDF</button>
   </div>
@@ -85,6 +86,11 @@ import Icon from "../../componentes/icon.astro";
       }
       document.getElementById("info-nombre")!.textContent = diploma.nombre;
       document.getElementById("info-titulo")!.textContent = `${diploma.titulo} · ${diploma.codigo}`;
+      const btnEditar = document.getElementById("btn-editar") as HTMLAnchorElement | null;
+      if (btnEditar && idParam) {
+        btnEditar.href = `/diplomas/nuevo?id=${encodeURIComponent(diploma.id)}`;
+        btnEditar.hidden = false;
+      }
 
       const { data: plantillas } = await listarPlantillas();
       selector.innerHTML =

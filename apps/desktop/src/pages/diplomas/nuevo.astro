@@ -1,0 +1,402 @@
+---
+// apps/desktop/src/pages/diplomas/nuevo.astro
+import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
+import { getDonantes } from "../../lib/mockData";
+
+const donantes = await getDonantes();
+const sugerenciasEntidades = Array.from(
+  new Set(
+    donantes
+      .filter((d) => (d.tipoPersona || d.tipo) === "Persona Jurídica")
+      .map((d) => d.nombre)
+      .filter(Boolean)
+  )
+);
+
+const hoyIso = new Date().toISOString().slice(0, 10);
+---
+
+<Layout
+  title="Nuevo Diploma"
+  subtitle="Registro y emisión de reconocimientos y certificados con plantilla HTML personalizable"
+  active="diplomas"
+>
+  <div slot="actions">
+    <a href="/diplomas"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
+  </div>
+
+  <form id="form-diploma" class="form-card" novalidate>
+    <div class="form-card-header">
+      <div class="form-card-icon"><Icon name="school" size={20} /></div>
+      <div>
+        <h2 class="form-card-title">Datos del diploma</h2>
+        <p class="form-card-desc">
+          Información del destinatario, motivo del reconocimiento, fecha de entrega y plantilla de diseño. Los campos con * son obligatorios.
+        </p>
+      </div>
+    </div>
+
+    <div class="form-card-body">
+      <div class="form-grid">
+        <label style="grid-column: 1 / -1;">
+          Tipo de destinatario *
+          <select id="select-tipo-destinatario" name="tipoDestinatario" required>
+            <option value="Persona" selected>Persona (Beneficiaria, Niño, Voluntario o Coordinador)</option>
+            <option value="Entidad">Entidad / Organización (Fundación, Empresa o Institución Aliada)</option>
+          </select>
+        </label>
+
+        <!-- Campos separados para Persona (estilo formulario de Mujeres) -->
+        <div id="grupo-persona" class="destinatario-subgrid" style="grid-column: 1 / -1;">
+          <label>
+            Nombres *
+            <input
+              id="input-nombres-persona"
+              name="nombres"
+              type="text"
+              placeholder="Ej: Laura Camila"
+              required
+            />
+          </label>
+          <label>
+            Apellidos *
+            <input
+              id="input-apellidos-persona"
+              name="apellidos"
+              type="text"
+              placeholder="Ej: Ortiz Gómez"
+              required
+            />
+          </label>
+        </div>
+
+        <!-- Campo único cuando el destinatario es una Entidad -->
+        <div id="grupo-entidad" style="grid-column: 1 / -1; display: none;">
+          <label>
+            Nombre de la entidad u organización *
+            <input
+              id="input-nombre-entidad"
+              name="nombreEntidad"
+              type="text"
+              list="sugerencias-entidades"
+              placeholder="Ej: Fundación Bolívar Construye"
+            />
+            <datalist id="sugerencias-entidades">
+              {sugerenciasEntidades.map((entidad) => (
+                <option value={entidad} />
+              ))}
+            </datalist>
+          </label>
+        </div>
+
+        <label style="grid-column: 1 / -1;">
+          Título o motivo del diploma *
+          <input
+            id="input-titulo-diploma"
+            name="titulo"
+            type="text"
+            list="sugerencias-titulos"
+            placeholder="Ej: Reconocimiento al Voluntariado Destacado"
+            required
+          />
+          <datalist id="sugerencias-titulos">
+            <option value="Reconocimiento al Voluntariado Destacado" />
+            <option value="Certificado del Taller de Emprendimiento en el Hogar" />
+            <option value="Diploma de Excelencia Escolar" />
+            <option value="Reconocimiento a Aliado Solidario" />
+            <option value="Certificado de Capacitación Comunitaria" />
+          </datalist>
+        </label>
+
+        <label>
+          Fecha de entrega *
+          <input
+            id="input-fecha-entrega"
+            name="fechaEntrega"
+            type="date"
+            value={hoyIso}
+            required
+          />
+        </label>
+
+        <label>
+          Plantilla de diseño HTML
+          <select id="select-plantilla-diploma" name="plantillaId">
+            <option value="">Usar diseño predeterminado</option>
+          </select>
+        </label>
+
+        <label style="grid-column: 1 / -1;">
+          Descripción o dedicatoria impresa en el diploma
+          <textarea
+            id="input-descripcion-diploma"
+            name="descripcion"
+            rows="3"
+            placeholder="Ej: Por su liderazgo, compromiso y dedicación en la coordinación de jornadas comunitarias durante 2026."
+          ></textarea>
+        </label>
+
+        <label style="grid-column: 1 / -1;">
+          Notas internas (uso administrativo / logística de entrega)
+          <textarea
+            id="input-notas-diploma"
+            name="notas"
+            rows="2"
+            placeholder="Ej: Entregar en la cena benéfica. Imprimir en papel opalina tamaño A4 horizontal."
+          ></textarea>
+        </label>
+      </div>
+
+      <p id="form-error" class="form-error" style="display:none;">
+        Completá los campos obligatorios (*) antes de continuar.
+      </p>
+    </div>
+
+    <div class="form-card-footer">
+      <button id="btn-guardar-diploma" class="btn btn-primary" type="submit">Guardar Diploma</button>
+      <button class="btn btn-ghost" type="reset">Limpiar</button>
+    </div>
+  </form>
+
+  <div id="preview" class="card mx-auto mt-5 max-w-3xl" style="display:none;">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <strong id="preview-title" class="text-[14px] font-semibold text-emerald-700">
+        ✔ Diploma guardado en la base de datos SQLite local
+      </strong>
+      <span id="preview-codigo" class="rounded-md bg-brand-50 px-2.5 py-1 font-mono text-xs font-semibold text-brand-700"></span>
+    </div>
+    <pre
+      id="preview-content"
+      class="mt-3 rounded-lg bg-slate-50 p-3.5 font-mono text-xs whitespace-pre-wrap text-slate-700"
+    ></pre>
+    <div class="mt-4 flex flex-wrap gap-2.5">
+      <a id="link-ver-diploma" href="/diplomas" class="btn btn-primary">
+        <Icon name="printer" /> Ver e imprimir diploma
+      </a>
+      <a href="/diplomas" class="btn btn-ghost">Ir al listado de Diplomas</a>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .form-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+  .destinatario-subgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem 1.25rem;
+  }
+  @media (max-width: 640px) {
+    .destinatario-subgrid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  import {
+    crearDiplomaApi,
+    actualizarDiplomaApi,
+    obtenerDiploma,
+    listarPlantillas,
+    type DiplomaInput,
+  } from "../../lib/diplomas";
+  import {
+    idEdicion,
+    llenarFormulario,
+    activarModoEdicion,
+    mostrarError,
+  } from "../../lib/edicion";
+
+  const form = document.getElementById("form-diploma") as HTMLFormElement | null;
+  const errorEl = document.getElementById("form-error");
+  const selectTipoDestinatario = document.getElementById("select-tipo-destinatario") as HTMLSelectElement | null;
+  const grupoPersona = document.getElementById("grupo-persona");
+  const grupoEntidad = document.getElementById("grupo-entidad");
+  const inputNombres = document.getElementById("input-nombres-persona") as HTMLInputElement | null;
+  const inputApellidos = document.getElementById("input-apellidos-persona") as HTMLInputElement | null;
+  const inputNombreEntidad = document.getElementById("input-nombre-entidad") as HTMLInputElement | null;
+  const selectPlantilla = document.getElementById("select-plantilla-diploma") as HTMLSelectElement | null;
+
+  const preview = document.getElementById("preview");
+  const previewTitle = document.getElementById("preview-title");
+  const previewCodigo = document.getElementById("preview-codigo");
+  const previewContent = document.getElementById("preview-content");
+  const linkVerDiploma = document.getElementById("link-ver-diploma") as HTMLAnchorElement | null;
+
+  function actualizarModoDestinatario() {
+    const esEntidad = selectTipoDestinatario?.value === "Entidad";
+    if (grupoPersona) grupoPersona.style.display = esEntidad ? "none" : "grid";
+    if (grupoEntidad) grupoEntidad.style.display = esEntidad ? "block" : "none";
+
+    if (inputNombres) inputNombres.required = !esEntidad;
+    if (inputApellidos) inputApellidos.required = !esEntidad;
+    if (inputNombreEntidad) inputNombreEntidad.required = esEntidad;
+  }
+
+  selectTipoDestinatario?.addEventListener("change", actualizarModoDestinatario);
+  actualizarModoDestinatario();
+
+  function esNombreDeEntidad(nombre: string): boolean {
+    return /\b(fundaci[oó]n|asociaci[oó]n|s\.a\.|s\.a\.s\.|cooperativa|empresa|iglesia|universidad|colegio|instituto|ministerio|ong|corporaci[oó]n|distribuidora|farmac[eé]utica|grupo|centro)\b/i.test(
+      nombre
+    );
+  }
+
+  async function cargarOpcionesPlantillas(seleccionadaId?: string) {
+    if (!selectPlantilla) return;
+    try {
+      const { data: plantillas, usaPredeterminadaDelSistema } = await listarPlantillas();
+      const predeterminada = plantillas.find((p) => p.esPredeterminada);
+      const etiquetaDefault = usaPredeterminadaDelSistema
+        ? "Usar diseño predeterminado (Diseño del sistema)"
+        : `Usar diseño predeterminado (${predeterminada?.nombre ?? "Plantilla activa"})`;
+
+      selectPlantilla.innerHTML =
+        `<option value="">${etiquetaDefault}</option>` +
+        plantillas
+          .map(
+            (p) =>
+              `<option value="${p.id}">${p.nombre.replace(/</g, "&lt;")}${p.esPredeterminada ? " ★" : ""}</option>`
+          )
+          .join("");
+
+      if (seleccionadaId !== undefined) {
+        selectPlantilla.value = seleccionadaId;
+      }
+    } catch {
+      // Si el Sidecar aún no responde, conserva la opción predeterminada
+    }
+  }
+
+  const editId = idEdicion();
+  if (editId && form) {
+    activarModoEdicion(form, {
+      titulo: "Editar diploma",
+      subtitulo: "Actualización de datos del reconocimiento y plantilla asignada",
+      descripcion: "Modificá los campos del diploma y guardá los cambios.",
+      botonGuardar: "Guardar cambios",
+      volverHref: "/diplomas",
+    });
+
+    Promise.all([obtenerDiploma(editId), cargarOpcionesPlantillas()])
+      .then(([diploma]) => {
+        const nombreCompleto = String(diploma.nombre ?? "").trim();
+        const esEntidad = esNombreDeEntidad(nombreCompleto);
+
+        if (esEntidad) {
+          llenarFormulario(form, {
+            tipoDestinatario: "Entidad",
+            nombreEntidad: nombreCompleto,
+            titulo: diploma.titulo,
+            fechaEntrega: diploma.fechaEntrega,
+            plantillaId: diploma.plantillaId || "",
+            descripcion: diploma.descripcion || "",
+            notas: diploma.notas || "",
+          });
+        } else {
+          const partes = nombreCompleto.split(/\s+/).filter(Boolean);
+          const mitad = Math.max(1, Math.ceil(partes.length / 2));
+          llenarFormulario(form, {
+            tipoDestinatario: "Persona",
+            nombres: partes.slice(0, mitad).join(" "),
+            apellidos: partes.slice(mitad).join(" "),
+            titulo: diploma.titulo,
+            fechaEntrega: diploma.fechaEntrega,
+            plantillaId: diploma.plantillaId || "",
+            descripcion: diploma.descripcion || "",
+            notas: diploma.notas || "",
+          });
+        }
+        actualizarModoDestinatario();
+      })
+      .catch((err) => {
+        mostrarError(errorEl, `No se pudo cargar el diploma: ${(err as Error).message}`);
+        form.querySelector<HTMLButtonElement>('button[type="submit"]')?.setAttribute("disabled", "true");
+      });
+  } else {
+    cargarOpcionesPlantillas();
+  }
+
+  form?.addEventListener("reset", () => {
+    setTimeout(() => {
+      const hoy = new Date().toISOString().slice(0, 10);
+      const inputFecha = document.getElementById("input-fecha-entrega") as HTMLInputElement | null;
+      if (inputFecha) inputFecha.value = hoy;
+      actualizarModoDestinatario();
+    }, 0);
+  });
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      mostrarError(errorEl, "Completá los campos obligatorios (*) antes de continuar.");
+      form.reportValidity();
+      return;
+    }
+    if (errorEl) errorEl.style.display = "none";
+
+    const fd = new FormData(form);
+    const tipoDestinatario = String(fd.get("tipoDestinatario") ?? "Persona");
+    const nombreFinal =
+      tipoDestinatario === "Entidad"
+        ? String(fd.get("nombreEntidad") ?? "").trim()
+        : `${String(fd.get("nombres") ?? "").trim()} ${String(fd.get("apellidos") ?? "").trim()}`.trim();
+
+    const payload: DiplomaInput = {
+      nombre: nombreFinal,
+      titulo: String(fd.get("titulo") ?? "").trim(),
+      fechaEntrega: String(fd.get("fechaEntrega") ?? "").trim(),
+      descripcion: String(fd.get("descripcion") ?? "").trim(),
+      notas: String(fd.get("notas") ?? "").trim(),
+      plantillaId: String(fd.get("plantillaId") ?? "").trim(),
+    };
+
+    if (!payload.nombre || !payload.titulo || !payload.fechaEntrega) {
+      mostrarError(errorEl, "El nombre del destinatario, el título y la fecha de entrega son obligatorios.");
+      return;
+    }
+
+    if (editId) {
+      try {
+        await actualizarDiplomaApi(editId, payload);
+        window.location.href = `/diplomas/ver?id=${encodeURIComponent(editId)}`;
+      } catch (err) {
+        mostrarError(errorEl, `Error al guardar los cambios: ${(err as Error).message}`);
+      }
+      return;
+    }
+
+    try {
+      const creado = await crearDiplomaApi(payload);
+      if (preview && previewContent) {
+        if (previewTitle) {
+          previewTitle.textContent = `✔ Diploma registrado exitosamente (${creado.nombre})`;
+        }
+        if (previewCodigo) {
+          previewCodigo.textContent = creado.codigo;
+        }
+        if (linkVerDiploma) {
+          linkVerDiploma.href = `/diplomas/ver?id=${encodeURIComponent(creado.id)}`;
+        }
+        previewContent.textContent = JSON.stringify(creado, null, 2);
+        preview.style.display = "block";
+        preview.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      form.reset();
+    } catch (err) {
+      mostrarError(
+        errorEl,
+        `Error al guardar el diploma en la base de datos: ${(err as Error).message}`
+      );
+    }
+  });
+</script>

@@ -353,3 +353,41 @@ model MovimientoInventario {
 
   @@map("movimiento_inventario")
 }
+
+// ---------------------------------------------------------------------------
+// Diplomas
+// ---------------------------------------------------------------------------
+
+/// Plantilla HTML subida por la organización para personalizar el aspecto del diploma.
+/// Si un diploma no tiene plantilla ni existe una marcada como predeterminada,
+/// se usa el diseño por defecto incluido en el código (src/diplomas.ts).
+model PlantillaDiploma {
+  id_plantilla      Int       @id @default(autoincrement())
+  nombre            String    @unique
+  descripcion       String?
+  html              String
+  es_predeterminada Boolean   @default(false)
+  created_at        DateTime? @default(now())
+  updated_at        DateTime? @updatedAt
+
+  diplomas Diploma[]
+
+  @@map("plantilla_diploma")
+}
+
+model Diploma {
+  id_diploma    Int       @id @default(autoincrement())
+  nombre        String // persona o entidad que recibe el diploma
+  titulo        String
+  descripcion   String?
+  fecha_entrega String // formato ISO: YYYY-MM-DD
+  notas         String? // uso interno, no aparece en el diploma salvo que la plantilla use {{notas}}
+  id_plantilla  Int?
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @updatedAt
+
+  plantilla PlantillaDiploma? @relation(fields: [id_plantilla], references: [id_plantilla], onDelete: SetNull)
+
+  @@index([fecha_entrega])
+  @@map("diploma")
+}

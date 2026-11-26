@@ -250,3 +250,31 @@ CREATE UNIQUE INDEX IF NOT EXISTS "donacion_monetaria_numero_recibo_key" ON "don
 
 -- CreateIndex
 CREATE UNIQUE INDEX IF NOT EXISTS "donacion_especie_numero_recibo_key" ON "donacion_especie"("numero_recibo");
+
+-- CreateTable (Diplomas)
+CREATE TABLE IF NOT EXISTS "plantilla_diploma" (
+    "id_plantilla" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "nombre" TEXT NOT NULL,
+    "descripcion" TEXT,
+    "html" TEXT NOT NULL,
+    "es_predeterminada" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME
+);
+
+CREATE TABLE IF NOT EXISTS "diploma" (
+    "id_diploma" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "nombre" TEXT NOT NULL,
+    "titulo" TEXT NOT NULL,
+    "descripcion" TEXT,
+    "fecha_entrega" TEXT NOT NULL,
+    "notas" TEXT,
+    "id_plantilla" INTEGER,
+    "created_at" DATETIME DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME,
+    CONSTRAINT "diploma_id_plantilla_fkey" FOREIGN KEY ("id_plantilla") REFERENCES "plantilla_diploma" ("id_plantilla") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX IF NOT EXISTS "plantilla_diploma_nombre_key" ON "plantilla_diploma"("nombre");
+CREATE INDEX IF NOT EXISTS "diploma_fecha_entrega_idx" ON "diploma"("fecha_entrega");

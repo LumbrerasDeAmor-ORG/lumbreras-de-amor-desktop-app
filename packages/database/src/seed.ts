@@ -4,6 +4,8 @@ import {
   crearDonanteIndividual,
   crearDonanteJuridico,
   crearVoluntario,
+  crearDiploma,
+  crearPlantilla,
 } from "./index.js";
 
 export const MUJERES_SEED = [
@@ -606,6 +608,90 @@ export const JORNADAS_SEED = [
   },
 ];
 
+
+// ─── Diplomas ────────────────────────────────────────────────────────────────
+
+/** Plantilla de ejemplo (la que subiría la organización): demuestra cómo se personaliza con HTML. */
+export const PLANTILLAS_DIPLOMA_SEED = [
+  {
+    nombre: "Clásico azul y dorado",
+    descripcion: "Plantilla de ejemplo con marco azul y detalles dorados.",
+    html: `<!doctype html>
+<html lang="es"><head><meta charset="utf-8" /><title>{{titulo}}</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: Georgia, serif; background: #e8edf5; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .hoja { width: 297mm; height: 210mm; max-width: 100vw; aspect-ratio: 297 / 210; background: #fff; border: 4mm double #1e3a8a; padding: 18mm; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 5mm; }
+  .org { color: #b8860b; letter-spacing: 1.5mm; text-transform: uppercase; font-size: 4mm; font-family: Arial, sans-serif; }
+  h1 { color: #1e3a8a; font-size: 14mm; font-weight: 400; }
+  .nombre { font-size: 12mm; color: #111827; border-bottom: 0.4mm solid #b8860b; padding: 0 10mm 2mm; }
+  .titulo { font: 700 6mm Arial, sans-serif; color: #1e3a8a; }
+  .desc { max-width: 190mm; font-size: 4.5mm; color: #374151; line-height: 1.5; }
+  .fecha { font: 3.8mm Arial, sans-serif; color: #6b7280; }
+</style></head>
+<body><div class="hoja">
+  <div class="org">{{organizacion}}</div>
+  <h1>Certificado de Reconocimiento</h1>
+  <div class="nombre">{{nombre}}</div>
+  <div class="titulo">{{titulo}}</div>
+  <p class="desc">{{descripcion}}</p>
+  <p class="fecha">{{fecha_entrega}} · {{codigo}}</p>
+</div></body></html>`,
+  },
+];
+
+export const DIPLOMAS_SEED = [
+  {
+    nombre: "Laura Camila Ortiz",
+    titulo: "Reconocimiento al Voluntariado Destacado",
+    descripcion: "Por su liderazgo y dedicación en la coordinación de jornadas comunitarias durante 2026.",
+    fecha_entrega: "2026-11-20",
+    notas: "Entregar en la cena benéfica. Imprimir en papel opalina.",
+    plantilla: null as string | null,
+  },
+  {
+    nombre: "Mateo Gómez Morales",
+    titulo: "Diploma de Excelencia Escolar",
+    descripcion: "Por su esfuerzo y constancia en el refuerzo escolar de matemáticas y lectura.",
+    fecha_entrega: "2026-11-15",
+    notas: null,
+    plantilla: null as string | null,
+  },
+  {
+    nombre: "Rosa Elena Morales",
+    titulo: "Certificado del Taller de Emprendimiento en el Hogar",
+    descripcion: "Por completar satisfactoriamente las 12 sesiones del taller de costura y emprendimiento.",
+    fecha_entrega: "2026-10-30",
+    notas: "Entrega durante la celebración del Día de la Madre.",
+    plantilla: "Clásico azul y dorado" as string | null,
+  },
+  {
+    nombre: "Fundación Bolívar Construye",
+    titulo: "Reconocimiento a Aliado Solidario",
+    descripcion: "Por su generoso aporte económico a los programas de alimentación y salud de la organización.",
+    fecha_entrega: "2026-09-25",
+    notas: "Entregar a su representante legal.",
+    plantilla: "Clásico azul y dorado" as string | null,
+  },
+  {
+    nombre: "Dra. Carolina Méndez",
+    titulo: "Reconocimiento a Voluntaria Externa",
+    descripcion: "Por su atención médica voluntaria en las jornadas de salud integral y nutrición comunitaria.",
+    fecha_entrega: "2026-08-10",
+    notas: null,
+    plantilla: null as string | null,
+  },
+  {
+    nombre: "Silvia Patricia Orozco Gómez",
+    titulo: "Certificado de Capacitación en Panadería Artesanal",
+    descripcion: "Por su participación y aprovechamiento en el taller de panadería artesanal.",
+    fecha_entrega: "2026-12-05",
+    notas: "Pendiente de entrega.",
+    plantilla: null as string | null,
+  },
+];
+
 export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
   mujeresCount: number;
   ninosCount: number;
@@ -613,6 +699,7 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
   donacionesCount: number;
   eventosCount: number;
   jornadasCount: number;
+  diplomasCount: number;
 }> {
   // 1. Beneficiarios (Mujeres y Niños)
   const existingBeneficiarios = await db.beneficiario.count();
@@ -802,6 +889,26 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
     }
   }
 
+  // 6. Diplomas y plantillas de ejemplo
+  if ((await db.diploma.count()) === 0) {
+    const plantillaPorNombre = new Map<string, number>();
+    for (const p of PLANTILLAS_DIPLOMA_SEED) {
+      const existente = await db.plantillaDiploma.findUnique({ where: { nombre: p.nombre } });
+      const creada = existente ?? (await crearPlantilla(db, p));
+      plantillaPorNombre.set(creada.nombre, creada.id_plantilla);
+    }
+    for (const d of DIPLOMAS_SEED) {
+      await crearDiploma(db, {
+        nombre: d.nombre,
+        titulo: d.titulo,
+        descripcion: d.descripcion,
+        fecha_entrega: d.fecha_entrega,
+        notas: d.notas,
+        id_plantilla: d.plantilla ? plantillaPorNombre.get(d.plantilla) ?? null : null,
+      });
+    }
+  }
+
   return {
     mujeresCount: await db.beneficiario.count({
       where: { tipo_beneficiario: "Mujer" },
@@ -813,6 +920,7 @@ export async function seedDatabaseIfNeeded(db: PrismaClient): Promise<{
     donacionesCount: await db.donacionMonetaria.count(),
     eventosCount: await db.evento.count(),
     jornadasCount: await db.jornada.count(),
+    diplomasCount: await db.diploma.count(),
   };
 }
 

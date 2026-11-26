@@ -25,6 +25,7 @@ export function createDatabaseClient(config: DbConfig = { mode: "local" }): Pris
 
 export * from "@prisma/client";
 export * from "./repositories.js";
+export * from "./diplomas.js";
 export {
   seedDatabaseIfNeeded,
   MUJERES_SEED,
@@ -34,4 +35,6 @@ export {
   DONACIONES_SEED,
   EVENTOS_SEED,
   JORNADAS_SEED,
+  DIPLOMAS_SEED,
+  PLANTILLAS_DIPLOMA_SEED,
 } from "./seed.js";

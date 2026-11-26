@@ -33,6 +33,21 @@ const {
   crearJornadaConServicios,
   obtenerJornadas,
   obtenerJornadaPorId,
+  crearDiploma,
+  actualizarDiploma,
+  obtenerDiplomas,
+  obtenerDiplomaPorId,
+  eliminarDiploma,
+  crearPlantilla,
+  obtenerPlantillas,
+  obtenerPlantillaPorId,
+  eliminarPlantilla,
+  establecerPlantillaPredeterminada,
+  renderizarDiploma,
+  codigoDiploma,
+  ErrorValidacion,
+  MARCADORES_DIPLOMA,
+  PLANTILLA_PREDETERMINADA_HTML,
 } = await import("@lumbreras/database");
 
 const PORT = Number(process.env.PORT) || 4111;
@@ -42,7 +57,7 @@ const db = createDatabaseClient({ mode: "local", url: process.env.DATABASE_URL }
 try {
   const seeded = await seedDatabaseIfNeeded(db);
   console.log(
-    `[Sidecar] Base de datos SQLite sincronizada (${seeded.mujeresCount} mujeres, ${seeded.ninosCount} niños, ${seeded.voluntariosCount} voluntarios, ${seeded.eventosCount} eventos, ${seeded.jornadasCount} jornadas, ${seeded.donacionesCount} donaciones)`
+    `[Sidecar] Base de datos SQLite sincronizada (${seeded.mujeresCount} mujeres, ${seeded.ninosCount} niños, ${seeded.voluntariosCount} voluntarios, ${seeded.eventosCount} eventos, ${seeded.jornadasCount} jornadas, ${seeded.donacionesCount} donaciones, ${seeded.diplomasCount} diplomas)`
   );
 } catch (err) {
   console.warn("[Sidecar] No se pudo verificar el seed inicial:", (err as Error).message);
@@ -62,6 +77,53 @@ function jsonResponse(data: unknown, status = 200) {
       "Content-Type": "application/json",
     },
   });
+}
+
+function htmlResponse(html: string, headers: Record<string, string> = {}) {
+  return new Response(html, {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8", ...headers },
+  });
+}
+
+function mapDiploma(d: any) {
+  return {
+    id: String(d.id_diploma),
+    codigo: codigoDiploma(d),
+    nombre: d.nombre,
+    titulo: d.titulo,
+    descripcion: d.descripcion ?? "",
+    fechaEntrega: d.fecha_entrega,
+    notas: d.notas ?? "",
+    plantillaId: d.id_plantilla ? String(d.id_plantilla) : "",
+    plantillaNombre: d.plantilla?.nombre ?? "",
+  };
+}
+
+/** Acepta tanto camelCase (frontend) como snake_case (base de datos). */
+function mapDiplomaBody(body: Record<string, any>) {
+  const out: Record<string, unknown> = {};
+  if (body.nombre !== undefined) out.nombre = body.nombre;
+  if (body.titulo !== undefined) out.titulo = body.titulo;
+  if (body.descripcion !== undefined) out.descripcion = body.descripcion;
+  const fecha = body.fechaEntrega ?? body.fecha_entrega;
+  if (fecha !== undefined) out.fecha_entrega = fecha;
+  if (body.notas !== undefined) out.notas = body.notas;
+  const plantilla = body.plantillaId ?? body.id_plantilla;
+  if (plantilla !== undefined) out.id_plantilla = plantilla;
+  return out;
+}
+
+function mapPlantilla(p: any, incluirHtml = false) {
+  return {
+    id: String(p.id_plantilla),
+    nombre: p.nombre,
+    descripcion: p.descripcion ?? "",
+    esPredeterminada: !!p.es_predeterminada,
+    diplomasCount: p._count?.diplomas ?? 0,
+    creadaEl: p.created_at ? new Date(p.created_at).toISOString() : null,
+    ...(incluirHtml ? { html: p.html } : {}),
+  };
 }
 
 function mapBeneficiarioToMujer(b: any) {
@@ -130,6 +192,7 @@ function mapVoluntario(v: any) {
     disponibilidad: v.disponibilidad || "Flexible",
     habilidades: v.rol_especialidad ? [v.rol_especialidad] : [],
     horasAcumuladas: v.horas_acumuladas ?? 0,
+    contactoEmergencia: v.contacto_emergencia || "",
     estado: v.estado || "Activo",
   };
 }
@@ -549,6 +612,19 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
       }
     }
 
+    if (url.pathname.startsWith("/coordinadores/") && req.method === "GET") {
+      try {
+        const numericId = Number(decodeURIComponent(url.pathname.replace("/coordinadores/", "")));
+        const row = Number.isInteger(numericId) && numericId > 0 ? await obtenerVoluntarioPorId(db, numericId) : null;
+        if (!row) {
+          return jsonResponse({ success: false, error: "Coordinador no encontrado" }, 404);
+        }
+        return jsonResponse({ success: true, data: mapVoluntario(row) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
     if (url.pathname === "/coordinadores" && req.method === "POST") {
       try {
         const body = (await req.json()) as Record<string, any>;
@@ -579,6 +655,294 @@ export async function handleRequest(req: Request, database = db): Promise<Respon
 
         return jsonResponse({ success: true, data: mapVoluntario(created) }, 201);
       } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    // =========================================================================
+    // EDICIÓN (PUT) DE PERFILES: mujeres, niños, voluntarios y coordinadores
+    // =========================================================================
+    const putMatch = req.method === "PUT"
+      ? url.pathname.match(/^\/(mujeres|ninos|voluntarios|coordinadores)\/([^/]+)$/)
+      : null;
+
+    if (putMatch) {
+      const [, recurso, idCrudo] = putMatch;
+      try {
+        const rawId = decodeURIComponent(idCrudo);
+        const numericId = Number(rawId);
+        const idValido = Number.isInteger(numericId) && numericId > 0;
+        const body = (await req.json()) as Record<string, any>;
+        const texto = (v: unknown) => {
+          const t = String(v ?? "").trim();
+          return t === "" ? null : t;
+        };
+        const lista = (v: unknown) =>
+          Array.isArray(v) ? v.join(", ") : String(v ?? "").trim();
+
+        if (recurso === "mujeres" || recurso === "ninos") {
+          const tipo = recurso === "mujeres" ? "Mujer" : "Niño";
+          const existente = await db.beneficiario.findFirst({
+            where: {
+              tipo_beneficiario: tipo,
+              ...(idValido ? { id_beneficiario: numericId } : { codigo_expediente: rawId }),
+            },
+          });
+          if (!existente) {
+            return jsonResponse(
+              { success: false, error: `Perfil de ${tipo === "Mujer" ? "mujer" : "niño"} no encontrado` },
+              404
+            );
+          }
+
+          const data: Record<string, any> = {};
+          const tiene = (k: string) => body[k] !== undefined;
+
+          if (tiene("nombres")) {
+            const v = String(body.nombres).trim();
+            if (!v) return jsonResponse({ success: false, error: "Los nombres son obligatorios" }, 400);
+            data.nombres = v;
+          }
+          if (tiene("apellidos")) {
+            const v = String(body.apellidos).trim();
+            if (!v) return jsonResponse({ success: false, error: "Los apellidos son obligatorios" }, 400);
+            data.apellidos = v;
+          }
+          if (tiene("edad")) data.edad = Number(body.edad) || 0;
+
+          if (tipo === "Mujer") {
+            if (tiene("dpi")) {
+              const dpi = texto(body.dpi);
+              if (dpi && dpi !== existente.dpi_identificacion) {
+                const duplicado = await db.beneficiario.findFirst({
+                  where: { dpi_identificacion: dpi, NOT: { id_beneficiario: existente.id_beneficiario } },
+                });
+                if (duplicado) {
+                  return jsonResponse({ success: false, error: "Ya existe otro perfil con ese DPI" }, 409);
+                }
+              }
+              data.dpi_identificacion = dpi;
+            }
+            if (tiene("direccion")) data.direccion = texto(body.direccion);
+            if (tiene("colonia")) data.colonia = texto(body.colonia);
+            if (tiene("telefono")) data.telefono = texto(body.telefono);
+            if (tiene("ocupacion")) data.ocupacion = texto(body.ocupacion);
+            if (tiene("estadoCivil")) data.estado_civil = texto(body.estadoCivil);
+            if (tiene("terceraEdad")) data.tercera_edad = body.terceraEdad === "Sí" ? "Sí" : "No";
+            if (tiene("hijosACargo")) data.hijos_a_cargo = Number(body.hijosACargo) || 0;
+            if (tiene("programas")) data.programas = lista(body.programas) || null;
+            if (tiene("problemasSociales")) data.problemas_sociales = lista(body.problemasSociales) || null;
+            if (tiene("fuentesDeIngreso")) {
+              const fuentes = texto(body.fuentesDeIngreso) || "desempleada";
+              data.fuentes_de_ingreso = fuentes;
+              data.nivel_vulnerabilidad = body.vulnerabilidad || fuentes;
+            }
+            if (tiene("nota")) data.nota = texto(body.nota);
+          } else {
+            if (tiene("escolaridad")) data.escolaridad = texto(body.escolaridad);
+            if (tiene("tallaCamisa")) data.talla_camisa = texto(body.tallaCamisa);
+            if (tiene("tallaPantalon")) data.talla_pantalon = texto(body.tallaPantalon);
+            if (tiene("tallaCalzado")) data.talla_calzado = texto(body.tallaCalzado);
+            if (tiene("observaciones")) data.observaciones = texto(body.observaciones);
+
+            const dpiMadre = String(body.dpiMadre ?? "").trim();
+            if (dpiMadre || body.mujerId) {
+              const madre = await db.beneficiario.findFirst({
+                where: {
+                  tipo_beneficiario: "Mujer",
+                  ...(dpiMadre
+                    ? { dpi_identificacion: dpiMadre }
+                    : { id_beneficiario: Number(body.mujerId) }),
+                },
+              });
+              if (!madre) {
+                return jsonResponse(
+                  { success: false, error: "No existe una mujer registrada con el DPI indicado" },
+                  400
+                );
+              }
+              data.id_madre = madre.id_beneficiario;
+              data.dpi_madre = madre.dpi_identificacion ?? dpiMadre;
+              data.colonia = madre.colonia;
+              data.direccion = madre.direccion;
+            }
+          }
+
+          const updated = await db.beneficiario.update({
+            where: { id_beneficiario: existente.id_beneficiario },
+            data,
+          });
+          return jsonResponse({
+            success: true,
+            data: tipo === "Mujer" ? mapBeneficiarioToMujer(updated) : mapBeneficiarioToNino(updated),
+          });
+        }
+
+        // voluntarios / coordinadores (ambos son registros de la tabla voluntario)
+        if (!idValido) {
+          return jsonResponse({ success: false, error: "Identificador inválido" }, 400);
+        }
+        const voluntario = await obtenerVoluntarioPorId(db, numericId);
+        if (!voluntario) {
+          return jsonResponse(
+            { success: false, error: recurso === "coordinadores" ? "Coordinador no encontrado" : "Voluntario no encontrado" },
+            404
+          );
+        }
+
+        const data: Record<string, any> = {};
+        const tiene = (k: string) => body[k] !== undefined;
+        if (tiene("nombres")) data.nombres = String(body.nombres).trim();
+        if (tiene("apellidos")) data.apellidos = String(body.apellidos).trim();
+        if (tiene("nombres") || tiene("apellidos")) {
+          const nombres = data.nombres ?? voluntario.nombres ?? "";
+          const apellidos = data.apellidos ?? voluntario.apellidos ?? "";
+          const completo = `${nombres} ${apellidos}`.trim();
+          if (!completo) {
+            return jsonResponse({ success: false, error: "El nombre es obligatorio" }, 400);
+          }
+          // Solo se recalcula si cambió el nombre, para conservar títulos ("Lic.", "Dra.") del nombre completo.
+          const cambioNombre =
+            nombres !== (voluntario.nombres ?? "") || apellidos !== (voluntario.apellidos ?? "");
+          if (cambioNombre) data.nombre_completo = completo;
+        }
+        if (tiene("tipo_voluntario") || tiene("tipo")) data.tipo_voluntario = body.tipo_voluntario || body.tipo;
+        if (tiene("email")) data.email = texto(body.email);
+        if (tiene("telefono")) data.telefono = texto(body.telefono);
+        if (tiene("disponibilidad")) data.disponibilidad = texto(body.disponibilidad);
+        if (tiene("horas_acumuladas") || tiene("horasAcumuladas")) {
+          data.horas_acumuladas = Number(body.horas_acumuladas ?? body.horasAcumuladas) || 0;
+        }
+        if (tiene("estado")) data.estado = texto(body.estado) || "Activo";
+        if (tiene("contacto_emergencia")) data.contacto_emergencia = texto(body.contacto_emergencia);
+        if (tiene("especialidad") || tiene("rol_especialidad")) {
+          const esp = String(body.especialidad ?? body.rol_especialidad ?? "").trim();
+          data.rol_especialidad =
+            recurso === "coordinadores" && esp && !esp.toLowerCase().includes("coordinador")
+              ? `Coordinador de ${esp}`
+              : esp || null;
+        }
+
+        const updated = await db.voluntario.update({ where: { id_voluntario: numericId }, data });
+        return jsonResponse({ success: true, data: mapVoluntario(updated) });
+      } catch (error) {
+        return jsonResponse({ success: false, error: (error as Error).message }, 500);
+      }
+    }
+
+    // =========================================================================
+    // MÓDULO: DIPLOMAS Y PLANTILLAS HTML
+    // =========================================================================
+    const rutaDiploma = url.pathname.match(/^\/diplomas(?:\/([^/]+))?(?:\/(render))?$/);
+    const rutaPlantilla = url.pathname.match(/^\/plantillas-diploma(?:\/([^/]+))?(?:\/(predeterminada))?$/);
+
+    if (rutaDiploma || rutaPlantilla) {
+      try {
+        const leerBody = async () => {
+          try {
+            return (await req.json()) as Record<string, any>;
+          } catch {
+            throw new ErrorValidacion("El cuerpo de la solicitud no es un JSON válido");
+          }
+        };
+        const idNumerico = (crudo: string | undefined) => {
+          const n = Number(decodeURIComponent(crudo ?? ""));
+          return Number.isInteger(n) && n > 0 ? n : null;
+        };
+        const noEncontrado = (que: string) => jsonResponse({ success: false, error: `${que} no encontrado` }, 404);
+
+        // ---- Diplomas
+        if (rutaDiploma) {
+          const [, idCrudo, accion] = rutaDiploma;
+
+          if (!idCrudo) {
+            if (req.method === "GET") {
+              const rows = await obtenerDiplomas(db, {
+                q: url.searchParams.get("q") || undefined,
+                desde: url.searchParams.get("desde") || undefined,
+                hasta: url.searchParams.get("hasta") || undefined,
+              });
+              return jsonResponse({ success: true, data: rows.map(mapDiploma) });
+            }
+            if (req.method === "POST") {
+              const created = await crearDiploma(db, mapDiplomaBody(await leerBody()));
+              return jsonResponse({ success: true, data: mapDiploma(created) }, 201);
+            }
+          } else {
+            const id = idNumerico(idCrudo);
+            if (id === null) return jsonResponse({ success: false, error: "Identificador inválido" }, 400);
+
+            if (accion === "render" && req.method === "GET") {
+              const plantilla = url.searchParams.get("plantilla");
+              const resultado = await renderizarDiploma(db, id, {
+                plantillaId: plantilla === null || plantilla === "" ? undefined : plantilla === "default" ? "default" : Number(plantilla),
+              });
+              if (!resultado) return noEncontrado("Diploma");
+              return htmlResponse(resultado.html, { "X-Plantilla-Usada": encodeURIComponent(resultado.plantilla) });
+            }
+            if (!accion && req.method === "GET") {
+              const row = await obtenerDiplomaPorId(db, id);
+              return row ? jsonResponse({ success: true, data: mapDiploma(row) }) : noEncontrado("Diploma");
+            }
+            if (!accion && req.method === "PUT") {
+              const updated = await actualizarDiploma(db, id, mapDiplomaBody(await leerBody()));
+              return updated ? jsonResponse({ success: true, data: mapDiploma(updated) }) : noEncontrado("Diploma");
+            }
+            if (!accion && req.method === "DELETE") {
+              return (await eliminarDiploma(db, id)) ? jsonResponse({ success: true }) : noEncontrado("Diploma");
+            }
+          }
+        }
+
+        // ---- Plantillas
+        if (rutaPlantilla) {
+          const [, segmento, accion] = rutaPlantilla;
+
+          if (!segmento) {
+            if (req.method === "GET") {
+              const rows = await obtenerPlantillas(db);
+              return jsonResponse({
+                success: true,
+                data: rows.map((p: any) => mapPlantilla(p)),
+                marcadores: MARCADORES_DIPLOMA,
+                usaPredeterminadaDelSistema: !rows.some((p: any) => p.es_predeterminada),
+              });
+            }
+            if (req.method === "POST") {
+              const body = await leerBody();
+              const created = await crearPlantilla(db, { nombre: body.nombre, descripcion: body.descripcion, html: body.html });
+              return jsonResponse({ success: true, data: mapPlantilla({ ...created, _count: { diplomas: 0 } }) }, 201);
+            }
+          } else if (segmento === "base" && req.method === "GET") {
+            // Diseño por defecto, descargable como punto de partida para una plantilla propia.
+            return htmlResponse(PLANTILLA_PREDETERMINADA_HTML, {
+              "Content-Disposition": 'attachment; filename="plantilla-diploma-base.html"',
+            });
+          } else if (segmento === "predeterminada" && req.method === "DELETE") {
+            await establecerPlantillaPredeterminada(db, null);
+            return jsonResponse({ success: true });
+          } else {
+            const id = idNumerico(segmento);
+            if (id === null) return jsonResponse({ success: false, error: "Identificador inválido" }, 400);
+
+            if (accion === "predeterminada" && req.method === "POST") {
+              return (await establecerPlantillaPredeterminada(db, id))
+                ? jsonResponse({ success: true })
+                : noEncontrado("Plantilla");
+            }
+            if (!accion && req.method === "GET") {
+              const row = await obtenerPlantillaPorId(db, id);
+              return row ? jsonResponse({ success: true, data: mapPlantilla(row, true) }) : noEncontrado("Plantilla");
+            }
+            if (!accion && req.method === "DELETE") {
+              return (await eliminarPlantilla(db, id)) ? jsonResponse({ success: true }) : noEncontrado("Plantilla");
+            }
+          }
+        }
+      } catch (error) {
+        if (error instanceof ErrorValidacion) {
+          return jsonResponse({ success: false, error: error.message }, 400);
+        }
         return jsonResponse({ success: false, error: (error as Error).message }, 500);
       }
     }

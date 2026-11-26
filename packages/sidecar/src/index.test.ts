@@ -502,4 +502,181 @@ describe("Sidecar Endpoints Integration Tests", () => {
       }
     });
   });
+
+  describe("PUT edición de perfiles", () => {
+    const put = (path: string, body: unknown) =>
+      handleRequest(
+        new Request(`http://localhost:4111${path}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        })
+      );
+
+    it("PUT /mujeres/:id actualiza solo los campos enviados", async () => {
+      const lista = await (await handleRequest(new Request("http://localhost:4111/mujeres"))).json();
+      const original = lista.data[0];
+      const res = await put(`/mujeres/${original.id}`, { telefono: "+502 5555 0000", programas: "Taller A, Taller B" });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.data.telefono).toBe("+502 5555 0000");
+      expect(json.data.programas).toEqual(["Taller A", "Taller B"]);
+      expect(json.data.nombres).toBe(original.nombres);
+      // restaurar
+      await put(`/mujeres/${original.id}`, { telefono: original.telefono, programas: original.programas });
+    });
+
+    it("PUT /mujeres/:id responde 404 si no existe", async () => {
+      const res = await put("/mujeres/999999", { telefono: "1" });
+      expect(res.status).toBe(404);
+    });
+
+    it("PUT /mujeres/:id rechaza nombres vacíos", async () => {
+      const lista = await (await handleRequest(new Request("http://localhost:4111/mujeres"))).json();
+      const res = await put(`/mujeres/${lista.data[0].id}`, { nombres: "  " });
+      expect(res.status).toBe(400);
+    });
+
+    it("PUT /ninos/:id actualiza escolaridad y no acepta ids de mujeres", async () => {
+      const ninos = await (await handleRequest(new Request("http://localhost:4111/ninos"))).json();
+      const nino = ninos.data[0];
+      const res = await put(`/ninos/${nino.id}`, { escolaridad: "6° Primaria" });
+      expect(res.status).toBe(200);
+      expect((await res.json()).data.escolaridad).toBe("6° Primaria");
+      await put(`/ninos/${nino.id}`, { escolaridad: nino.escolaridad });
+
+      const mujeres = await (await handleRequest(new Request("http://localhost:4111/mujeres"))).json();
+      const cruzado = await put(`/ninos/${mujeres.data[0].id}`, { escolaridad: "X" });
+      expect(cruzado.status).toBe(404);
+    });
+
+    it("PUT /voluntarios/:id recalcula el nombre completo solo si cambia el nombre", async () => {
+      const creado = await (
+        await handleRequest(
+          new Request("http://localhost:4111/voluntarios", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ nombres: "Prueba", apellidos: "Temporal", nombre_completo: "Lic. Prueba Temporal", telefono: "1" }),
+          })
+        )
+      ).json();
+      const id = creado.data.id;
+
+      const sinCambioDeNombre = await (await put(`/voluntarios/${id}`, { nombres: "Prueba", apellidos: "Temporal", telefono: "2" })).json();
+      expect(sinCambioDeNombre.data.nombre).toBe("Lic. Prueba Temporal");
+      expect(sinCambioDeNombre.data.telefono).toBe("2");
+
+      const res = await put(`/voluntarios/${id}`, { nombres: "Nombre", apellidos: "Editado" });
+      expect(res.status).toBe(200);
+      expect((await res.json()).data.nombre).toBe("Nombre Editado");
+    });
+
+    it("GET /coordinadores/:id devuelve el coordinador y 404 si no existe", async () => {
+      const lista = await (await handleRequest(new Request("http://localhost:4111/coordinadores"))).json();
+      const ok = await handleRequest(new Request(`http://localhost:4111/coordinadores/${lista.data[0].id}`));
+      expect(ok.status).toBe(200);
+      const no = await handleRequest(new Request("http://localhost:4111/coordinadores/999999"));
+      expect(no.status).toBe(404);
+    });
+
+    it("PUT /coordinadores/:id mantiene el prefijo de coordinador", async () => {
+      const lista = await (await handleRequest(new Request("http://localhost:4111/coordinadores"))).json();
+      const c = lista.data[0];
+      const res = await put(`/coordinadores/${c.id}`, { especialidad: "Salud" });
+      expect(res.status).toBe(200);
+      expect((await res.json()).data.especialidad).toBe("Coordinador de Salud");
+      await put(`/coordinadores/${c.id}`, { especialidad: c.especialidad });
+    });
+  });
+
+  describe("Diplomas y plantillas", () => {
+    const api = (path: string, method = "GET", body?: unknown) =>
+      handleRequest(
+        new Request(`http://localhost:4111${path}`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        })
+      );
+
+    it("GET /diplomas lista los diplomas de prueba con su código", async () => {
+      const json = await (await api("/diplomas")).json();
+      expect(json.success).toBe(true);
+      expect(json.data.length).toBeGreaterThanOrEqual(6);
+      expect(json.data[0].codigo).toMatch(/^DIP-\d{4}-\d{3}$/);
+    });
+
+    it("CRUD completo de un diploma y render con el diseño por defecto", async () => {
+      const crear = await api("/diplomas", "POST", {
+        nombre: "Prueba <Sidecar>",
+        titulo: "Diploma de prueba",
+        fechaEntrega: "2027-01-15",
+        notas: "interna",
+      });
+      expect(crear.status).toBe(201);
+      const { data } = await crear.json();
+      expect(data.fechaEntrega).toBe("2027-01-15");
+
+      const render = await api(`/diplomas/${data.id}/render`);
+      expect(render.status).toBe(200);
+      expect(render.headers.get("Content-Type")).toContain("text/html");
+      const html = await render.text();
+      expect(html).toContain("Prueba &lt;Sidecar&gt;");
+      expect(html).toContain("15 de enero de 2027");
+
+      const editar = await api(`/diplomas/${data.id}`, "PUT", { titulo: "Título editado" });
+      expect((await editar.json()).data.titulo).toBe("Título editado");
+
+      expect((await api(`/diplomas/${data.id}`, "DELETE")).status).toBe(200);
+      expect((await api(`/diplomas/${data.id}`)).status).toBe(404);
+    });
+
+    it("valida los datos con 400 y responde 404 para ids inexistentes", async () => {
+      expect((await api("/diplomas", "POST", { nombre: "x" })).status).toBe(400);
+      expect((await api("/diplomas", "POST", { nombre: "x", titulo: "t", fechaEntrega: "ayer" })).status).toBe(400);
+      expect((await api("/diplomas/999999/render")).status).toBe(404);
+      expect((await api("/diplomas/abc")).status).toBe(400);
+    });
+
+    it("sube una plantilla HTML, la usa en el diploma y la elimina", async () => {
+      const subir = await api("/plantillas-diploma", "POST", {
+        nombre: "Plantilla sidecar test",
+        html: "<html><body><script>alert(1)</script><h1 onclick='x()'>{{titulo}}</h1><p>{{nombre}}</p></body></html>",
+      });
+      expect(subir.status).toBe(201);
+      const plantilla = (await subir.json()).data;
+
+      const detalle = await (await api(`/plantillas-diploma/${plantilla.id}`)).json();
+      expect(detalle.data.html).not.toMatch(/script|onclick/);
+
+      const repetida = await api("/plantillas-diploma", "POST", { nombre: "Plantilla sidecar test", html: "{{nombre}}{{titulo}}" });
+      expect(repetida.status).toBe(400);
+      const invalida = await api("/plantillas-diploma", "POST", { nombre: "Sin marcadores", html: "<p>hola</p>" });
+      expect(invalida.status).toBe(400);
+
+      const diploma = (await (await api("/diplomas", "POST", { nombre: "Ana", titulo: "Logro", fechaEntrega: "2027-02-01", plantillaId: plantilla.id })).json()).data;
+      expect(diploma.plantillaNombre).toBe("Plantilla sidecar test");
+      const html = await (await api(`/diplomas/${diploma.id}/render`)).text();
+      expect(html).toContain("<h1>Logro</h1>");
+      const conDefault = await (await api(`/diplomas/${diploma.id}/render?plantilla=default`)).text();
+      expect(conDefault).toContain("se otorga con gratitud");
+
+      expect((await api(`/plantillas-diploma/${plantilla.id}/predeterminada`, "POST")).status).toBe(200);
+      const lista = await (await api("/plantillas-diploma")).json();
+      expect(lista.data.find((p: any) => p.id === plantilla.id).esPredeterminada).toBe(true);
+      expect(lista.marcadores).toContain("nombre");
+      expect((await api("/plantillas-diploma/predeterminada", "DELETE")).status).toBe(200);
+
+      await api(`/diplomas/${diploma.id}`, "DELETE");
+      expect((await api(`/plantillas-diploma/${plantilla.id}`, "DELETE")).status).toBe(200);
+      expect((await api(`/plantillas-diploma/${plantilla.id}`)).status).toBe(404);
+    });
+
+    it("GET /plantillas-diploma/base descarga el diseño por defecto", async () => {
+      const res = await api("/plantillas-diploma/base");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Disposition")).toContain("plantilla-diploma-base.html");
+      expect(await res.text()).toContain("{{nombre}}");
+    });
+  });
 });

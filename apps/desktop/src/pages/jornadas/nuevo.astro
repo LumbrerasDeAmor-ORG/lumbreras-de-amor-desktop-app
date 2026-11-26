@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/jornadas/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { CATEGORIAS_JORNADA, getCoordinadores, getVoluntarios } from "../../lib/mockData";
 
 const [coordinadores, voluntarios] = await Promise.all([
@@ -18,7 +19,15 @@ const [coordinadores, voluntarios] = await Promise.all([
     <a href="/jornadas"><button class="btn btn-ghost" type="button">← Volver a Jornadas</button></a>
   </div>
 
-  <form id="form-jornada" class="card" style="max-width: 700px;" novalidate>
+  <form id="form-jornada" class="form-card" novalidate>
+    <div class="form-card-header">
+      <div class="form-card-icon"><Icon name="calendar" size={20} /></div>
+      <div>
+        <h2 class="form-card-title">Datos de la jornada</h2>
+        <p class="form-card-desc">Fecha, lugar, responsables y servicios a prestar. Los campos con * son obligatorios.</p>
+      </div>
+    </div>
+    <div class="form-card-body">
     <div class="form-grid">
       <label style="grid-column: 1 / -1;">
         Título de la jornada *
@@ -117,11 +126,14 @@ const [coordinadores, voluntarios] = await Promise.all([
       </div>
     </div>
 
-    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+    <p id="form-error" class="form-error" style="display:none;">
       Completá los campos obligatorios (*) antes de continuar.
     </p>
 
-    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+    </div>
+
+
+    <div class="form-card-footer">
       <button class="btn btn-primary" type="submit">Guardar Jornada</button>
       <button class="btn btn-ghost" type="reset">Limpiar</button>
     </div>
@@ -137,11 +149,6 @@ const [coordinadores, voluntarios] = await Promise.all([
 </Layout>
 
 <style>
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-  }
   .form-grid label {
     display: flex;
     flex-direction: column;
@@ -149,16 +156,6 @@ const [coordinadores, voluntarios] = await Promise.all([
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-main);
-  }
-  .form-grid input,
-  .form-grid select,
-  .form-grid textarea {
-    font-weight: 400;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-family: inherit;
   }
 </style>
 

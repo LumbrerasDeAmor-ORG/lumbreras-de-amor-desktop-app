@@ -47,13 +47,18 @@ const donantesEspecie = donantes.filter(
   </div>
 
   <!-- FORMULARIO DESPLEGABLE PARA REGISTRAR DONANTE (PERSONA INDIVIDUAL / PERSONA JURÍDICA CON NIT) -->
-  <form id="form-nuevo-donante" class="card" style="display:none; margin-bottom:1.2rem; max-width: 780px;" novalidate>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
-      <strong style="font-size:0.92rem;">Registrar Nuevo Donante (Persona Individual o Persona Jurídica)</strong>
-      <span class="badge badge-curso">Validación de NIT Guatemalteco</span>
+  <form id="form-nuevo-donante" class="form-card mb-5 !mx-0" style="display:none;" novalidate>
+    <div class="form-card-header">
+      <div class="form-card-icon"><Icon name="users" size={20} /></div>
+      <div class="flex-1">
+        <h2 class="form-card-title">Registrar nuevo donante</h2>
+        <p class="form-card-desc">Persona individual o jurídica. Los campos con * son obligatorios.</p>
+      </div>
+      <span class="badge badge-curso">Validación de NIT guatemalteco</span>
     </div>
 
-    <div class="donante-form-grid">
+    <div class="form-card-body">
+    <div class="form-grid">
       <label>
         Tipo de Entidad *
         <select id="select-tipo-persona" name="tipo_persona" required>
@@ -132,9 +137,12 @@ const donantesEspecie = donantes.filter(
       </label>
     </div>
 
-    <p id="donante-form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.75rem; font-weight:600;"></p>
+    <p id="donante-form-error" class="form-error" style="display:none;"></p>
 
-    <div style="margin-top:0.95rem; display:flex; gap:0.6rem;">
+    </div>
+
+
+    <div class="form-card-footer">
       <button class="btn btn-primary" type="submit">Guardar Donante</button>
       <button id="btn-cancelar-donante" class="btn btn-ghost" type="button">Cancelar</button>
     </div>
@@ -180,91 +188,12 @@ const donantesEspecie = donantes.filter(
     </div>
   </div>
 
-  <!-- TABLA DE DONANTES CON LAS 6 COLUMNAS REQUERIDAS (F4-05) -->
-  <table class="tabla-donantes">
-    <thead>
-      <tr>
-        <th>NIT / Identificación</th>
-        <th>Nombre o Razón Social</th>
-        <th>Tipo de Entidad</th>
-        <th>Clasificación de Aporte</th>
-        <th>Teléfono / Contacto</th>
-        <th>Acciones</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-donantes">
-      {donantes.map((d) => {
-        const tipoEntidad = d.tipoPersona || d.tipo;
-        const detalleSecundario =
-          tipoEntidad === "Persona Jurídica"
-            ? d.juridica?.representanteLegal
-              ? `Rep. Legal: ${d.juridica.representanteLegal}`
-              : d.personaContacto
-                ? `Contacto: ${d.personaContacto}`
-                : "Entidad Jurídica Aliada"
-            : d.individual?.dpi
-              ? `DPI: ${d.individual.dpi}${d.individual.profesion ? ` · ${d.individual.profesion}` : ""}`
-              : d.individual?.profesion || "Donante Individual";
-
-        const badgeClasif =
-          d.clasificacion === "Económico"
-            ? "badge-curso"
-            : d.clasificacion === "Especie"
-              ? "badge-media"
-              : "badge-alta";
-
-        return (
-          <tr
-            class="donante-row"
-            data-id={d.id}
-            data-nit={d.nit.toLowerCase()}
-            data-nombre={d.nombre.toLowerCase()}
-            data-tipo={tipoEntidad}
-            data-clasificacion={d.clasificacion}
-            data-json={JSON.stringify(d)}
-          >
-            <td>
-              <span class="nit-badge">{d.nit}</span>
-            </td>
-            <td>
-              <div style="font-weight: 700; color: var(--text-main);">{d.nombre}</div>
-              <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.12rem;">
-                {detalleSecundario}
-              </div>
-            </td>
-            <td>
-              <span class={`badge ${tipoEntidad === "Persona Jurídica" ? "badge-media" : "badge-baja"}`}>
-                {tipoEntidad}
-              </span>
-            </td>
-            <td>
-              <span class={`badge ${badgeClasif}`}>{d.clasificacion}</span>
-            </td>
-            <td>
-              <div style="font-weight: 600; font-size: 0.8rem;">{d.telefono}</div>
-              <div style="font-size: 0.73rem; color: var(--text-muted);">{d.email}</div>
-            </td>
-            <td>
-              <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-                <button type="button" class="btn btn-ghost btn-sm btn-ver-ficha">Ver Ficha</button>
-                <a href={`/viveres?donanteId=${encodeURIComponent(d.id)}`}>
-                  <button type="button" class="btn btn-primary btn-sm">+ Donación</button>
-                </a>
-              </div>
-            </td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </table>
+  <!-- TABLA DE DONANTES (TanStack Table: orden, filtros y paginación) -->
+  <div id="tabla-donantes"></div>
+  <script type="application/json" id="donantes-data" set:html={JSON.stringify(donantes).replace(/</g, "\\u003c")}></script>
 </Layout>
 
 <style>
-  .donante-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.8rem;
-  }
   .subgrid-entidad {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -273,24 +202,6 @@ const donantesEspecie = donantes.filter(
     background: #f9fafb;
     border: 1px solid var(--card-border);
     border-radius: 8px;
-  }
-  .donante-form-grid label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-main);
-  }
-  .donante-form-grid input,
-  .donante-form-grid select {
-    font-weight: 400;
-    padding: 0.48rem 0.6rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.84rem;
-    font-family: inherit;
-    background: #fff;
   }
 
   .donantes-filter-bar {
@@ -351,51 +262,13 @@ const donantesEspecie = donantes.filter(
     font-size: 0.82rem;
     background: var(--card-bg);
   }
-
-  .tabla-donantes {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    overflow: hidden;
-    font-size: 0.82rem;
-  }
-  .tabla-donantes th {
-    text-align: left;
-    background: #f9fafb;
-    padding: 0.72rem 0.9rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .tabla-donantes td {
-    padding: 0.72rem 0.9rem;
-    border-top: 1px solid var(--card-border);
-    vertical-align: middle;
-  }
-  .nit-badge {
-    display: inline-block;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    font-weight: 700;
-    font-size: 0.78rem;
-    padding: 0.22rem 0.55rem;
-    border-radius: 6px;
-    background: #f0fdfa;
-    color: #0f766e;
-    border: 1px solid #99f6e4;
-  }
-  .btn-sm {
-    padding: 0.32rem 0.6rem;
-    font-size: 0.75rem;
-  }
 </style>
 
 <script>
+  import { crearTabla, esc, tag } from "../../lib/dataTable";
   const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".donante-tab"));
   const selectTipoEntidad = document.getElementById("filtro-tipo-entidad") as HTMLSelectElement | null;
   const inputBuscar = document.getElementById("buscar-donante") as HTMLInputElement | null;
-  const tbody = document.getElementById("tbody-donantes");
 
   const btnToggleForm = document.getElementById("btn-toggle-nuevo-donante");
   const btnCancelForm = document.getElementById("btn-cancelar-donante");
@@ -427,26 +300,117 @@ const donantesEspecie = donantes.filter(
   selectTipoPersona?.addEventListener("change", actualizarVisibilidadTipoPersona);
   actualizarVisibilidadTipoPersona();
 
-  function aplicarFiltros() {
-    const q = (inputBuscar?.value ?? "").trim().toLowerCase();
-    const tipoSel = selectTipoEntidad?.value ?? "todos";
-    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".donante-row"));
+  interface DonanteFila {
+    id: string;
+    nit: string;
+    nombre: string;
+    tipo?: string;
+    tipoPersona?: string;
+    clasificacion: string;
+    telefono?: string;
+    email?: string;
+    direccion?: string;
+    personaContacto?: string;
+    individual?: { dpi?: string; profesion?: string } | null;
+    juridica?: { representanteLegal?: string } | null;
+  }
+  interface FiltroDonantes {
+    q: string;
+    tipo: string;
+    clasificacion: string;
+  }
 
-    for (const row of rows) {
-      const nit = row.dataset.nit ?? "";
-      const nom = row.dataset.nombre ?? "";
-      const tipo = row.dataset.tipo ?? "";
-      const clasif = row.dataset.clasificacion ?? "";
+  const tipoDe = (d: DonanteFila) => d.tipoPersona || d.tipo || "";
 
-      const matchClasif =
-        filtroClasificacion === "todos" ||
-        clasif === filtroClasificacion ||
-        clasif === "Mixto";
-      const matchTipo = tipoSel === "todos" || tipo === tipoSel;
-      const matchTexto = !q || nit.includes(q) || nom.includes(q);
-
-      row.style.display = matchClasif && matchTipo && matchTexto ? "" : "none";
+  function detalleSecundario(d: DonanteFila): string {
+    if (tipoDe(d) === "Persona Jurídica") {
+      return d.juridica?.representanteLegal
+        ? `Rep. Legal: ${d.juridica.representanteLegal}`
+        : d.personaContacto
+          ? `Contacto: ${d.personaContacto}`
+          : "Entidad Jurídica Aliada";
     }
+    return d.individual?.dpi
+      ? `DPI: ${d.individual.dpi}${d.individual.profesion ? ` · ${d.individual.profesion}` : ""}`
+      : d.individual?.profesion || "Donante Individual";
+  }
+
+  const tonoClasificacion = (c: string) => (c === "Económico" ? "brand" : c === "Especie" ? "info" : "warn") as "brand" | "info" | "warn";
+
+  const datosIniciales: DonanteFila[] = JSON.parse(document.getElementById("donantes-data")?.textContent ?? "[]");
+
+  const tabla = crearTabla<DonanteFila, FiltroDonantes>({
+    mount: document.getElementById("tabla-donantes")!,
+    data: datosIniciales,
+    noun: "donantes",
+    pageSize: 10,
+    emptyTitle: "No se encontraron donantes",
+    emptyText: "Probá con otro NIT, nombre o razón social, o cambiá los filtros.",
+    filter: (d, f) => {
+      const matchClasif =
+        f.clasificacion === "todos" || d.clasificacion === f.clasificacion || d.clasificacion === "Mixto";
+      const matchTipo = f.tipo === "todos" || tipoDe(d) === f.tipo;
+      const q = f.q.trim().toLowerCase();
+      const matchTexto = !q || d.nit.toLowerCase().includes(q) || d.nombre.toLowerCase().includes(q);
+      return matchClasif && matchTipo && matchTexto;
+    },
+    columns: [
+      {
+        id: "nit",
+        header: "NIT / Identificación",
+        accessor: (d) => d.nit,
+        cell: (d) =>
+          `<span class="font-mono text-[13px] font-semibold text-brand-700">${esc(d.nit)}</span>`,
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "nombre",
+        header: "Nombre o razón social",
+        accessor: (d) => d.nombre,
+        cell: (d) =>
+          `<div class="font-semibold text-slate-900">${esc(d.nombre)}</div><div class="mt-0.5 text-xs text-slate-500">${esc(detalleSecundario(d))}</div>`,
+      },
+      {
+        id: "tipo",
+        header: "Tipo / aporte",
+        accessor: (d) => `${tipoDe(d)} ${d.clasificacion}`,
+        cell: (d) =>
+          `<div class="text-[13px] font-medium text-slate-700">${esc(tipoDe(d))}</div><div class="mt-1">${tag(tonoClasificacion(d.clasificacion), d.clasificacion)}</div>`,
+        className: "whitespace-nowrap",
+      },
+      {
+        id: "contacto",
+        header: "Contacto",
+        accessor: (d) => d.telefono ?? "",
+        cell: (d) =>
+          `<div class="font-medium tabular-nums">${esc(d.telefono || "—")}</div><div class="text-xs text-slate-500">${esc(d.email || "")}</div>`,
+      },
+      {
+        id: "acciones",
+        header: "Acciones",
+        cell: (d) =>
+          `<div class="flex flex-wrap gap-1.5">
+            <button type="button" data-action="ficha" class="btn btn-ghost btn-sm">Ver ficha</button>
+            <a href="/viveres?donanteId=${encodeURIComponent(d.id)}" class="btn btn-primary btn-sm">+ Donación</a>
+          </div>`,
+      },
+    ],
+    onAction: (accion, d) => {
+      if (accion !== "ficha") return;
+      if (fichaTitulo) fichaTitulo.textContent = `${d.nombre} · NIT: ${d.nit} (${tipoDe(d)})`;
+      if (fichaSub) {
+        fichaSub.textContent = `Clasificación: ${d.clasificacion} | Teléfono: ${d.telefono || "—"} | Correo: ${d.email || "—"} | Dirección: ${d.direccion || "Ciudad de Guatemala"}`;
+      }
+      if (fichaCard) fichaCard.style.display = "block";
+    },
+  });
+
+  function aplicarFiltros() {
+    tabla.setFilter({
+      q: inputBuscar?.value ?? "",
+      tipo: selectTipoEntidad?.value ?? "todos",
+      clasificacion: filtroClasificacion,
+    });
   }
 
   for (const tab of tabs) {
@@ -461,25 +425,6 @@ const donantesEspecie = donantes.filter(
   selectTipoEntidad?.addEventListener("change", aplicarFiltros);
   inputBuscar?.addEventListener("input", aplicarFiltros);
 
-  function vincularBotonesFicha() {
-    const btns = Array.from(document.querySelectorAll<HTMLButtonElement>(".btn-ver-ficha"));
-    for (const btn of btns) {
-      btn.onclick = () => {
-        const tr = btn.closest<HTMLTableRowElement>(".donante-row");
-        if (!tr || !tr.dataset.json) return;
-        const d = JSON.parse(tr.dataset.json);
-        if (fichaTitulo) {
-          fichaTitulo.textContent = `${d.nombre} · NIT: ${d.nit} (${d.tipoPersona || d.tipo})`;
-        }
-        if (fichaSub) {
-          fichaSub.textContent = `Clasificación: ${d.clasificacion} | Teléfono: ${d.telefono || "—"} | Correo: ${d.email || "—"} | Dirección: ${d.direccion || "Ciudad de Guatemala"}`;
-        }
-        if (fichaCard) fichaCard.style.display = "block";
-      };
-    }
-  }
-
-  vincularBotonesFicha();
   btnCerrarFicha?.addEventListener("click", () => {
     if (fichaCard) fichaCard.style.display = "none";
   });
@@ -570,6 +515,8 @@ const donantesEspecie = donantes.filter(
       telefono,
       email,
       direccion,
+      juridica: tipoPersona === "Persona Jurídica" ? { representanteLegal } : null,
+      individual: tipoPersona === "Persona Individual" ? { dpi, profesion } : null,
     };
 
     try {
@@ -579,59 +526,12 @@ const donantesEspecie = donantes.filter(
       localStorage.setItem("lumbreras_donantes_creados", JSON.stringify(prev));
     } catch {}
 
-    const badgeClasif =
-      clasificacion === "Económico"
-        ? "badge-curso"
-        : clasificacion === "Especie"
-          ? "badge-media"
-          : "badge-alta";
-    const detalleSecundario =
-      tipoPersona === "Persona Jurídica"
-        ? representanteLegal
-          ? `Rep. Legal: ${representanteLegal}`
-          : "Entidad Jurídica Aliada"
-        : dpi
-          ? `DPI: ${dpi}${profesion ? ` · ${profesion}` : ""}`
-          : profesion || "Donante Individual";
+    tabla.addRow(nuevoDonanteObj as DonanteFila);
 
-    const tr = document.createElement("tr");
-    tr.className = "donante-row";
-    tr.dataset.id = nuevoId;
-    tr.dataset.nit = nit.toLowerCase();
-    tr.dataset.nombre = nombreMostrar.toLowerCase();
-    tr.dataset.tipo = tipoPersona;
-    tr.dataset.clasificacion = clasificacion;
-    tr.dataset.json = JSON.stringify(nuevoDonanteObj);
-    tr.innerHTML = `
-      <td><span class="nit-badge">${nit}</span></td>
-      <td>
-        <div style="font-weight: 700; color: var(--text-main);">${nombreMostrar}</div>
-        <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.12rem;">${detalleSecundario}</div>
-      </td>
-      <td>
-        <span class="badge ${tipoPersona === "Persona Jurídica" ? "badge-media" : "badge-baja"}">${tipoPersona}</span>
-      </td>
-      <td><span class="badge ${badgeClasif}">${clasificacion}</span></td>
-      <td>
-        <div style="font-weight: 600; font-size: 0.8rem;">${telefono}</div>
-        <div style="font-size: 0.73rem; color: var(--text-muted);">${email}</div>
-      </td>
-      <td>
-        <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-          <button type="button" class="btn btn-ghost btn-sm btn-ver-ficha">Ver Ficha</button>
-          <a href="/viveres?donanteId=${encodeURIComponent(nuevoId)}">
-            <button type="button" class="btn btn-primary btn-sm">+ Donación</button>
-          </a>
-        </div>
-      </td>
-    `;
-    tbody?.prepend(tr);
-    vincularBotonesFicha();
-
-    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".donante-row"));
-    const total = rows.length;
-    const econ = rows.filter((r) => r.dataset.clasificacion === "Económico" || r.dataset.clasificacion === "Mixto").length;
-    const esp = rows.filter((r) => r.dataset.clasificacion === "Especie" || r.dataset.clasificacion === "Mixto").length;
+    const todos = tabla.getData();
+    const total = todos.length;
+    const econ = todos.filter((r) => r.clasificacion === "Económico" || r.clasificacion === "Mixto").length;
+    const esp = todos.filter((r) => r.clasificacion === "Especie" || r.clasificacion === "Mixto").length;
 
     const kpiTotal = document.getElementById("kpi-total-donantes");
     const kpiEcon = document.getElementById("kpi-donantes-economicos");

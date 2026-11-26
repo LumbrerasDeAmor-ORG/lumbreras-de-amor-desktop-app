@@ -27,8 +27,8 @@ const badgeFuenteClass: Record<string, string> = {
   active="mujeres"
 >
   <div slot="actions">
-    <a href="/mujeres"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
-    <button class="btn btn-primary" type="button">Editar Perfil</button>
+    <a href="/mujeres" class="btn btn-ghost">← Volver al listado</a>
+    {mujer && <a href={`/mujeres/nuevo?id=${mujer.id}`} class="btn btn-primary">Editar perfil</a>}
   </div>
 
   {!mujer && <p>No se encontró el perfil solicitado.</p>}

@@ -6,15 +6,12 @@ import { getMujeres } from "../../lib/mockData";
 
 const mujeres = await getMujeres();
 
-const badgeClass: Record<string, string> = {
-  desempleada: "badge-alta",
-  "vendedora informal": "badge-media",
-  asalariada: "badge-baja",
-  dependiente: "badge-media",
-  "asalariada y dependiente": "badge-baja",
-  Alta: "badge-alta",
-  Media: "badge-media",
-  Baja: "badge-baja",
+const tonoFuente: Record<string, string> = {
+  desempleada: "tag-warn",
+  "vendedora informal": "tag-info",
+  asalariada: "tag-ok",
+  dependiente: "tag-info",
+  "asalariada y dependiente": "tag-ok",
 };
 ---
 
@@ -24,7 +21,7 @@ const badgeClass: Record<string, string> = {
   active="mujeres"
 >
   <div slot="actions">
-    <a href="/mujeres/nuevo"><button class="btn btn-primary" type="button">+ Nuevo Perfil</button></a>
+    <a href="/mujeres/nuevo" class="btn btn-primary">+ Nuevo perfil</a>
   </div>
 
   <div class="toolbar">
@@ -39,69 +36,54 @@ const badgeClass: Record<string, string> = {
     </select>
   </div>
 
-  <p id="contador" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+  <p id="contador" class="mb-4 text-[13px] font-medium text-slate-500">
     Mostrando {mujeres.length} de {mujeres.length} perfiles registrados
   </p>
 
   <div class="grid" id="lista-mujeres">
     {mujeres.map((mujer) => (
-      <div
-        class="card mujer-card"
+      <article
+        class="person-card mujer-card"
         data-nombre={`${mujer.nombres} ${mujer.apellidos}`.toLowerCase()}
         data-colonia={mujer.colonia.toLowerCase()}
         data-fuentes-ingreso={mujer.fuentesDeIngreso}
       >
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-            <div style="font-weight:700; font-size:0.95rem;">{mujer.nombres} {mujer.apellidos}</div>
-            <div style="font-size:0.75rem; color:var(--text-muted);">
-              {mujer.codigo} · {mujer.edad} años
-            </div>
+        <div class="person-head">
+          <div class="avatar">
+            {`${mujer.nombres[0] ?? ""}${mujer.apellidos[0] ?? ""}`.toUpperCase()}
           </div>
-          <span class={`badge ${badgeClass[mujer.fuentesDeIngreso] ?? "badge-media"}`}>{mujer.fuentesDeIngreso}</span>
+          <div class="min-w-0 flex-1">
+            <h3 class="person-name">{mujer.nombres} {mujer.apellidos}</h3>
+            <p class="person-sub">{mujer.codigo} · {mujer.edad} años</p>
+          </div>
         </div>
+        <span class={`tag mt-3 ${tonoFuente[mujer.fuentesDeIngreso] ?? "tag-info"}`}>{mujer.fuentesDeIngreso}</span>
 
-        <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-main); display:flex; flex-direction:column; gap:0.3rem;">
-          <span><Icon name="home" /> {mujer.colonia} ({mujer.direccion})</span>
-          <span><Icon name="phone" /> {mujer.telefono}</span>
-          <span><Icon name="child" /> {mujer.hijosACargo} hijo(s) a cargo</span>
-          <span><Icon name="briefcase" /> {mujer.ocupacion}</span>
-        </div>
+        <ul class="info-list">
+          <li><span class="ico-wrap"><Icon name="home" /></span><span>{mujer.colonia} <span class="text-slate-400">({mujer.direccion})</span></span></li>
+          <li><span class="ico-wrap"><Icon name="phone" /></span><span class="tabular-nums">{mujer.telefono}</span></li>
+          <li><span class="ico-wrap"><Icon name="child" /></span><span>{mujer.hijosACargo} hijo(s) a cargo</span></li>
+          <li><span class="ico-wrap"><Icon name="briefcase" /></span><span>{mujer.ocupacion}</span></li>
+        </ul>
 
         {mujer.nota && (
-          <div style="margin-top:0.7rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
-            <Icon name="alert" /> {mujer.nota}
+          <div class="card-note">
+            <Icon name="alert" /> <span>{mujer.nota}</span>
           </div>
         )}
 
-        <a href={`/mujeres/${mujer.id}`} style="display:block; margin-top:0.9rem;">
-          <button class="btn btn-primary" style="width:100%;" type="button">Ver Perfil</button>
-        </a>
-      </div>
+        <div class="card-actions mt-auto pt-5">
+          <a href={`/mujeres/${mujer.id}`} class="btn btn-ghost">Ver perfil</a>
+          <a href={`/mujeres/nuevo?id=${mujer.id}`} class="btn btn-ghost">Editar</a>
+        </div>
+      </article>
     ))}
   </div>
 
-  <p id="sin-resultados" style="display:none; color: var(--text-muted); text-align:center; padding: 2rem 0;">
+  <p id="sin-resultados" class="hidden py-12 text-center text-sm text-slate-500">
     No se encontraron perfiles con esos criterios.
   </p>
 </Layout>
-
-<style>
-  .toolbar {
-    display: flex;
-    gap: 0.6rem;
-    margin-bottom: 0.9rem;
-  }
-  .toolbar input,
-  .toolbar select {
-    padding: 0.55rem 0.75rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    background: #fff;
-  }
-  .toolbar input { flex: 1; }
-</style>
 
 <script>
   // Filtro/búsqueda en cliente sobre las tarjetas ya renderizadas (US-05).
@@ -128,7 +110,7 @@ const badgeClass: Record<string, string> = {
     }
 
     if (contador) contador.textContent = `Mostrando ${visibles} de ${total} perfiles registrados`;
-    if (sinResultados) sinResultados.style.display = visibles === 0 ? "block" : "none";
+    if (sinResultados) sinResultados.classList.toggle("hidden", visibles !== 0);
   }
 
   buscador?.addEventListener("input", aplicarFiltros);

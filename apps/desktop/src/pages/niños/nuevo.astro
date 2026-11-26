@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/niños/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 import { getMujeres } from "../../lib/mockData";
 
 // Datos mínimos de las madres registradas, para buscarlas por DPI en el cliente.
@@ -21,7 +22,15 @@ const madres = mujeres.map((m) => ({
     <a href="/niños"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
   </div>
 
-  <form id="form-nino" class="card" style="max-width: 640px;" data-madres={JSON.stringify(madres)} novalidate>
+  <form id="form-nino" class="form-card" data-madres={JSON.stringify(madres)} novalidate>
+    <div class="form-card-header">
+      <div class="form-card-icon"><Icon name="child" size={20} /></div>
+      <div>
+        <h2 class="form-card-title">Datos del niño o niña</h2>
+        <p class="form-card-desc">Información personal, escolar y de la madre o tutora. Los campos con * son obligatorios.</p>
+      </div>
+    </div>
+    <div class="form-card-body">
     <div class="form-grid">
         <p class="form-seccion">Datos obligatorios</p>
 
@@ -94,11 +103,14 @@ const madres = mujeres.map((m) => ({
       </label>
         </div>
 
-    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+    <p id="form-error" class="form-error" style="display:none;">
       Completá los campos obligatorios (*) antes de continuar.
     </p>
 
-    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+    </div>
+
+
+    <div class="form-card-footer">
       <button class="btn btn-primary" type="submit">Guardar Niño</button>
       <button class="btn btn-ghost" type="reset">Limpiar</button>
     </div>
@@ -114,11 +126,6 @@ const madres = mujeres.map((m) => ({
 </Layout>
 
 <style>
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-  }
 
 
   .dpi-estado {
@@ -130,14 +137,6 @@ const madres = mujeres.map((m) => ({
   .dpi-estado.error { color: #b91c1c; }
   .dpi-estado a { color: var(--accent); }
 
-  .form-grid label {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-main);
-  }
     .form-seccion {
         grid-column: 1 / -1;
         font-size: 0.72rem;
@@ -147,19 +146,10 @@ const madres = mujeres.map((m) => ({
         color: var(--text-muted);
         margin-top: 0.2rem;
   }
-  .form-grid input,
-  .form-grid select,
-  .form-grid textarea {
-    font-weight: 400;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-family: inherit;
-  }
 </style>
 
 <script>
+  import { idEdicion, cargarParaEditar, guardarEdicion, llenarFormulario, activarModoEdicion, mostrarError, SIDECAR_URL } from "../../lib/edicion";
   const form = document.getElementById("form-nino") as HTMLFormElement | null;
   const errorEl = document.getElementById("form-error");
   const preview = document.getElementById("preview");
@@ -219,6 +209,26 @@ const madres = mujeres.map((m) => ({
     validarMadre();
   });
 
+  const editId = idEdicion();
+  if (editId && form) {
+    activarModoEdicion(form, {
+      titulo: "Editar perfil de niño o niña",
+      subtitulo: "Actualización de datos del niño vinculado a su madre o tutora",
+      descripcion: "Modificá la información y guardá los cambios.",
+      botonGuardar: "Guardar cambios",
+      volverHref: "/niños",
+    });
+    cargarParaEditar("ninos", editId)
+      .then((n) => {
+        llenarFormulario(form, n);
+        validarMadre();
+      })
+      .catch((err) => {
+        mostrarError(errorEl, `No se pudo cargar el perfil: ${(err as Error).message}`);
+        form.querySelector<HTMLButtonElement>('button[type="submit"]')?.setAttribute("disabled", "true");
+      });
+  }
+
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -239,6 +249,15 @@ const madres = mujeres.map((m) => ({
     }
 
     const data = { ...Object.fromEntries(new FormData(form).entries()), mujerId: madre.id, madre: madre.nombre };
+    if (editId) {
+      try {
+        await guardarEdicion("ninos", editId, data);
+        window.location.href = "/niños";
+      } catch (err) {
+        mostrarError(errorEl, `Error al guardar los cambios: ${(err as Error).message}`);
+      }
+      return;
+    }
     try {
       const res = await fetch("http://127.0.0.1:4111/ninos", {
         method: "POST",

@@ -1,6 +1,7 @@
 ---
 // apps/desktop/src/pages/mujeres/nuevo.astro
 import Layout from "../../layouts/Layout.astro";
+import Icon from "../../componentes/icon.astro";
 ---
 
 <Layout
@@ -12,7 +13,15 @@ import Layout from "../../layouts/Layout.astro";
     <a href="/mujeres"><button class="btn btn-ghost" type="button">← Volver al listado</button></a>
   </div>
 
-  <form id="form-mujer" class="card" style="max-width: 640px;" novalidate>
+  <form id="form-mujer" class="form-card" novalidate>
+    <div class="form-card-header">
+      <div class="form-card-icon"><Icon name="users" size={20} /></div>
+      <div>
+        <h2 class="form-card-title">Datos de la mujer</h2>
+        <p class="form-card-desc">Información personal, hogar y programas en los que participa. Los campos con * son obligatorios.</p>
+      </div>
+    </div>
+    <div class="form-card-body">
     <div class="form-grid">
       <label>
         Nombres *
@@ -98,11 +107,14 @@ import Layout from "../../layouts/Layout.astro";
       </label>
     </div>
 
-    <p id="form-error" style="display:none; color:#b91c1c; font-size:0.8rem; margin-top:0.8rem;">
+    <p id="form-error" class="form-error" style="display:none;">
       Completá los campos obligatorios (*) antes de continuar.
     </p>
 
-    <div style="margin-top:1.1rem; display:flex; gap:0.6rem;">
+    </div>
+
+
+    <div class="form-card-footer">
       <button class="btn btn-primary" type="submit">Guardar Perfil</button>
       <button class="btn btn-ghost" type="reset">Limpiar</button>
     </div>
@@ -118,11 +130,6 @@ import Layout from "../../layouts/Layout.astro";
 </Layout>
 
 <style>
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-  }
   .form-grid label {
     display: flex;
     flex-direction: column;
@@ -131,17 +138,10 @@ import Layout from "../../layouts/Layout.astro";
     font-weight: 600;
     color: var(--text-main);
   }
-  .form-grid input,
-  .form-grid select {
-    font-weight: 400;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.85rem;
-  }
 </style>
 
 <script>
+  import { idEdicion, cargarParaEditar, guardarEdicion, llenarFormulario, activarModoEdicion, mostrarError, SIDECAR_URL } from "../../lib/edicion";
   const form = document.getElementById("form-mujer") as HTMLFormElement | null;
   const errorEl = document.getElementById("form-error");
   const preview = document.getElementById("preview");
@@ -152,6 +152,29 @@ import Layout from "../../layouts/Layout.astro";
   dpiInput?.addEventListener("input", () => {
     dpiInput.value = dpiInput.value.replace(/\D/g, "");
   });
+
+  const editId = idEdicion();
+  if (editId && form) {
+    activarModoEdicion(form, {
+      titulo: "Editar perfil de mujer",
+      subtitulo: "Actualización de datos personales, hogar y programas",
+      descripcion: "Modificá la información y guardá los cambios.",
+      botonGuardar: "Guardar cambios",
+      volverHref: `/mujeres/${editId}`,
+    });
+    cargarParaEditar("mujeres", editId)
+      .then((m) =>
+        llenarFormulario(form, {
+          ...m,
+          programas: (m.programas ?? []).join(", "),
+          problemasSociales: (m.problemasSociales ?? []).join(", "),
+        })
+      )
+      .catch((err) => {
+        mostrarError(errorEl, `No se pudo cargar el perfil: ${(err as Error).message}`);
+        form.querySelector<HTMLButtonElement>('button[type="submit"]')?.setAttribute("disabled", "true");
+      });
+  }
 
   form?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -167,6 +190,15 @@ import Layout from "../../layouts/Layout.astro";
     if (errorEl) errorEl.style.display = "none";
 
     const data = Object.fromEntries(new FormData(form).entries());
+    if (editId) {
+      try {
+        await guardarEdicion("mujeres", editId, data);
+        window.location.href = `/mujeres/${editId}`;
+      } catch (err) {
+        mostrarError(errorEl, `Error al guardar los cambios: ${(err as Error).message}`);
+      }
+      return;
+    }
     try {
       const res = await fetch("http://127.0.0.1:4111/mujeres", {
         method: "POST",

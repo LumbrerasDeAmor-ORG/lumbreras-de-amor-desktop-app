@@ -25,32 +25,31 @@ const mujerPorId = new Map(mujeres.map((m) => [m.id, m]));
     {ninos.map((nino) => {
       const madre = mujerPorId.get(nino.mujerId);
       return (
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-            <div>
-              <div style="font-weight:700; font-size:0.95rem;">{nino.nombres} {nino.apellidos}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">
-                {nino.codigo} · {nino.edad} años
-              </div>
+        <article class="person-card">
+          <div class="person-head">
+            <div class="avatar">{`${(nino.nombres ?? "")[0] ?? ""}${(nino.apellidos ?? "")[0] ?? ""}`.toUpperCase()}</div>
+            <div class="min-w-0 flex-1">
+              <h3 class="person-name">{nino.nombres} {nino.apellidos}</h3>
+              <p class="person-sub">{nino.codigo} · {nino.edad} años</p>
             </div>
           </div>
 
-          <div style="margin-top:0.75rem; font-size:0.8rem; color:var(--text-main); display:flex; flex-direction:column; gap:0.3rem;">
-            <span><Icon name="school" /> {nino.escolaridad}</span>
-            <span><Icon name="shirt" /> Camisa: {nino.tallaCamisa ?? "—"} · Pantalón: {nino.tallaPantalon ?? "—"} · Calzado: {nino.tallaCalzado ?? "—"}</span>
+          <ul class="info-list">
+            <li><span class="ico-wrap"><Icon name="school" /></span><span>{nino.escolaridad || "Sin dato de escolaridad"}</span></li>
+            <li><span class="ico-wrap"><Icon name="shirt" /></span><span>Camisa {nino.tallaCamisa ?? "—"} · Pantalón {nino.tallaPantalon ?? "—"} · Calzado {nino.tallaCalzado ?? "—"}</span></li>
             {madre && (
-              <a href={`/mujeres/${madre.id}`} style="color: var(--accent); text-decoration:none;">
-                <Icon name="user" /> Madre/Tutora: {madre.nombres} {madre.apellidos}
-              </a>
+              <li><span class="ico-wrap"><Icon name="user" /></span><a href={`/mujeres/${madre.id}`} class="font-medium text-brand-700 hover:underline">{madre.nombres} {madre.apellidos}</a></li>
             )}
-          </div>
+          </ul>
 
           {nino.observaciones && (
-            <div style="margin-top:0.7rem; background:#fef3c7; color:#92400e; font-size:0.75rem; padding:0.4rem 0.6rem; border-radius:6px;">
-              <Icon name="alert" /> {nino.observaciones}
-            </div>
+            <div class="card-note"><Icon name="alert" /> <span>{nino.observaciones}</span></div>
           )}
-        </div>
+
+          <div class="card-actions mt-auto pt-5">
+            <a href={`/niños/nuevo?id=${nino.id}`} class="btn btn-ghost">Editar</a>
+          </div>
+        </article>
       );
     })}
   </div>

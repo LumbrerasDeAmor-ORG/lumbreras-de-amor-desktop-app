@@ -20,8 +20,8 @@ const estadoBadgeClass: Record<string, string> = {
   active="eventos"
 >
   <div slot="actions">
-    <a href="/voluntarios"><button class="btn btn-ghost" type="button">Equipo de Voluntarios</button></a>
-    <a href="/eventos/nuevo"><button class="btn btn-primary" type="button">+ Crear Evento</button></a>
+    <a href="/voluntarios" class="btn btn-ghost">Equipo de Voluntarios</a>
+    <a href="/eventos/nuevo" class="btn btn-primary">+ Crear evento</a>
   </div>
 
   <div
@@ -34,14 +34,14 @@ const estadoBadgeClass: Record<string, string> = {
 
   <!-- FILTROS DE EVENTOS (SIN INTEGRACIÓN FAMILIAR, CON ESTADO EN CURSO) -->
   <div class="card" style="margin-bottom: 1.1rem; display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
-    <select id="filtro-cat-evento" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+    <select id="filtro-cat-evento" class="form-control !w-auto">
       <option value="">Todas las categorías</option>
       {CATEGORIAS_EVENTO.map((cat) => (
         <option value={cat}>{cat}</option>
       ))}
     </select>
 
-    <select id="filtro-estado-evento" style="padding:0.48rem 0.65rem; border:1px solid var(--card-border); border-radius:8px; font-size:0.82rem; background:#fff;">
+    <select id="filtro-estado-evento" class="form-control !w-auto">
       <option value="">Todos los estados</option>
       <option value="Planificado">Planificado</option>
       <option value="En curso">En curso</option>
@@ -106,7 +106,7 @@ const estadoBadgeClass: Record<string, string> = {
             </label>
           </div>
 
-          <div style="margin-top:0.85rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+          <div class="card-actions">
             <button class="btn btn-ghost btn-editar-evento" type="button" data-edit-id={evento.id}>
               ✎ Editar Evento
             </button>
@@ -138,13 +138,14 @@ const estadoBadgeClass: Record<string, string> = {
   }
   .vol-select-nombres {
     width: 100%;
-    padding: 0.4rem 0.55rem;
-    border: 1px solid var(--card-border);
-    border-radius: 6px;
-    font-size: 0.78rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    font-size: 0.8rem;
     background: #fff;
     color: var(--text-main);
     font-family: inherit;
+    font-weight: 400;
   }
 </style>
 
@@ -285,13 +286,13 @@ const estadoBadgeClass: Record<string, string> = {
       <div class="vol-dropdown-box" style="margin-top:0.85rem; padding:0.55rem 0.65rem; background:#f9fafb; border:1px solid var(--card-border); border-radius:8px;">
         <label style="display:flex; flex-direction:column; gap:0.35rem; font-size:0.76rem; font-weight:600;">
           <span>Equipo de Voluntarios Asignados:</span>
-          <select class="vol-select-nombres" style="width:100%; padding:0.4rem 0.55rem; border:1px solid var(--card-border); border-radius:6px; font-size:0.78rem; background:#fff;">
+          <select class="vol-select-nombres">
             <option value="">Ver nombres (${nombres.length} registrados)...</option>
             ${opcionesHtml}
           </select>
         </label>
       </div>
-      <div style="margin-top:0.85rem; display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+      <div class="card-actions">
         <button class="btn btn-ghost btn-editar-evento" type="button" data-edit-id="${ev.id}">
           ✎ Editar Evento
         </button>

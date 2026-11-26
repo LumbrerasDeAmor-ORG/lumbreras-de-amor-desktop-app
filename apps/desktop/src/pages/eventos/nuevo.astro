@@ -23,7 +23,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
   </div>
 
   <!-- BARRA DE PROGRESO DEL WIZARD (3 PÁGINAS) -->
-  <div class="wizard-stepper card" style="max-width: 780px; margin-bottom: 1rem;">
+  <div class="wizard-stepper card mx-auto mb-4 max-w-3xl">
     <div class="step-item active" data-step-indicator="1">
       <span class="step-circle">1</span>
       <div>
@@ -49,7 +49,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     </div>
   </div>
 
-  <form id="form-evento" class="card" style="max-width: 780px;" novalidate>
+  <form id="form-evento" class="form-card p-7" novalidate>
     <input type="hidden" id="ev-id-editar" name="idEditar" value="" />
 
     <!-- =================================================================== -->
@@ -404,11 +404,6 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     margin-top: 0.15rem;
   }
 
-  .form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
-  }
   .form-grid label {
     display: flex;
     flex-direction: column;
@@ -416,16 +411,6 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-main);
-  }
-  .form-grid input,
-  .form-grid select,
-  .form-grid textarea {
-    font-weight: 400;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-family: inherit;
   }
 
   /* Buscador reactivo de coordinadores (F4-01) */
@@ -495,7 +480,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     transition: background 0.12s ease;
   }
   :global(.coord-result-item:hover) {
-    background: #f0fdfa;
+    background: #f8f2fb;
   }
   :global(.coord-result-main) {
     display: flex;
@@ -529,8 +514,8 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     align-items: center;
     gap: 0.8rem;
     padding: 0.68rem 0.85rem;
-    background: #f0fdfa;
-    border: 1px solid #99f6e4;
+    background: #f8f2fb;
+    border: 1px solid #dcc0e8;
     border-radius: 10px;
   }
   .coord-selected-info {
@@ -567,9 +552,9 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     margin-top: 0.15rem;
   }
   .btn-change-coord {
-    border: 1px solid #99f6e4;
+    border: 1px solid #dcc0e8;
     background: #ffffff;
-    color: #0f766e;
+    color: #4c1763;
     font-size: 0.75rem;
     font-weight: 600;
     padding: 0.35rem 0.65rem;
@@ -579,7 +564,7 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     white-space: nowrap;
   }
   .btn-change-coord:hover {
-    background: #ccfbf1;
+    background: #eedff4;
   }
 
   /* Selector no gravoso de voluntarios */
@@ -629,8 +614,8 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     border-radius: 999px;
     font-size: 0.74rem;
     font-weight: 600;
-    background: #ccfbf1;
-    color: #0f766e;
+    background: #eedff4;
+    color: #4c1763;
   }
   :global(.vol-chip.externo) {
     background: #fef3c7;
@@ -667,8 +652,8 @@ const voluntariosExternos = voluntarios.filter((v) => v.tipo === "Externo");
     border-bottom: 1px solid var(--card-border);
   }
   .propio-header {
-    background: #f0fdfa;
-    color: #0f766e;
+    background: #f8f2fb;
+    color: #4c1763;
   }
   .externo-header {
     background: #fffbeb;

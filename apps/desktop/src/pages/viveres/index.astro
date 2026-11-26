@@ -148,7 +148,7 @@ const estadoClass: Record<string, string> = {
           type="text"
           readonly
           placeholder="Se autocompleta al seleccionar donante"
-          style="background:#f0fdfa; font-family:monospace; font-weight:700; color:#0f766e;"
+          style="background:#f8f2fb; font-family:monospace; font-weight:700; color:#4c1763;"
         />
       </label>
       <label>
@@ -197,43 +197,7 @@ const estadoClass: Record<string, string> = {
       />
     </div>
 
-    <table class="tabla-viveres">
-      <thead>
-        <tr>
-          <th>Artículo Y Fuente</th>
-          <th>Descripción del Donativo</th>
-          <th>Categoría</th>
-          <th>Cantidad</th>
-          <th>Mínimo</th>
-          <th>Bodega</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody id="tbody-especie">
-        {items.map((item) => (
-          <tr
-            class="especie-row"
-            data-categoria={item.categoria}
-            data-texto={`${item.nombre} ${item.fuente} ${item.categoria}`.toLowerCase()}
-          >
-            <td>
-              <div style="font-weight:600;">{item.nombre}</div>
-              <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: {item.fuente}</div>
-            </td>
-            <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">
-              {item.descripcion}
-            </td>
-            <td>
-              <span class="badge badge-curso">{item.categoria}</span>
-            </td>
-            <td><strong>{item.cantidadActual}</strong> {item.unidad}</td>
-            <td>{item.minimo} {item.unidad}</td>
-            <td>{item.ubicacionBodega}</td>
-            <td><span class={`badge ${estadoClass[item.estado]}`}>{item.estado}</span></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div id="tabla-especie"></div>
   </div>
 
   <!-- SECCIÓN 2: DONATIVOS ECONÓMICOS -->
@@ -251,46 +215,10 @@ const estadoClass: Record<string, string> = {
       </div>
     </div>
 
-    <table class="tabla-viveres">
-      <thead>
-        <tr>
-          <th>Recibo</th>
-          <th>Donante Y NIT</th>
-          <th>Tipo</th>
-          <th>Destino / Programa</th>
-          <th>Descripción del Donativo</th>
-          <th>Monto</th>
-        </tr>
-      </thead>
-      <tbody id="tbody-economicos">
-        {donaciones.map((d) => (
-          <tr>
-            <td>
-              <span style="font-family: monospace; font-weight: 600;">{d.recibo}</span>
-            </td>
-            <td>
-              <div style="font-weight: 600;">{d.donante}</div>
-              {d.nit && (
-                <div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">
-                  NIT: {d.nit}
-                </div>
-              )}
-            </td>
-            <td>
-              <span class="badge badge-media">{d.tipoPersona || d.tipo}</span>
-            </td>
-            <td>{d.destino}</td>
-            <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">
-              {d.descripcion}
-            </td>
-            <td style="white-space: nowrap;">
-              <strong style="color: var(--accent);">{formatQ(d.monto)}</strong>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div id="tabla-economicos"></div>
   </div>
+  <script type="application/json" id="especie-data" set:html={JSON.stringify(items).replace(/</g, "\\u003c")}></script>
+  <script type="application/json" id="economicos-data" set:html={JSON.stringify(donaciones).replace(/</g, "\\u003c")}></script>
 </Layout>
 
 <style>
@@ -395,33 +323,11 @@ const estadoClass: Record<string, string> = {
     font-size: 0.84rem;
     font-family: inherit;
   }
-
-  .tabla-viveres {
-    width: 100%;
-    border-collapse: collapse;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    overflow: hidden;
-    font-size: 0.82rem;
-  }
-  .tabla-viveres th {
-    text-align: left;
-    background: #f9fafb;
-    padding: 0.7rem 0.9rem;
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .tabla-viveres td {
-    padding: 0.7rem 0.9rem;
-    border-top: 1px solid var(--card-border);
-    vertical-align: top;
-  }
 </style>
 
 <script>
   import { formatQ } from "../../lib/currency";
+  import { crearTabla, esc, tag, type TonoTag } from "../../lib/dataTable";
 
   const tabEspecie = document.getElementById("tab-especie");
   const tabEconomicos = document.getElementById("tab-economicos");
@@ -435,8 +341,6 @@ const estadoClass: Record<string, string> = {
   const cancelEspecie = document.getElementById("cancel-especie");
   const cancelEconomico = document.getElementById("cancel-economico");
 
-  const tbodyEspecie = document.getElementById("tbody-especie");
-  const tbodyEconomicos = document.getElementById("tbody-economicos");
   const countEspecie = document.getElementById("count-especie");
   const countEconomicos = document.getElementById("count-economicos");
   const kpiCountDonaciones = document.getElementById("kpi-count-donaciones");
@@ -529,16 +433,92 @@ const estadoClass: Record<string, string> = {
   const inputBuscarEspecie = document.getElementById("buscar-especie") as HTMLInputElement | null;
   let catSeleccionada = "todas";
 
+  interface ItemEspecie {
+    nombre: string;
+    fuente: string;
+    descripcion: string;
+    categoria: string;
+    cantidadActual: number;
+    unidad: string;
+    minimo: number;
+    ubicacionBodega: string;
+    estado: string;
+  }
+  interface DonacionFila {
+    recibo: string;
+    donante: string;
+    nit?: string;
+    tipo: string;
+    tipoPersona?: string;
+    destino: string;
+    descripcion: string;
+    monto: number;
+  }
+
+  const tonoEstado: Record<string, TonoTag> = { "Óptimo": "ok", "Bajo Stock": "warn", "Crítico": "danger" };
+  const leerJson = <T,>(id: string): T[] => JSON.parse(document.getElementById(id)?.textContent ?? "[]");
+
+  const tablaEspecie = crearTabla<ItemEspecie, { cat: string; q: string }>({
+    mount: document.getElementById("tabla-especie")!,
+    data: leerJson<ItemEspecie>("especie-data"),
+    noun: "artículos",
+    emptyTitle: "No hay artículos para mostrar",
+    emptyText: "Probá con otra categoría o búsqueda.",
+    filter: (i, f) => {
+      const q = f.q.trim().toLowerCase();
+      const texto = `${i.nombre} ${i.fuente} ${i.categoria}`.toLowerCase();
+      return (f.cat === "todas" || i.categoria === f.cat) && (!q || texto.includes(q));
+    },
+    columns: [
+      {
+        id: "articulo",
+        header: "Artículo y fuente",
+        accessor: (i) => i.nombre,
+        cell: (i) => `<div class="font-semibold text-slate-900">${esc(i.nombre)}</div><div class="mt-0.5 text-xs text-slate-500">Fuente: ${esc(i.fuente)}</div>`,
+      },
+      {
+        id: "descripcion",
+        header: "Descripción",
+        cell: (i) => `<div class="max-w-[230px] text-xs leading-relaxed text-slate-500">${esc(i.descripcion)}</div>`,
+      },
+      { id: "categoria", header: "Categoría", accessor: (i) => i.categoria, cell: (i) => `<span class="text-[13px] text-slate-700">${esc(i.categoria)}</span>` },
+      {
+        id: "stock",
+        header: "Stock",
+        accessor: (i) => i.cantidadActual,
+        cell: (i) =>
+          `<div><strong class="font-semibold text-slate-900">${esc(i.cantidadActual)}</strong> <span class="text-slate-500">${esc(i.unidad)}</span></div><div class="text-xs text-slate-500">Mín. ${esc(i.minimo)}</div>`,
+        align: "right",
+        className: "whitespace-nowrap",
+      },
+      { id: "bodega", header: "Bodega", accessor: (i) => i.ubicacionBodega, cell: (i) => esc(i.ubicacionBodega) },
+      { id: "estado", header: "Estado", accessor: (i) => i.estado, cell: (i) => tag(tonoEstado[i.estado] ?? "neutral", i.estado), className: "whitespace-nowrap" },
+    ],
+  });
+
+  const tablaEconomicos = crearTabla<DonacionFila>({
+    mount: document.getElementById("tabla-economicos")!,
+    data: leerJson<DonacionFila>("economicos-data"),
+    noun: "donaciones",
+    emptyTitle: "Aún no hay donaciones económicas",
+    emptyText: "Registrá la primera con el botón «Nueva donación».",
+    columns: [
+      { id: "recibo", header: "Recibo", accessor: (d) => d.recibo, cell: (d) => `<span class="font-mono text-[13px] font-semibold">${esc(d.recibo)}</span>`, className: "whitespace-nowrap" },
+      {
+        id: "donante",
+        header: "Donante y NIT",
+        accessor: (d) => d.donante,
+        cell: (d) => `<div class="font-semibold text-slate-900">${esc(d.donante)}</div>${d.nit ? `<div class="mt-0.5 font-mono text-xs text-slate-500">NIT: ${esc(d.nit)}</div>` : ""}`,
+      },
+      { id: "tipo", header: "Tipo", accessor: (d) => d.tipoPersona || d.tipo, cell: (d) => `<span class="text-[13px] text-slate-700">${esc(d.tipoPersona || d.tipo)}</span>`, className: "whitespace-nowrap" },
+      { id: "destino", header: "Destino / programa", accessor: (d) => d.destino, cell: (d) => esc(d.destino) },
+      { id: "descripcion", header: "Descripción", cell: (d) => `<div class="max-w-[240px] text-xs leading-relaxed text-slate-500">${esc(d.descripcion)}</div>` },
+      { id: "monto", header: "Monto", accessor: (d) => d.monto, cell: (d) => `<strong class="font-semibold text-brand-700">${esc(formatQ(d.monto))}</strong>`, align: "right", className: "whitespace-nowrap" },
+    ],
+  });
+
   function filtrarInventarioEspecie() {
-    const q = (inputBuscarEspecie?.value ?? "").trim().toLowerCase();
-    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".especie-row"));
-    for (const row of rows) {
-      const cat = row.dataset.categoria ?? "";
-      const txt = row.dataset.texto ?? "";
-      const matchCat = catSeleccionada === "todas" || cat === catSeleccionada;
-      const matchTxt = !q || txt.includes(q);
-      row.style.display = matchCat && matchTxt ? "" : "none";
-    }
+    tablaEspecie.setFilter({ cat: catSeleccionada, q: inputBuscarEspecie?.value ?? "" });
   }
 
   for (const pill of catPills) {
@@ -584,28 +564,9 @@ const estadoClass: Record<string, string> = {
     const descripcion = String(fd.get("descripcion") ?? "");
 
     const estado = cantidad <= Math.floor(minimo * 0.4) ? "Crítico" : cantidad < minimo ? "Bajo Stock" : "Óptimo";
-    const badgeCls = estado === "Óptimo" ? "badge-baja" : estado === "Bajo Stock" ? "badge-media" : "badge-alta";
 
-    const tr = document.createElement("tr");
-    tr.className = "especie-row";
-    tr.dataset.categoria = categoria;
-    tr.dataset.texto = `${nombre} ${fuente} ${categoria}`.toLowerCase();
-    tr.innerHTML = `
-      <td>
-        <div style="font-weight:600;">${nombre}</div>
-        <div style="font-size:0.72rem; color:var(--text-muted);">Fuente: ${fuente}</div>
-      </td>
-      <td style="max-width: 280px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
-      <td><span class="badge badge-curso">${categoria}</span></td>
-      <td><strong>${cantidad}</strong> ${unidad}</td>
-      <td>${minimo} ${unidad}</td>
-      <td>${ubicacionBodega}</td>
-      <td><span class="badge ${badgeCls}">${estado}</span></td>
-    `;
-    tbodyEspecie?.prepend(tr);
-    if (countEspecie && tbodyEspecie) {
-      countEspecie.textContent = String(tbodyEspecie.querySelectorAll("tr").length);
-    }
+    tablaEspecie.addRow({ nombre, fuente, descripcion, categoria, cantidadActual: cantidad, unidad, minimo, ubicacionBodega, estado });
+    if (countEspecie) countEspecie.textContent = String(tablaEspecie.getData().length);
     formEspecie.reset();
     formEspecie.style.display = "none";
     filtrarInventarioEspecie();
@@ -649,25 +610,10 @@ const estadoClass: Record<string, string> = {
       // Fallback directo en tabla UI si el sidecar no está disponible
     }
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><span style="font-family: monospace; font-weight: 600;">${recibo}</span></td>
-      <td>
-        <div style="font-weight: 600;">${donante}</div>
-        ${nit ? `<div style="font-size: 0.72rem; color: var(--text-muted); font-family: monospace;">NIT: ${nit}</div>` : ""}
-      </td>
-      <td><span class="badge badge-media">${tipo}</span></td>
-      <td>${destino}</td>
-      <td style="max-width: 300px; color: var(--text-muted); font-size: 0.78rem;">${descripcion}</td>
-      <td style="white-space: nowrap;"><strong style="color: var(--accent);">${formatQ(monto)}</strong></td>
-    `;
-    tbodyEconomicos?.prepend(tr);
-
-    if (tbodyEconomicos) {
-      const totalRows = tbodyEconomicos.querySelectorAll("tr").length;
-      if (countEconomicos) countEconomicos.textContent = String(totalRows);
-      if (kpiCountDonaciones) kpiCountDonaciones.textContent = String(totalRows);
-    }
+    tablaEconomicos.addRow({ recibo, donante, nit, tipo, tipoPersona: tipo, destino, descripcion, monto });
+    const totalRows = tablaEconomicos.getData().length;
+    if (countEconomicos) countEconomicos.textContent = String(totalRows);
+    if (kpiCountDonaciones) kpiCountDonaciones.textContent = String(totalRows);
     if (kpiTotalFondos) {
       const actual = parseFloat(kpiTotalFondos.dataset.total ?? "0") || 0;
       const nuevoTotal = actual + monto;

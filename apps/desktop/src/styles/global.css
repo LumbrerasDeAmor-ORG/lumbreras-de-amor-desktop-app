@@ -1,0 +1,218 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/saira";
+@import "tailwindcss";
+
+/* ───────── Tokens de diseño ───────── */
+@theme {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Saira Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+
+  /* Morado institucional (#4c1763 en la web de la ONG) */
+  --color-brand-50: #f8f2fb;
+  --color-brand-100: #eedff4;
+  --color-brand-200: #dcc0e8;
+  --color-brand-300: #bb88d0;
+  --color-brand-400: #9a52b8;
+  --color-brand-500: #7a2a9c;
+  --color-brand-600: #621e80;
+  --color-brand-700: #4c1763;
+  --color-brand-800: #3b1150;
+  --color-brand-900: #2a0b3a;
+
+  /* Verde azulado (aro del logo / secundario de la web) */
+  --color-accent-50: #effaf8;
+  --color-accent-100: #d5f0ec;
+  --color-accent-200: #aadcd6;
+  --color-accent-300: #71b8b1;
+  --color-accent-400: #3f9aa0;
+  --color-accent-500: #047c8d;
+  --color-accent-600: #036a79;
+  --color-accent-700: #04535f;
+
+  --color-surface: #f8f8f9;
+  --color-sidebar: #1e0a2b;
+  --color-ink: #001d23;
+
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-card-hover: 0 4px 6px -1px rgb(16 24 40 / 0.07), 0 12px 24px -8px rgb(16 24 40 / 0.12);
+  --shadow-pop: 0 20px 40px -12px rgb(16 24 40 / 0.18);
+}
+
+/* Variables heredadas: las páginas existentes aún las usan (no eliminar) */
+:root {
+  --sidebar-bg: #1e0a2b;
+  --sidebar-fg: #cbd5e1;
+  --content-bg: #f8f8f9;
+  --card-bg: #ffffff;
+  --card-border: #e4e7ec;
+  --text-main: #101828;
+  --text-muted: #667085;
+  --accent: #4c1763;
+  --accent-dark: #3b1150;
+  --secondary: #71b8b1;
+  --badge-alta-bg: #fef3c7;
+  --badge-alta-fg: #92400e;
+  --badge-media-bg: #dbeafe;
+  --badge-media-fg: #1e40af;
+  --badge-baja-bg: #dcfce7;
+  --badge-baja-fg: #166534;
+  --badge-curso-bg: #eedff4;
+  --badge-curso-fg: #4c1763;
+  --content-zoom: 1;
+  --font-mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+}
+
+@layer base {
+  html, body { height: 100%; width: 100%; overflow: hidden; }
+  body {
+    @apply flex flex-col bg-surface font-sans text-[14px] leading-normal text-ink antialiased;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3, .font-display { font-family: var(--font-display); letter-spacing: -0.005em; }
+  ::selection { background: var(--color-brand-200); }
+  :focus-visible { outline: 2px solid var(--color-brand-500); outline-offset: 2px; }
+  table { font-variant-numeric: tabular-nums; }
+
+  /* Scrollbars discretas */
+  * { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+  *::-webkit-scrollbar-thumb:hover { background: #94a3b8; background-clip: content-box; border: 2px solid transparent; }
+}
+
+@layer components {
+  /* ───────── Sidebar colapsable ───────── */
+  .sidebar { width: 16rem; transition: width 200ms ease, padding 200ms ease; }
+  html[data-sidebar="collapsed"] .sidebar { width: 4.5rem !important; padding-inline: 0.75rem !important; }
+  html[data-sidebar="collapsed"] .sidebar :is(.nav-label, .brand-text, .nav-chevron) { display: none !important; }
+  html[data-sidebar="collapsed"] .sidebar a,
+  html[data-sidebar="collapsed"] .sidebar nav button,
+  html[data-sidebar="collapsed"] .sidebar > button { justify-content: center !important; padding-inline: 0 !important; }
+  html[data-sidebar="collapsed"] .sidebar-brand { justify-content: center !important; padding-inline: 0 !important; }
+  html[data-sidebar="collapsed"] .sidebar .section-label { height: 0 !important; padding: 0 !important; margin: 0.75rem 0.5rem !important; font-size: 0 !important; border-top: 1px solid rgb(255 255 255 / 0.08) !important; }
+  html[data-sidebar="collapsed"] #subnav-organizar { display: flex !important; margin-left: 0 !important; padding-left: 0 !important; border-left: 0 !important; }
+  html[data-sidebar="collapsed"] #subnav-organizar a::before { left: -0.75rem !important; }
+  html[data-sidebar="collapsed"] .sidebar-toggle-icon { transform: rotate(180deg); }
+
+  /* ───────── Botones ───────── */
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-transparent px-3.5 py-2 text-[13px] font-semibold leading-5 whitespace-nowrap transition duration-150 select-none;
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply bg-brand-700 text-white shadow-sm hover:bg-brand-800 active:bg-brand-900; }
+  .btn-ghost { @apply border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-400; }
+  .btn-danger { @apply bg-red-600 text-white shadow-sm hover:bg-red-700; }
+  .btn-secondary { @apply bg-accent-300 text-accent-700 shadow-sm hover:bg-accent-200; }
+  .btn-sm { @apply px-2.5 py-1 text-xs; }
+
+  /* ───────── Tarjetas ───────── */
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white p-5 shadow-card;
+  }
+  .card-actions { @apply mt-4 flex flex-wrap items-stretch gap-2; }
+  .card-actions > .btn { @apply min-w-0 flex-1 whitespace-normal text-center; }
+  .card-hover { @apply transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-card-hover; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  /* ───────── Tarjetas de persona ───────── */
+  .avatar { @apply flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-sm font-semibold text-brand-700 ring-1 ring-inset ring-brand-200; }
+  .person-card { @apply flex flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-card transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-card-hover; }
+  .person-head { @apply flex items-start gap-3; }
+  .person-name { @apply text-[15px] font-semibold leading-snug text-slate-900; }
+  .person-sub { @apply mt-0.5 text-xs leading-snug text-slate-500; }
+  .info-list { @apply mt-4 flex flex-col gap-2.5 border-t border-slate-100 pt-4 text-[13px] text-slate-600; }
+  .info-list li { @apply flex items-start gap-2.5 leading-snug; }
+  .info-list li > .ico-wrap { @apply mt-px shrink-0 text-slate-400; }
+  .info-list .truncate-line { @apply min-w-0 truncate; }
+  .card-note { @apply mt-4 flex items-start gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800; }
+  .card-foot { @apply mt-auto flex items-center justify-between gap-3 pt-4 text-xs text-slate-500; }
+  .card-foot strong { @apply font-semibold text-slate-900 tabular-nums; }
+
+  /* Etiqueta de estado: punto de color + texto (no se deforma como un badge) */
+  .tag { @apply inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium text-slate-600; }
+  .tag::before { content: ""; @apply size-1.5 shrink-0 rounded-full bg-slate-400; }
+  .tag-ok::before { @apply bg-emerald-500; }
+  .tag-warn::before { @apply bg-amber-500; }
+  .tag-danger::before { @apply bg-red-500; }
+  .tag-info::before { @apply bg-blue-500; }
+  .tag-brand::before { @apply bg-brand-600; }
+  .tag-accent::before { @apply bg-accent-500; }
+
+  /* ───────── Badges ───────── */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 whitespace-nowrap text-[11px] font-semibold leading-4 ring-1 ring-inset;
+  }
+  .badge-alta { @apply bg-amber-50 text-amber-800 ring-amber-200; }
+  .badge-media { @apply bg-blue-50 text-blue-800 ring-blue-200; }
+  .badge-baja { @apply bg-emerald-50 text-emerald-800 ring-emerald-200; }
+  .badge-curso { @apply bg-accent-50 text-accent-600 ring-accent-200; }
+
+  /* ───────── Controles de formulario ───────── */
+  .form-grid {
+    @apply grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2;
+  }
+  .form-grid label,
+  .form-label {
+    @apply flex flex-col gap-1.5 text-[13px] font-medium text-slate-700;
+  }
+  .form-grid :is(input, select, textarea),
+  .toolbar :is(input, select),
+  .form-control {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-900 shadow-xs transition duration-150;
+    @apply placeholder:text-slate-400 hover:border-slate-400;
+    @apply focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15;
+    font-family: inherit;
+  }
+  .form-grid :is(input, select, textarea):user-invalid { @apply border-red-400 focus:border-red-500 focus:ring-red-500/15; }
+  .form-grid textarea { @apply min-h-[88px] resize-y; }
+  .form-grid select, .toolbar select, select.form-control { @apply cursor-pointer; }
+
+  /* ───────── Contenedor de formularios ───────── */
+  .form-card {
+    @apply mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card;
+  }
+  .form-card-header {
+    @apply flex items-start gap-3.5 border-b border-slate-200 bg-gradient-to-b from-white to-slate-50/70 px-7 py-5;
+  }
+  .form-card-icon {
+    @apply flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200;
+  }
+  .form-card-icon .ico { margin: 0 !important; }
+  .form-card-title { @apply text-[15px] font-semibold text-slate-900; }
+  .form-card-desc { @apply mt-0.5 text-[13px] text-slate-500; }
+  .form-card-body { @apply px-7 py-6; }
+  .form-card-footer {
+    @apply flex flex-row-reverse flex-wrap items-center justify-start gap-2.5 border-t border-slate-200 bg-slate-50 px-7 py-4;
+  }
+  .form-error {
+    @apply mt-5 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-[13px] font-medium text-red-800;
+  }
+
+  /* ───────── Toolbar de filtros ───────── */
+  .toolbar { @apply mb-4 flex flex-wrap gap-3; }
+  .toolbar input { @apply min-w-64 flex-1; }
+  .toolbar select { @apply w-auto; }
+
+  /* ───────── Tablas ───────── */
+  /* Tabla pintada por TanStack (lib/dataTable.ts) */
+  .data-table-plain { @apply border-separate border-spacing-0; }
+  .data-table-plain thead th { @apply sticky top-0 border-b border-slate-200 bg-slate-50 px-3.5 py-3 text-[11px] font-semibold tracking-wider text-slate-500 uppercase whitespace-nowrap; }
+  .data-table-plain tbody td { @apply border-b border-slate-100 px-3.5 py-3 align-middle text-slate-700; }
+  .data-table-plain tbody tr:last-child td { @apply border-b-0; }
+  .data-table-plain tbody tr:hover td { @apply bg-brand-50/40; }
+  .data-table { @apply w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-card; }
+  .data-table thead th { @apply border-b border-slate-200 bg-slate-50 px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-slate-500 uppercase; }
+  .data-table tbody td { @apply border-b border-slate-100 px-4 py-3 align-middle; }
+  .data-table tbody tr:last-child td { @apply border-b-0; }
+  .data-table tbody tr:hover td { @apply bg-slate-50/70; }
+}
+
+@media print {
+  html, body { height: auto; overflow: visible; }
+}
